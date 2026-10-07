@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}SRT Translator · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}SRT Translator{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl space-y-6">
+    <!-- Tool header -->
+    <section class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm">
+        <div class="flex items-start justify-between">
+            <div>
+                <h1 class="text-xl font-bold text-slate-800">SRT Translator</h1>
+                <p class="mt-1 text-sm text-slate-500">
+                    Dịch và chuyển đổi file phụ đề SRT. (Khung giao diện — logic sẽ được bổ sung sau.)
+                </p>
+            </div>
+            <span class="text-xs font-medium px-3 py-1 rounded-full bg-amber-100 text-amber-700">
+                Skeleton
+            </span>
+        </div>
+    </section>
+
+    <!-- Upload dropzone (placeholder) -->
+    <section class="rounded-xl border-2 border-dashed border-slate-300 p-10 flex flex-col items-center justify-center text-center bg-white">
+        <span class="text-5xl mb-4">📄</span>
+        <p class="text-slate-600 font-medium">Kéo thả file .srt vào đây</p>
+        <p class="text-sm text-slate-400 mt-1">Hoặc bấm để chọn file (chưa kết nối backend)</p>
+        <button type="button" disabled
+                class="mt-5 px-5 py-2.5 rounded-lg bg-indigo-600/50 text-white text-sm font-medium cursor-not-allowed">
+            Chọn file
+        </button>
+    </section>
+
+    <p class="text-xs text-slate-400 text-center">
+        Đây là khung interface — chức năng sẽ được triển khai ở bước tiếp theo.
+    </p>
+</div>
+{% endblock %}

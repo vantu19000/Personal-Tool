@@ -1,0 +1,19 @@
+# --- Web framework ---
+fastapi
+uvicorn[standard]
+
+# --- Templating ---
+jinja2
+
+# --- HTTP client (async, dùng cho gọi API bên ngoài) ---
+aiohttp
+
+# --- SRT / subtitle ---
+pysrt
+
+# --- Validation / settings ---
+pydantic
+pydantic-settings
+
+# --- Form / file upload ---
+python-multipart

@@ -1,0 +1,45 @@
+<aside class="w-64 shrink-0 bg-slate-900 text-slate-100 flex flex-col h-screen sticky top-0">
+    <!-- Brand -->
+    <div class="px-5 py-5 border-b border-slate-800">
+        <div class="flex items-center gap-3">
+            <div class="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white">
+                {{ settings.APP_NAME[:1] }}
+            </div>
+            <div class="min-w-0">
+                <h1 class="text-sm font-bold leading-tight truncate">{{ settings.APP_NAME }}</h1>
+                <p class="text-[11px] text-slate-400 truncate">{{ settings.DESCRIPTION }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+        <!-- Dashboard -->
+        <a href="/"
+           class="block px-3 py-2 rounded-lg text-sm font-medium transition
+                  {% if active_tool == 'dashboard' %}bg-indigo-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+            📊 Dashboard
+        </a>
+
+        <!-- Tools -->
+        <p class="px-3 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Tools</p>
+        {% for tool in tools %}
+        <a href="{{ tool.path }}"
+           class="block px-3 py-2 rounded-lg text-sm font-medium transition
+                  {% if active_tool == tool.id %}bg-indigo-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+            {{ tool.name }}
+        </a>
+        {% endfor %}
+
+        <!-- Empty slot for future tools -->
+        <p class="px-3 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Coming soon</p>
+        <div class="px-3 py-2 rounded-lg text-sm text-slate-600 italic border border-dashed border-slate-700">
+            Thêm tool mới tại đây…
+        </div>
+    </nav>
+
+    <!-- Footer -->
+    <div class="px-5 py-4 border-t border-slate-800 text-[11px] text-slate-500">
+        FastAPI · v{{ settings.APP_VERSION }}
+    </div>
+</aside>
