@@ -7,32 +7,61 @@
 <div class="max-w-3xl space-y-6">
     <!-- Tool header -->
     <section class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm">
-        <div class="flex items-start justify-between">
-            <div>
-                <h1 class="text-xl font-bold text-slate-800">SRT Translator</h1>
-                <p class="mt-1 text-sm text-slate-500">
-                    Dịch và chuyển đổi file phụ đề SRT. (Khung giao diện — logic sẽ được bổ sung sau.)
-                </p>
-            </div>
-            <span class="text-xs font-medium px-3 py-1 rounded-full bg-amber-100 text-amber-700">
-                Skeleton
-            </span>
-        </div>
+        <h1 class="text-xl font-bold text-slate-800">SRT Translator</h1>
+        <p class="mt-1 text-sm text-slate-500">
+            Dịch file phụ đề .srt bằng model Ollama chạy cục bộ (mặc định:
+            <code class="text-xs bg-slate-100 px-1.5 py-0.5 rounded">{{ default_model }}</code> trên
+            <code class="text-xs bg-slate-100 px-1.5 py-0.5 rounded">localhost:11434</code>).
+        </p>
     </section>
 
-    <!-- Upload dropzone (placeholder) -->
-    <section class="rounded-xl border-2 border-dashed border-slate-300 p-10 flex flex-col items-center justify-center text-center bg-white">
-        <span class="text-5xl mb-4">📄</span>
-        <p class="text-slate-600 font-medium">Kéo thả file .srt vào đây</p>
-        <p class="text-sm text-slate-400 mt-1">Hoặc bấm để chọn file (chưa kết nối backend)</p>
-        <button type="button" disabled
-                class="mt-5 px-5 py-2.5 rounded-lg bg-indigo-600/50 text-white text-sm font-medium cursor-not-allowed">
-            Chọn file
-        </button>
-    </section>
+    <!-- Translation form -->
+    <form method="post" action="/tools/srt-translator/translate" enctype="multipart/form-data"
+          class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
+        <!-- File picker -->
+        <div>
+            <label for="srt-file" class="block text-sm font-medium text-slate-700 mb-1.5">File phụ đề</label>
+            <input type="file" id="srt-file" name="file" accept=".srt" required
+                   class="block w-full text-sm text-slate-600 file:mr-4 file:py-2.5 file:px-4
+                          file:rounded-lg file:border-0 file:text-sm file:font-medium
+                          file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100
+                          file:cursor-pointer cursor-pointer">
+            <p class="mt-1 text-xs text-slate-400">Chỉ nhận file <code>.srt</code> (một file mỗi lần).</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <!-- Target language -->
+            <div>
+                <label for="target" class="block text-sm font-medium text-slate-700 mb-1.5">Ngôn ngữ đích</label>
+                <select id="target" name="target"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    {% for code, (label, _suffix) in languages.items() %}
+                    <option value="{{ code }}" {% if code == "vi" %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Ollama model -->
+            <div>
+                <label for="model" class="block text-sm font-medium text-slate-700 mb-1.5">Model Ollama</label>
+                <input type="text" id="model" name="model" value="{{ default_model }}"
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm
+                              focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end pt-2">
+            <button type="submit"
+                    class="px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium
+                           hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500">
+                Dịch phụ đề ↓
+            </button>
+        </div>
+    </form>
 
     <p class="text-xs text-slate-400 text-center">
-        Đây là khung interface — chức năng sẽ được triển khai ở bước tiếp theo.
+        Kết quả sẽ được tải về dưới dạng <code>&lt;tên file&gt;.&lt;ngôn ngữ&gt;.srt</code>.
+        Dịch bằng AI cục bộ — có thể mất vài phút với file dài.
     </p>
 </div>
 {% endblock %}
