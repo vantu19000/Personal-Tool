@@ -94,6 +94,38 @@ class TranslationConfig:
 
 
 # ---------------------------------------------------------------------------
+# 0. Ollama model discovery (used by the web UI)
+# ---------------------------------------------------------------------------
+
+
+async def list_ollama_models(
+    base_url: str = DEFAULT_OLLAMA_BASE_URL,
+    timeout_seconds: float = 5.0,
+) -> list[str]:
+    """Return the names of models available on a local Ollama instance.
+
+    Calls ``GET {base_url}/api/tags`` and extracts ``models[].name``.
+    Raises :class:`SRTTranslationError` when Ollama is unreachable or
+    returns an unexpected payload.
+    """
+    url = base_url.rstrip("/") + "/api/tags"
+    try:
+        timeout = aiohttp.ClientTimeout(total=timeout_seconds)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(url) as resp:
+                resp.raise_for_status()
+                data: dict[str, Any] = await resp.json()
+    except (aiohttp.ClientError, ValueError) as exc:
+        raise SRTTranslationError(f"Không liên hệ được Ollama tại {base_url}: {exc}") from exc
+
+    models = data.get("models")
+    if not isinstance(models, list):
+        raise SRTTranslationError("Phản hồi /api/tags từ Ollama không đúng định dạng.")
+    names = [m["name"] for m in models if isinstance(m, dict) and m.get("name")]
+    return sorted(names)
+
+
+# ---------------------------------------------------------------------------
 # 1. Scan source directory
 # ---------------------------------------------------------------------------
 

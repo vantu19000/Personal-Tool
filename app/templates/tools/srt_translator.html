@@ -16,7 +16,7 @@
     </section>
 
     <!-- Translation form -->
-    <form method="post" action="/tools/srt-translator/translate" enctype="multipart/form-data"
+    <form id="translate-form" method="post" action="/tools/srt-translator/translate" enctype="multipart/form-data"
           class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
         <!-- File picker -->
         <div>
@@ -44,17 +44,28 @@
             <!-- Ollama model -->
             <div>
                 <label for="model" class="block text-sm font-medium text-slate-700 mb-1.5">Model Ollama</label>
-                <input type="text" id="model" name="model" value="{{ default_model }}"
-                       class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm
-                              focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <select id="model" name="model"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white
+                               focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="{{ default_model }}" selected>{{ default_model }}</option>
+                </select>
+                <p id="model-status" class="mt-1 text-xs text-amber-600" hidden>
+                    Không liên hệ được Ollama — đang dùng model mặc định.
+                </p>
             </div>
         </div>
 
         <div class="flex items-center justify-end pt-2">
-            <button type="submit"
-                    class="px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium
-                           hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500">
-                Dịch phụ đề ↓
+            <button type="submit" id="translate-btn"
+                    class="inline-flex items-center px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium
+                           hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500
+                           disabled:opacity-60 disabled:cursor-not-allowed">
+                <svg id="translate-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                     class="animate-spin -mr-2 h-4 w-4 text-white" hidden>
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                <span id="translate-label">Dịch phụ đề ↓</span>
             </button>
         </div>
     </form>
@@ -64,4 +75,63 @@
         Dịch bằng AI cục bộ — có thể mất vài phút với file dài.
     </p>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Loading state for the submit button: spinner + disabled while the
+    // translation runs. On success the browser navigates (file download) and
+    // on error the page reloads, so a fresh button comes back either way.
+    (function () {
+        const form = document.getElementById("translate-form");
+        const btn = document.getElementById("translate-btn");
+        const spinner = document.getElementById("translate-spinner");
+        const label = document.getElementById("translate-label");
+        const idleText = label ? label.textContent : "";
+
+        function setLoading(isLoading) {
+            if (btn) {
+                btn.disabled = isLoading;
+                btn.classList.toggle("opacity-60", isLoading);
+                btn.classList.toggle("cursor-not-allowed", isLoading);
+            }
+            if (spinner) spinner.hidden = !isLoading;
+            if (label) label.textContent = isLoading ? "Đang dịch phụ đề…" : idleText;
+        }
+
+        if (form && btn) {
+            form.addEventListener("submit", () => setLoading(true));
+            window.addEventListener("pageshow", () => setLoading(false)); // reset after back/forward restore
+        }
+    })();
+
+    // Populate the Ollama model select from GET /tools/srt-translator/models
+    (function () {
+        const select = document.getElementById("model");
+        const status = document.getElementById("model-status");
+        if (!select) return;
+        const fallback = select.value; // default model baked in by the server
+
+        fetch("/tools/srt-translator/models")
+            .then((r) => r.json())
+            .then((data) => {
+                if (!data.online || !Array.isArray(data.models) || !data.models.length) {
+                    if (status) status.hidden = false;
+                    return;
+                }
+                select.innerHTML = "";
+                for (const name of data.models) {
+                    const opt = document.createElement("option");
+                    opt.value = name;
+                    opt.textContent = name;
+                    select.appendChild(opt);
+                }
+                // Keep the server default when available, otherwise pick the first.
+                select.value = data.models.includes(fallback) ? fallback : data.models[0];
+            })
+            .catch(() => {
+                if (status) status.hidden = false;
+            });
+    })();
+</script>
 {% endblock %}

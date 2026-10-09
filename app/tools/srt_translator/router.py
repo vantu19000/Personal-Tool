@@ -1,12 +1,13 @@
 """Router for the SRT Translator tool.
 
-GET  /tools/srt-translator          — form page (upload, model, target language)
+GET  /tools/srt-translator           — form page (upload, model, target language)
+GET  /tools/srt-translator/models    — models available on local Ollama (/api/tags)
 POST /tools/srt-translator/translate — runs the translation via Ollama and
                                        streams the translated .srt back as a
                                        download (``<name>.<code>.srt``).
 """
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 import pysrt
 
 from app.core.templates import templates
@@ -37,6 +38,25 @@ async def srt_translator(request: Request):
             "languages": LANGUAGES,
             "default_model": services.DEFAULT_MODEL,
         },
+    )
+
+
+@router.get("/srt-translator/models", name="srt-translator-models")
+async def srt_translator_models() -> JSONResponse:
+    """List models available on the local Ollama instance (web UI select).
+
+    Returns ``{"online": bool, "models": [names...], "default": name}``.
+    Ollama being offline is not an HTTP error — the UI falls back to the
+    default model instead.
+    """
+    try:
+        models = await services.list_ollama_models()
+    except services.SRTTranslationError:
+        return JSONResponse(
+            {"online": False, "models": [], "default": services.DEFAULT_MODEL}
+        )
+    return JSONResponse(
+        {"online": True, "models": models, "default": services.DEFAULT_MODEL}
     )
 
 
