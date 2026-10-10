@@ -16,7 +16,7 @@ Pipeline
 CLI test (requires a running Ollama)::
 
     .venv\\Scripts\\python -m app.tools.srt_translator.services \
-        .\\subs_src .\\subs_out --model llama3.1 --target-code vi
+        .\\subs_src .\\subs_out --model translategemma:4b --target-code vi
 """
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ import pysrt
 # ---------------------------------------------------------------------------
 
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
-DEFAULT_MODEL = "llama3.1"
+DEFAULT_MODEL = "translategemma:4b"
 DEFAULT_CHUNK_SIZE = 32  # 30-40 entries/chunk keeps the context window safe
 DEFAULT_MAX_RETRIES = 2
 DEFAULT_TIMEOUT_SECONDS = 600.0
