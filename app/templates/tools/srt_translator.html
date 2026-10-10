@@ -74,6 +74,80 @@
         Kết quả sẽ được tải về dưới dạng <code>&lt;tên file&gt;.&lt;ngôn ngữ&gt;.srt</code>.
         Dịch bằng AI cục bộ — có thể mất vài phút với file dài.
     </p>
+
+    <!-- Batch mode: translate every .srt in a local folder -->
+    <section class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
+        <div>
+            <h2 class="text-base font-semibold text-slate-800">Dịch hàng loạt (nhiều file)</h2>
+            <p class="mt-1 text-sm text-slate-500">
+                Chọn thư mục nguồn chứa các file <code>.srt</code> (kể cả thư mục con) và thư
+                mục đích. Mỗi file sẽ được dịch và ghi thành
+                <code>&lt;tên file&gt;.&lt;ngôn ngữ&gt;.srt</code> vào thư mục đích (giữ nguyên cấu trúc thư mục con).
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+                <label for="batch-target" class="block text-sm font-medium text-slate-700 mb-1.5">Ngôn ngữ đích</label>
+                <select id="batch-target"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    {% for code, (label, _suffix) in languages.items() %}
+                    <option value="{{ code }}"{% if code == "vi" %} selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="batch-model" class="block text-sm font-medium text-slate-700 mb-1.5">Model Ollama</label>
+                <select id="batch-model"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white
+                               focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="{{ default_model }}" selected>{{ default_model }}</option>
+                </select>
+            </div>
+        </div>
+
+        <form id="batch-form" class="space-y-4" novalidate>
+            <div>
+                <label for="batch-source" class="block text-sm font-medium text-slate-700 mb-1.5">Thư mục nguồn (chứa file .srt)</label>
+                <input type="text" id="batch-source" placeholder="vd: D:\Videos\subtitles"
+                       class="block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm
+                              focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div>
+                <label for="batch-output" class="block text-sm font-medium text-slate-700 mb-1.5">Thư mục đích</label>
+                <input type="text" id="batch-output" placeholder="vd: D:\Videos\subtitles_translated"
+                       class="block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm
+                              focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+
+            <div id="batch-scan-note" class="text-sm" hidden></div>
+
+            <div class="flex flex-wrap items-center gap-3">
+                <button type="button" id="batch-scan-btn"
+                        class="inline-flex items-center px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 text-sm font-medium
+                               hover:bg-slate-50 focus:ring-2 focus:ring-indigo-500">
+                    Kiểm tra thư mục
+                </button>
+                <button type="submit" id="batch-start-btn"
+                        class="inline-flex items-center px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium
+                               hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500
+                               disabled:opacity-60 disabled:cursor-not-allowed">
+                    <svg id="batch-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                         class="animate-spin -mr-2 h-4 w-4 text-white" hidden>
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                    <span id="batch-start-label">Bắt đầu dịch</span>
+                </button>
+            </div>
+
+            <div id="batch-progress" class="hidden space-y-2">
+                <ul id="batch-file-list" class="text-sm divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden max-h-64 overflow-y-auto"></ul>
+                <div id="batch-final-status" class="text-sm font-medium" hidden></div>
+            </div>
+        </form>
+    </section>
 </div>
 {% endblock %}
 
@@ -105,12 +179,27 @@
         }
     })();
 
-    // Populate the Ollama model select from GET /tools/srt-translator/models
+    // Populate both Ollama model selects from GET /tools/srt-translator/models
+    // and keep them in sync with each other, same for the target-language selects.
     (function () {
-        const select = document.getElementById("model");
+        const modelSelects = [document.getElementById("model"), document.getElementById("batch-model")]
+            .filter(Boolean);
+        const targetSelects = [document.getElementById("target"), document.getElementById("batch-target")]
+            .filter(Boolean);
         const status = document.getElementById("model-status");
-        if (!select) return;
-        const fallback = select.value; // default model baked in by the server
+        if (!modelSelects.length) return;
+
+        function syncSelects(group) {
+            const value = group[0].value;
+            for (let i = 1; i < group.length; i++) group[i].value = value;
+        }
+
+        modelSelects.forEach((select) =>
+            select.addEventListener("change", () => syncSelects(modelSelects)));
+        targetSelects.forEach((select) =>
+            select.addEventListener("change", () => syncSelects(targetSelects)));
+
+        const fallback = modelSelects[0].value; // default model baked in by the server
 
         fetch("/tools/srt-translator/models")
             .then((r) => r.json())
@@ -119,19 +208,235 @@
                     if (status) status.hidden = false;
                     return;
                 }
-                select.innerHTML = "";
-                for (const name of data.models) {
-                    const opt = document.createElement("option");
-                    opt.value = name;
-                    opt.textContent = name;
-                    select.appendChild(opt);
+                for (const select of modelSelects) {
+                    select.innerHTML = "";
+                    for (const name of data.models) {
+                        const opt = document.createElement("option");
+                        opt.value = name;
+                        opt.textContent = name;
+                        select.appendChild(opt);
+                    }
+                    // Keep the server default when available, otherwise pick the first.
+                    select.value = data.models.includes(fallback) ? fallback : data.models[0];
                 }
-                // Keep the server default when available, otherwise pick the first.
-                select.value = data.models.includes(fallback) ? fallback : data.models[0];
             })
             .catch(() => {
                 if (status) status.hidden = false;
             });
     })();
+    // ---- Batch mode: scan folder, then stream per-file progress from the server ----
+    (function () {
+        const form = document.getElementById("batch-form");
+        if (!form) return;
+
+        const sourceInput = document.getElementById("batch-source");
+        const outputInput = document.getElementById("batch-output");
+        const modelSelect = document.getElementById("batch-model");
+        const targetSelect = document.getElementById("batch-target");
+        const scanBtn = document.getElementById("batch-scan-btn");
+        const startBtn = document.getElementById("batch-start-btn");
+        const spinner = document.getElementById("batch-spinner");
+        const startLabel = document.getElementById("batch-start-label");
+        const scanNote = document.getElementById("batch-scan-note");
+        const progressBox = document.getElementById("batch-progress");
+        const fileList = document.getElementById("batch-file-list");
+        const finalStatus = document.getElementById("batch-final-status");
+
+        function setBusy(isBusy) {
+            if (startBtn) startBtn.disabled = isBusy;
+            if (scanBtn) scanBtn.disabled = isBusy;
+            if (spinner) spinner.hidden = !isBusy;
+            if (startLabel) startLabel.textContent = isBusy ? "Đang dịch…" : "Bắt đầu dịch";
+        }
+
+        function resetProgress() {
+            if (fileList) fileList.innerHTML = "";
+            if (finalStatus) {
+                finalStatus.hidden = true;
+                finalStatus.textContent = "";
+                finalStatus.className = "text-sm font-medium";
+            }
+            if (progressBox) progressBox.classList.remove("hidden");
+        }
+
+        function appendFileRow(filename, ok, detail) {
+            const li = document.createElement("li");
+            li.className = "flex items-start gap-2 px-3 py-2 bg-white";
+            const nameSpan = document.createElement("span");
+            nameSpan.textContent = filename;
+            nameSpan.className = "flex-1 break-all";
+            li.appendChild(nameSpan);
+            li.insertAdjacentText("beforeend", ok ? " ✅" : " ❌");
+            if (detail) {
+                const err = document.createElement("span");
+                err.textContent = " — " + detail;
+                err.className = ok ? "text-slate-500" : "text-red-600";
+                li.appendChild(err);
+            }
+            if (fileList) fileList.appendChild(li);
+        }
+
+        // "Check folder" — non-destructive preview of what will be translated.
+        if (scanBtn) {
+            scanBtn.addEventListener("click", async () => {
+                const source = sourceInput && sourceInput.value.trim();
+                if (!source) {
+                    if (scanNote) {
+                        scanNote.hidden = false;
+                        scanNote.className = "text-sm text-red-600";
+                        scanNote.textContent = "Vui lòng nhập thư mục nguồn trước.";
+                    }
+                    return;
+                }
+                if (scanNote) {
+                    scanNote.hidden = false;
+                    scanNote.className = "text-sm text-slate-500";
+                    scanNote.textContent = "Đang kiểm tra…";
+                }
+                try {
+                    const res = await fetch(
+                        "/tools/srt-translator/folder/scan?source_folder=" + encodeURIComponent(source),
+                    );
+                    if (!res.ok) throw new Error((await res.json()).detail || "Lỗi khi quét thư mục");
+                    const data = await res.json();
+                    if (!data.files || !data.files.length) {
+                        scanNote.className = "text-sm text-amber-600";
+                        scanNote.textContent = "Không tìm thấy file .srt nào trong thư mục này.";
+                        return;
+                    }
+                    scanNote.className = "text-sm text-emerald-700";
+                    scanNote.textContent =
+                        "Tìm thấy " + data.files.length + " file .srt, tổng " +
+                        (data.total_entries || 0) + " dòng phụ đề. Bấm \"Bắt đầu dịch\" để tiến hành.";
+                } catch (err) {
+                    scanNote.className = "text-sm text-red-600";
+                    scanNote.textContent = err.message || "Không kiểm tra được thư mục.";
+                }
+            });
+        }
+
+        function readNdjsonLines(stream) {
+            const reader = stream.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+            const pending = [];
+            return {
+                push() {
+                    return reader.read().then((result) => {
+                        if (result.done) {
+                            if (buffer.trim()) pending.push(buffer.trim());
+                            buffer = "";
+                            return false;
+                        }
+                        buffer += decoder.decode(result.value, { stream: true });
+                        let idx;
+                        while ((idx = buffer.indexOf("\n")) >= 0) {
+                            const line = buffer.slice(0, idx).trim();
+                            buffer = buffer.slice(idx + 1);
+                            if (line) pending.push(line);
+                        }
+                        return true;
+                    });
+                },
+                next() {
+                    while (pending.length) {
+                        const line = pending.shift();
+                        try {
+                            return JSON.parse(line);
+                        } catch (e) {
+                            // Ignore a malformed line rather than crashing the loop.
+                        }
+                    }
+                    return null;
+                },
+                async *events() {
+                    for (;;) {
+                        let event = this.next();
+                        while (event === null) {
+                            const hasMore = await this.push();
+                            if (!hasMore) return;
+                            event = this.next();
+                        }
+                        yield event;
+                    }
+                },
+            };
+        }
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const source = sourceInput && sourceInput.value.trim();
+            const output = outputInput && outputInput.value.trim();
+            if (!source || !output) {
+                alert("Vui lòng nhập cả thư mục nguồn và thư mục đích.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("source_folder", source);
+            formData.append("output_folder", output);
+            if (modelSelect) formData.append("model", modelSelect.value);
+            if (targetSelect) formData.append("target", targetSelect.value);
+
+            resetProgress();
+            if (scanNote) scanNote.hidden = true;
+            setBusy(true);
+
+            let finished = false;
+            try {
+                const res = await fetch("/tools/srt-translator/folder", { method: "POST", body: formData });
+                if (!res.ok) {
+                    let detail = "Lỗi không xác định";
+                    try { detail = (await res.json()).detail || detail; } catch (_) { /* ignore */ }
+                    throw new Error(detail);
+                }
+                const stream = readNdjsonLines(res.body);
+                for await (const event of stream.events()) {
+                    if (event.type === "start") continue;
+                    if (event.type === "file_done" || event.type === "file_error") {
+                        appendFileRow(
+                            event.file,
+                            event.type === "file_done",
+                            event.type === "file_error" ? (event.error || "") : (event.output_path || ""),
+                        );
+                    }
+                    if (event.type === "done") {
+                        finished = true;
+                        const ok = event.ok || 0;
+                        const failed = event.failed || 0;
+                        const total = event.total || 0;
+                        finalStatus.hidden = false;
+                        if (failed === 0) {
+                            finalStatus.className = "text-sm font-medium text-emerald-700";
+                            finalStatus.textContent =
+                                "✓ Thành công! Đã dịch " + ok + "/" + total +
+                                " file phụ đề vào " + event.output_folder + ".";
+                        } else {
+                            finalStatus.className = "text-sm font-medium text-amber-700";
+                            finalStatus.textContent =
+                                "Đã dịch " + ok + " file, có " + failed +
+                                " file lỗi. Xem chi tiết từng file ở trên.";
+                        }
+                        break;
+                    }
+                }
+                if (!finished && finalStatus) {
+                    finalStatus.hidden = false;
+                    finalStatus.className = "text-sm font-medium text-amber-700";
+                    finalStatus.textContent = "Kết thúc bất thường — không nhận được sự kiện hoàn thành từ máy chủ.";
+                }
+            } catch (err) {
+                if (finalStatus) {
+                    finalStatus.hidden = false;
+                    finalStatus.className = "text-sm font-medium text-red-600";
+                    finalStatus.textContent = "Lỗi: " + (err && err.message ? err.message : err);
+                }
+            } finally {
+                setBusy(false);
+            }
+        });
+    })();
+
 </script>
 {% endblock %}

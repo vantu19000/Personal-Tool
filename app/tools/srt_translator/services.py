@@ -397,11 +397,15 @@ async def translate_files(
     config: TranslationConfig | None = None,
     recursive: bool = True,
     progress: Optional[ProgressCallback] = None,
+    on_file_done: Optional[Callable[[dict[str, str]], None]] = None,
 ) -> list[dict[str, str]]:
     """Translate every ``.srt`` under *source_dir* into *dest_dir*.
 
     Returns a per-file report: ``{"source", "output", "entries", "status"}``.
     A failure on one file is recorded and does not stop the rest.
+
+    *on_file_done* (when given) is called synchronously with each finished
+    entry — used by the web UI to stream per-file progress.
     """
     config = config or TranslationConfig()
     source_root = Path(source_dir).expanduser().resolve()
@@ -430,6 +434,8 @@ async def translate_files(
         except (SRTTranslationError, pysrt.Error, OSError) as exc:
             entry["status"] = f"error: {exc}"
         report.append(entry)
+        if on_file_done:
+            on_file_done(entry)
     return report
 
 
