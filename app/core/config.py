@@ -32,5 +32,5 @@ settings = Settings()
 # ``id`` is used to highlight the active link in the sidebar.
 TOOLS = [
     {"id": "srt-translator", "name": "SRT Translator", "path": "/tools/srt-translator"},
-    # {"id": "tool-2", "name": "Tool 2", "path": "/tools/tool-2"},
+    {"id": "slufy", "name": "Slufy", "path": "/tools/slufy"},
 ]

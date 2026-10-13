@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Slufy · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}Slufy{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl space-y-6">
+    <!-- Tool header -->
+    <section class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm">
+        <h1 class="text-xl font-bold text-slate-800">Slufy</h1>
+        <p class="mt-1 text-sm text-slate-500">
+            Chuyển chuỗi văn bản (bao gồm tiếng Việt) thành slug URL-friendly.
+        </p>
+    </section>
+
+    <!-- Slug form -->
+    <form id="slufy-form" method="post" action="/tools/slufy/slug" class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
+        <div>
+            <label for="slufy-input" class="block text-sm font-medium text-slate-700 mb-1.5">Văn bản</label>
+            <textarea id="slufy-input" name="text" rows="3"
+                      class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white
+                             focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Nhập văn bản ở đây, ví dụ: chào mừng đến với cá nhân"
+                      required></textarea>
+        </div>
+
+        <div class="flex items-center justify-between">
+            <button type="submit"
+                    class="inline-flex items-center px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium
+                           hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500
+                           disabled:opacity-60 disabled:cursor-not-allowed">
+                Chuyển thành slug
+            </button>
+        </div>
+    </form>
+
+    <!-- Result -->
+    <div id="slufy-result" class="hidden rounded-xl bg-white border border-slate-200 p-6 shadow-sm">
+        <h2 class="text-lg font-semibold text-slate-800">Kết quả</h2>
+        <p id="slufy-error" class="hidden text-sm text-red-600 mt-2"></p>
+        <div id="slufy-success" class="hidden">
+            <p class="text-sm text-slate-600">Slug:</p>
+            <code id="slufy-slug" class="block mt-1 text-sm text-indigo-700 bg-indigo-50 px-3 py-2 rounded-lg"></code>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById("slufy-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const input = document.getElementById("slufy-input");
+    const text = input.value.trim();
+    if (!text) {
+        alert("Vui lòng nhập văn bản.");
+        return;
+    }
+
+    const resultDiv = document.getElementById("slufy-result");
+    const errorEl = document.getElementById("slufy-error");
+    const successEl = document.getElementById("slufy-success");
+    const slugEl = document.getElementById("slufy-slug");
+
+    resultDiv.classList.remove("hidden");
+    errorEl.classList.add("hidden");
+    successEl.classList.add("hidden");
+
+    try {
+        const res = await fetch("/tools/slufy/slug", {
+            method: "POST",
+            body: new URLSearchParams({"text": text}),
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+            slugEl.textContent = data.slug;
+            slugEl.removeAttribute("hidden");
+            successEl.classList.remove("hidden");
+        } else {
+            errorEl.textContent = data.error || "Lỗi không xác định.";
+            errorEl.classList.remove("hidden");
+        }
+    } catch (err) {
+        errorEl.textContent = "Lỗi kết nối: " + (err && err.message ? err.message : err);
+        errorEl.classList.remove("hidden");
+    }
+});
+</script>
+
+{% endblock %}

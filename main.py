@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.templates import templates
 from app.tools.srt_translator import router as srt_translator_router
+from app.tools.slufy import router as slufy_router
 
 
 def create_app() -> FastAPI:
@@ -23,6 +24,9 @@ def create_app() -> FastAPI:
 
     # Register each tool's router under the shared /tools prefix.
     app.include_router(srt_translator_router, prefix="/tools", tags=["srt-translator"])
+
+    # Register Slufy's router.
+    app.include_router(slufy_router, prefix="/tools", tags=["slufy"])
 
     # Dashboard (home)
     @app.get("/", name="dashboard")
