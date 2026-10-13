@@ -11,6 +11,7 @@ from app.core.templates import templates
 from app.tools.srt_translator import router as srt_translator_router
 from app.tools.slufy import router as slufy_router
 from app.tools.guid_generator import router as guid_generator_router
+from app.tools.hash_calculator import router as hash_calculator_router
 
 
 def create_app() -> FastAPI:
@@ -31,6 +32,9 @@ def create_app() -> FastAPI:
 
     # Register GUID Generator's router.
     app.include_router(guid_generator_router, prefix="/tools", tags=["guid-generator"])
+
+    # Register Hash Calculator's router.
+    app.include_router(hash_calculator_router, prefix="/tools", tags=["hash-calculator"])
 
     # Dashboard (home)
     @app.get("/", name="dashboard")
