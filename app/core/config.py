@@ -33,4 +33,5 @@ settings = Settings()
 TOOLS = [
     {"id": "srt-translator", "name": "SRT Translator", "path": "/tools/srt-translator"},
     {"id": "slufy", "name": "Slufy", "path": "/tools/slufy"},
+    {"id": "guid-generator", "name": "GUID Generator", "path": "/tools/guid-generator"},
 ]

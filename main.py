@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.core.templates import templates
 from app.tools.srt_translator import router as srt_translator_router
 from app.tools.slufy import router as slufy_router
+from app.tools.guid_generator import router as guid_generator_router
 
 
 def create_app() -> FastAPI:
@@ -27,6 +28,9 @@ def create_app() -> FastAPI:
 
     # Register Slufy's router.
     app.include_router(slufy_router, prefix="/tools", tags=["slufy"])
+
+    # Register GUID Generator's router.
+    app.include_router(guid_generator_router, prefix="/tools", tags=["guid-generator"])
 
     # Dashboard (home)
     @app.get("/", name="dashboard")

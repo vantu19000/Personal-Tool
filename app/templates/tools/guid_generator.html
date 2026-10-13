@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}GUID Generator · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}GUID Generator{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl space-y-6">
+    <!-- Tool header -->
+    <section class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm">
+        <h1 class="text-xl font-bold text-slate-800">GUID Generator</h1>
+        <p class="mt-1 text-sm text-slate-500">
+            Tạo các chuỗi GUID (v4) ngẫu nhiên. Chọn số lượng cần tạo (tối đa {{ max_quantity }}, mặc định {{ default_quantity }}).
+        </p>
+    </section>
+
+    <!-- Generate form -->
+    <form id="guid-form" method="post" action="/tools/guid-generator/generate"
+          class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
+        <div>
+            <label for="guid-quantity" class="block text-sm font-medium text-slate-700 mb-1.5">Số lượng chuỗi GUID</label>
+            <input id="guid-quantity" name="quantity" type="number"
+                   min="1" max="{{ max_quantity }}" step="1" value="{{ default_quantity }}"
+                   class="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white
+                          focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                   required />
+            <p class="mt-1.5 text-xs text-slate-400">Nhập số lượng từ 1 đến {{ max_quantity }} (mặc định {{ default_quantity }}).</p>
+        </div>
+
+        <div class="flex items-center justify-between">
+            <button type="submit"
+                    class="inline-flex items-center px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium
+                           hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500
+                           disabled:opacity-60 disabled:cursor-not-allowed">
+                Tạo GUID
+            </button>
+        </div>
+    </form>
+
+    <!-- Result -->
+    <div id="guid-result" class="hidden rounded-xl bg-white border border-slate-200 p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-semibold text-slate-800">Kết quả <span id="guid-count" class="text-sm font-normal text-slate-500"></span></h2>
+            <button type="button" id="guid-copy-all"
+                    class="inline-flex items-center px-4 py-2 rounded-lg border border-slate-300 text-sm font-medium text-slate-700
+                           hover:bg-slate-50 focus:ring-2 focus:ring-indigo-500">
+                Copy tất cả
+            </button>
+        </div>
+        <p id="guid-error" class="hidden text-sm text-red-600"></p>
+        <ul id="guid-list" class="hidden mt-2 space-y-2"></ul>
+    </div>
+</div>
+
+<script>
+function copyText(text, button) {
+    const done = () => {
+        const original = button.textContent;
+        button.textContent = "Đã copy!";
+        setTimeout(() => { button.textContent = original; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done);
+    } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        done();
+    }
+}
+
+document.getElementById("guid-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const input = document.getElementById("guid-quantity");
+    const quantity = parseInt(input.value, 10);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > {{ max_quantity }}) {
+        alert("Vui lòng nhập số lượng từ 1 đến {{ max_quantity }}.");
+        return;
+    }
+
+    const resultDiv = document.getElementById("guid-result");
+    const errorEl = document.getElementById("guid-error");
+    const listEl = document.getElementById("guid-list");
+    const countEl = document.getElementById("guid-count");
+
+    resultDiv.classList.remove("hidden");
+    errorEl.classList.add("hidden");
+    listEl.classList.add("hidden");
+
+    try {
+        const res = await fetch("/tools/guid-generator/generate", {
+            method: "POST",
+            body: new URLSearchParams({"quantity": String(quantity)}),
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+            listEl.innerHTML = "";
+            data.guids.forEach((guid) => {
+                const li = document.createElement("li");
+                li.className = "flex items-center justify-between gap-3 rounded-lg bg-indigo-50 px-3 py-2";
+
+                const code = document.createElement("code");
+                code.textContent = guid;
+                code.className = "text-sm text-indigo-700 font-mono select-all";
+
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.textContent = "Copy";
+                btn.className = "shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg border border-indigo-200 bg-white text-xs font-medium text-indigo-700 hover:bg-indigo-100";
+                btn.addEventListener("click", () => copyText(guid, btn));
+
+                li.appendChild(code);
+                li.appendChild(btn);
+                listEl.appendChild(li);
+            });
+            countEl.textContent = "(" + data.count + " chuỗi)";
+            document.getElementById("guid-copy-all").onclick = function () {
+                copyText(data.guids.join("\n"), this);
+            };
+            listEl.classList.remove("hidden");
+        } else {
+            errorEl.textContent = data.error || "Lỗi không xác định.";
+            errorEl.classList.remove("hidden");
+        }
+    } catch (err) {
+        errorEl.textContent = "Lỗi kết nối: " + (err && err.message ? err.message : err);
+        errorEl.classList.remove("hidden");
+    }
+});
+</script>
+
+{% endblock %}
