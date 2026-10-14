@@ -21,6 +21,13 @@
             📊 Dashboard
         </a>
 
+        <!-- System -->
+        <a href="/settings"
+           class="block px-3 py-2 rounded-lg text-sm font-medium transition
+                 {% if active_tool == 'settings' %}bg-indigo-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+            ⚙️ Cấu hình
+        </a>
+
         <!-- Tools -->
         <p class="px-3 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Tools</p>
         {% for tool in tools %}

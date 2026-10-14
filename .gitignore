@@ -160,3 +160,7 @@ logs/
 *.tmp
 *.temp
 .DS_Store
+
+# ===== Local user data (settings, caches) =====
+app/data/
+data/

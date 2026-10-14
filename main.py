@@ -6,8 +6,10 @@ Run with:
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
+from app.core import settings_store
 from app.core.config import settings
 from app.core.templates import templates
+from app.settings import router as settings_router
 from app.tools.srt_translator import router as srt_translator_router
 from app.tools.slufy import router as slufy_router
 from app.tools.guid_generator import router as guid_generator_router
@@ -36,13 +38,25 @@ def create_app() -> FastAPI:
     # Register Hash Calculator's router.
     app.include_router(hash_calculator_router, prefix="/tools", tags=["hash-calculator"])
 
+    # Global settings screen (homepage text + per-tool options, e.g. SRT prompt).
+    app.include_router(settings_router, tags=["settings"])
+
     # Dashboard (home)
     @app.get("/", name="dashboard")
     async def dashboard(request: Request):
+        system = settings_store.get_block("system")
         return templates.TemplateResponse(
             request,
             "dashboard.html",
-            {"active_tool": "dashboard"},
+            {
+                "active_tool": "dashboard",
+                "home_title": system.get("home_title")
+                or "Chào mừng bạn đến với Personal Multi-Tool!",
+                "home_description": system.get("home_description")
+                or "Bộ công cụ web đa năng chạy hoàn toàn trên máy của bạn. "
+                   "Dịch phụ đề SRT, tạo GUID, tính hash và nhiều hơn nữa — "
+                   "không cần tài khoản, không cần cloud.",
+            },
         )
 
     return app

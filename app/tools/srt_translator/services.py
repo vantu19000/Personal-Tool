@@ -33,6 +33,8 @@ from typing import Any, Callable, Optional, Sequence
 import aiohttp
 import pysrt
 
+from app.core import settings_store
+
 # ---------------------------------------------------------------------------
 # Constants / defaults
 # ---------------------------------------------------------------------------
@@ -154,7 +156,19 @@ def scan_srt_files(source_dir: str | Path, recursive: bool = True) -> list[Path]
 
 
 def _build_system_prompt(config: TranslationConfig) -> str:
-    return SYSTEM_PROMPT_TEMPLATE.format(target_language=config.target_language)
+    """System prompt, overridable via the SRT Translator settings block.
+
+    Falls back to the built-in :data:`SYSTEM_PROMPT_TEMPLATE`. The literal
+    placeholder ``{target_language}`` is substituted with the run's target
+    language; if the custom prompt has no placeholder it's returned as-is.
+    """
+    template = settings_store.get_field(
+        "srt_translator", "system_prompt", SYSTEM_PROMPT_TEMPLATE
+    ) or SYSTEM_PROMPT_TEMPLATE
+    # Substitute the placeholder with a literal replace (NOT str.format) so
+    # any other braces in the prompt — e.g. the JSON example ``{"id": ...}`` —
+    # are preserved verbatim instead of raising and dropping the language.
+    return template.replace("{target_language}", config.target_language)
 
 
 def _build_user_message(
