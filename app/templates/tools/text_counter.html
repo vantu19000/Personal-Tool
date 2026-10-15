@@ -10,7 +10,7 @@
         <h1 class="text-xl font-bold text-slate-800">Text Counter</h1>
         <p class="mt-1 text-sm text-slate-500">
             Dán (paste) bất kỳ đoạn văn bản nào vào ô bên dưới — hệ thống tự động tính
-            số từ, số câu và số ký tự ngay lập tức, không cần bấm nút tính.
+            số từ, số câu, số ký tự và số khối ngay lập tức, không cần bấm nút tính.
         </p>
     </section>
 
@@ -37,7 +37,7 @@
     </section>
 
     <!-- Stats -->
-    <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div class="rounded-xl bg-white border border-slate-200 p-5 shadow-sm text-center">
             <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Số từ</p>
             <p id="tc-words" class="mt-1 text-3xl font-bold text-indigo-600 tabular-nums">0</p>
@@ -54,6 +54,10 @@
             <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Ký tự (không khoảng trắng)</p>
             <p id="tc-chars-nospace" class="mt-1 text-3xl font-bold text-amber-600 tabular-nums">0</p>
         </div>
+        <div class="rounded-xl bg-white border border-slate-200 p-5 shadow-sm text-center">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Số khối</p>
+            <p id="tc-blocks" class="mt-1 text-3xl font-bold text-teal-600 tabular-nums">0</p>
+        </div>
     </section>
 </div>
 {% endblock %}
@@ -67,6 +71,7 @@
         sentences: document.getElementById("tc-sentences"),
         chars: document.getElementById("tc-chars"),
         charsNoSpace: document.getElementById("tc-chars-nospace"),
+        blocks: document.getElementById("tc-blocks"),
     };
 
     const fmt = (n) => n.toLocaleString("vi-VN");
@@ -99,17 +104,28 @@
         return count;
     }
 
+    // Đếm số khối: một "khối" là dãy dòng liền kề không rỗng,
+    // các khối được ngăn cách bởi >= 1 dòng trống.
+    function countBlocks(text) {
+        return text
+            .split(/\n\s*\n/)
+            .filter((block) => block.trim() !== "")
+            .length;
+    }
+
     function update() {
         const text = input.value;
         const words = text.trim() ? text.trim().split(/\s+/).length : 0;
         const sentences = countSentences(text);
         const chars = [...text].length; // đếm đúng ký tự Unicode (kể cả tiếng Việt)
         const charsNoSpace = [...text.replace(/\s/g, "")].length;
+        const blocks = countBlocks(text);
 
         els.words.textContent = fmt(words);
         els.sentences.textContent = fmt(sentences);
         els.chars.textContent = fmt(chars);
         els.charsNoSpace.textContent = fmt(charsNoSpace);
+        els.blocks.textContent = fmt(blocks);
     }
 
     input.addEventListener("input", update);
