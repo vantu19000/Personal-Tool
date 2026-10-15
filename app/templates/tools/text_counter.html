@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Text Counter · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}Text Counter{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl space-y-6">
+    <!-- Tool header -->
+    <section class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm">
+        <h1 class="text-xl font-bold text-slate-800">Text Counter</h1>
+        <p class="mt-1 text-sm text-slate-500">
+            Dán (paste) bất kỳ đoạn văn bản nào vào ô bên dưới — hệ thống tự động tính
+            số từ, số câu và số ký tự ngay lập tức, không cần bấm nút tính.
+        </p>
+    </section>
+
+    <!-- Input -->
+    <section class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm space-y-4">
+        <div>
+            <label for="tc-text" class="block text-sm font-medium text-slate-700 mb-1.5">
+                Văn bản cần đếm
+            </label>
+            <textarea id="tc-text" rows="14"
+                      class="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm leading-relaxed bg-white
+                             focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Dán văn bản của bạn vào đây (Ctrl+V)…"
+                      spellcheck="false"></textarea>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+            <button type="button" id="tc-clear"
+                    class="inline-flex items-center px-4 py-2 rounded-lg border border-slate-300 bg-white text-sm font-medium
+                           text-slate-600 hover:bg-slate-50 hover:border-slate-400 transition">
+                🗑️ Xoá hết
+            </button>
+            <span class="text-xs text-slate-400">Thống kê cập nhật trực tiếp khi bạn nhập/dán.</span>
+        </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="rounded-xl bg-white border border-slate-200 p-5 shadow-sm text-center">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Số từ</p>
+            <p id="tc-words" class="mt-1 text-3xl font-bold text-indigo-600 tabular-nums">0</p>
+        </div>
+        <div class="rounded-xl bg-white border border-slate-200 p-5 shadow-sm text-center">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Số câu</p>
+            <p id="tc-sentences" class="mt-1 text-3xl font-bold text-violet-600 tabular-nums">0</p>
+        </div>
+        <div class="rounded-xl bg-white border border-slate-200 p-5 shadow-sm text-center">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Số ký tự</p>
+            <p id="tc-chars" class="mt-1 text-3xl font-bold text-emerald-600 tabular-nums">0</p>
+        </div>
+        <div class="rounded-xl bg-white border border-slate-200 p-5 shadow-sm text-center">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Ký tự (không khoảng trắng)</p>
+            <p id="tc-chars-nospace" class="mt-1 text-3xl font-bold text-amber-600 tabular-nums">0</p>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const input = document.getElementById("tc-text");
+    const els = {
+        words: document.getElementById("tc-words"),
+        sentences: document.getElementById("tc-sentences"),
+        chars: document.getElementById("tc-chars"),
+        charsNoSpace: document.getElementById("tc-chars-nospace"),
+    };
+
+    const fmt = (n) => n.toLocaleString("vi-VN");
+
+    // Đếm số câu: tách theo dấu chấm câu cuối câu (. ! ? …).
+    // Loại trừ các trường hợp không phải kết thúc câu:
+    //  - số thập phân (vd 3.14) — có số đứng hai phía
+    //  - viết tắt dạng "chữ chấm chữ" (vd "v.d." "v.v.")
+    function countSentences(text) {
+        const t = text.trim();
+        if (!t) return 0;
+        let count = 0;
+        let lastEnd = -1; // vị trí ngay sau dấu chấm câu đã đếm gần nhất
+        for (let i = 0; i < t.length; i++) {
+            const ch = t[i];
+            if (ch === "." || ch === "!" || ch === "?" || ch === "…") {
+                const prev = t[i - 1] || "";
+                const next = t[i + 1] || "";
+                if (ch === ".") {
+                    if (/[a-zA-ZÀ-ỹ]/.test(prev) && /[a-zA-ZÀ-ỹ]/.test(next)) continue; // viết tắt
+                    if (/\d/.test(prev) && /\d/.test(next)) continue; // số thập phân
+                }
+                count++;
+                while (i + 1 < t.length && ".!?…".includes(t[i + 1])) i++; // gộp "?!…"
+                lastEnd = i + 1;
+            }
+        }
+        // Phần cuối không có dấu kết thúc nhưng vẫn có nội dung → tính thêm 1 câu
+        if (t.slice(lastEnd + 1).trim()) count++;
+        return count;
+    }
+
+    function update() {
+        const text = input.value;
+        const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+        const sentences = countSentences(text);
+        const chars = [...text].length; // đếm đúng ký tự Unicode (kể cả tiếng Việt)
+        const charsNoSpace = [...text.replace(/\s/g, "")].length;
+
+        els.words.textContent = fmt(words);
+        els.sentences.textContent = fmt(sentences);
+        els.chars.textContent = fmt(chars);
+        els.charsNoSpace.textContent = fmt(charsNoSpace);
+    }
+
+    input.addEventListener("input", update);
+
+    document.getElementById("tc-clear").addEventListener("click", () => {
+        input.value = "";
+        update();
+        input.focus();
+    });
+
+    // Tự đếm luôn nếu người dùng paste vào
+    input.addEventListener("paste", () => setTimeout(update, 0));
+})();
+</script>
+{% endblock %}

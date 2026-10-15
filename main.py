@@ -14,6 +14,7 @@ from app.tools.srt_translator import router as srt_translator_router
 from app.tools.slufy import router as slufy_router
 from app.tools.guid_generator import router as guid_generator_router
 from app.tools.hash_calculator import router as hash_calculator_router
+from app.tools.text_counter import router as text_counter_router
 
 
 def create_app() -> FastAPI:
@@ -37,6 +38,9 @@ def create_app() -> FastAPI:
 
     # Register Hash Calculator's router.
     app.include_router(hash_calculator_router, prefix="/tools", tags=["hash-calculator"])
+
+    # Register Text Counter's router.
+    app.include_router(text_counter_router, prefix="/tools", tags=["text-counter"])
 
     # Global settings screen (homepage text + per-tool options, e.g. SRT prompt).
     app.include_router(settings_router, tags=["settings"])

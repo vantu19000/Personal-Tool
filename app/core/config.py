@@ -35,4 +35,5 @@ TOOLS = [
     {"id": "slufy", "name": "Slufy", "path": "/tools/slufy"},
     {"id": "guid-generator", "name": "GUID Generator", "path": "/tools/guid-generator"},
     {"id": "hash-calculator", "name": "Hash Calculator", "path": "/tools/hash-calculator"},
+    {"id": "text-counter", "name": "Text Counter", "path": "/tools/text-counter"},
 ]
