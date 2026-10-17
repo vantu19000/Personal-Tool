@@ -15,6 +15,7 @@ from app.tools.slufy import router as slufy_router
 from app.tools.guid_generator import router as guid_generator_router
 from app.tools.hash_calculator import router as hash_calculator_router
 from app.tools.text_counter import router as text_counter_router
+from app.tools.pdf_to_md import router as pdf_to_md_router
 
 
 def create_app() -> FastAPI:
@@ -41,6 +42,9 @@ def create_app() -> FastAPI:
 
     # Register Text Counter's router.
     app.include_router(text_counter_router, prefix="/tools", tags=["text-counter"])
+
+    # Register PDF to Markdown's router.
+    app.include_router(pdf_to_md_router, prefix="/tools", tags=["pdf-to-md"])
 
     # Global settings screen (homepage text + per-tool options, e.g. SRT prompt).
     app.include_router(settings_router, tags=["settings"])

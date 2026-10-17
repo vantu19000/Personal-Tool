@@ -79,6 +79,12 @@ class SystemSettings(BaseModel):
     home_description: str = Field(..., max_length=1000)
 
 
+class PdfToMdSettings(BaseModel):
+    """PDF → Markdown settings block (chunking size)."""
+
+    pages_per_file: int = Field(10, ge=1, le=500)
+
+
 class SRTSettings(BaseModel):
     """SRT Translator settings block (the model's system prompt).
 
@@ -148,6 +154,25 @@ BLOCKS: Dict[str, BlockDef] = {
                 help_text=(
                     "Prompt gửi cho model Ollama. Dùng {target_language} để "
                     "điền ngôn ngữ đích (được thay tự động khi dịch)."
+                ),
+            ),
+        ],
+    ),
+    "pdf_to_md": BlockDef(
+        id="pdf_to_md",
+        title="PDF to Markdown",
+        description="Cấu hình cho tool chuyển PDF text-based sang Markdown.",
+        model=PdfToMdSettings,
+        default={"pages_per_file": 10},
+        fields=[
+            FieldDef(
+                key="pages_per_file",
+                label="Số trang mỗi file Markdown",
+                kind="number",
+                placeholder="10",
+                help_text=(
+                    "Mỗi file .md sẽ chứa tối đa số trang này (từ 1 đến 500). "
+                    "PDF dài hơn sẽ được tách thành nhiều file/zip."
                 ),
             ),
         ],

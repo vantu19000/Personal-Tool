@@ -17,3 +17,6 @@ pydantic-settings
 
 # --- Form / file upload ---
 python-multipart
+
+# --- PDF (trích text, dùng cho tool PDF → Markdown) ---
+PyMuPDF
