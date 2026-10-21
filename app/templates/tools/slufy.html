@@ -24,14 +24,7 @@
                       required></textarea>
         </div>
 
-        <div class="flex items-center justify-between">
-            <button type="submit"
-                    class="inline-flex items-center px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium
-                           hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500
-                           disabled:opacity-60 disabled:cursor-not-allowed">
-                Chuyển thành slug
-            </button>
-        </div>
+        <p class="text-xs text-slate-400">Slug được tạo tự động khi bạn gõ — chỉ cần chờ kết quả xuất hiện bên dưới.</p>
     </form>
 
     <!-- Result -->
@@ -40,30 +33,39 @@
         <p id="slufy-error" class="hidden text-sm text-red-600 mt-2"></p>
         <div id="slufy-success" class="hidden">
             <p class="text-sm text-slate-600">Slug:</p>
-            <code id="slufy-slug" class="block mt-1 text-sm text-indigo-700 bg-indigo-50 px-3 py-2 rounded-lg"></code>
+            <div class="flex items-start gap-2 mt-1">
+                <code id="slufy-slug" class="flex-1 text-sm text-indigo-700 bg-indigo-50 px-3 py-2 rounded-lg break-all select-all"></code>
+                <button id="slufy-copy" type="button" title="Copy slug"
+                        class="shrink-0 inline-flex items-center px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-600
+                               hover:bg-slate-50 hover:text-slate-800 focus:ring-2 focus:ring-indigo-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M8 16V6a2 2 0 012-2h6a2 2 0 012 2v10a2 2 0 01-2 2H10a2 2 0 01-2-2zm0 0h12M8 16H6a2 2 0 01-2-2V4a2 2 0 012-2h8a2 2 0 012 2v2"/>
+                    </svg>
+                    Copy
+                </button>
+            </div>
+            <p id="slufy-copied" class="hidden text-xs text-green-600 mt-1">Đã copy vào clipboard!</p>
         </div>
     </div>
 </div>
 
 <script>
-document.getElementById("slufy-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
+const slufyInput = document.getElementById("slufy-input");
+const resultDiv = document.getElementById("slufy-result");
+const errorEl = document.getElementById("slufy-error");
+const successEl = document.getElementById("slufy-success");
+const slugEl = document.getElementById("slufy-slug");
+const copyBtn = document.getElementById("slufy-copy");
+const copiedEl = document.getElementById("slufy-copied");
 
-    const input = document.getElementById("slufy-input");
-    const text = input.value.trim();
-    if (!text) {
-        alert("Vui lòng nhập văn bản.");
-        return;
-    }
+let debounceTimer = null;
+let currentSlug = "";
 
-    const resultDiv = document.getElementById("slufy-result");
-    const errorEl = document.getElementById("slufy-error");
-    const successEl = document.getElementById("slufy-success");
-    const slugEl = document.getElementById("slufy-slug");
-
-    resultDiv.classList.remove("hidden");
+async function generateSlug(text) {
     errorEl.classList.add("hidden");
     successEl.classList.add("hidden");
+    copiedEl.classList.add("hidden");
 
     try {
         const res = await fetch("/tools/slufy/slug", {
@@ -73,15 +75,69 @@ document.getElementById("slufy-form").addEventListener("submit", async (e) => {
         const data = await res.json();
 
         if (data.ok) {
+            currentSlug = data.slug;
             slugEl.textContent = data.slug;
-            slugEl.removeAttribute("hidden");
             successEl.classList.remove("hidden");
         } else {
+            currentSlug = "";
             errorEl.textContent = data.error || "Lỗi không xác định.";
             errorEl.classList.remove("hidden");
         }
     } catch (err) {
+        currentSlug = "";
         errorEl.textContent = "Lỗi kết nối: " + (err && err.message ? err.message : err);
+        errorEl.classList.remove("hidden");
+    }
+}
+
+// Auto-generate slug as user types (debounced)
+slufyInput.addEventListener("input", () => {
+    const text = slufyInput.value.trim();
+    if (!text) {
+        clearTimeout(debounceTimer);
+        resultDiv.classList.add("hidden");
+        currentSlug = "";
+        return;
+    }
+
+    resultDiv.classList.remove("hidden");
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => generateSlug(text), 300);
+});
+
+// Allow Enter in the textarea to still work (optional explicit trigger)
+slufyInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        const text = slufyInput.value.trim();
+        if (text) {
+            clearTimeout(debounceTimer);
+            generateSlug(text);
+        }
+    }
+});
+
+// Copy slug to clipboard
+copyBtn.addEventListener("click", async () => {
+    if (!currentSlug) return;
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(currentSlug);
+        } else {
+            // Fallback for non-secure contexts (e.g. http on localhost)
+            const ta = document.createElement("textarea");
+            ta.value = currentSlug;
+            ta.style.position = "fixed";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+        }
+        copiedEl.classList.remove("hidden");
+        setTimeout(() => copiedEl.classList.add("hidden"), 2000);
+    } catch (err) {
+        errorEl.textContent = "Không thể copy: " + (err && err.message ? err.message : err);
         errorEl.classList.remove("hidden");
     }
 });
