@@ -6,107 +6,125 @@
 {% block content %}
 <div class="w-full space-y-6">
     <!-- Tool header -->
-    <section class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm">
-        <h1 class="text-xl font-bold text-slate-800">PDF to Markdown</h1>
-        <p class="mt-1 text-sm text-slate-500">
-            Chuyển file PDF có lớp text sang Markdown. PDF dài sẽ được tách thành nhiều file
-            (mặc định mỗi file <code class="text-xs bg-slate-100 px-1.5 py-0.5 rounded">{{ pages_per_file }}</code> trang,
-            nhiều file sẽ được đóng gói thành <code class="text-xs bg-slate-100 px-1.5 py-0.5 rounded">.zip</code>).
-            <span class="text-amber-600">Phiên bản đầu tiên chưa hỗ trợ PDF scan ảnh / OCR.</span>
-        </p>
+    <section class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs">
+        <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-2xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <i data-lucide="file-code" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>PDF to Markdown</span>
+                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300">
+                        Tài liệu
+                    </span>
+                </h1>
+                <p class="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                    Chuyển file PDF có lớp text sang Markdown. File PDF dài sẽ được tự động chia nhỏ (mặc định <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">{{ pages_per_file }}</code> trang/file và nén thành file <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">.zip</code>).
+                </p>
+            </div>
+        </div>
     </section>
 
     <!-- Single file conversion -->
     <form id="convert-form" method="post" action="/tools/pdf-to-md/convert" enctype="multipart/form-data"
-          class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
+          class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-5">
+        <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <i data-lucide="file-up" class="w-4 h-4 text-rose-500"></i>
+                <span>Chuyển đổi từng file PDF</span>
+            </h2>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Chọn tệp PDF từ máy tính để bắt đầu trích xuất Markdown.</p>
+        </div>
+
         <!-- File picker -->
         <div>
-            <label for="pdf-file" class="block text-sm font-medium text-slate-700 mb-1.5">File PDF</label>
+            <label for="pdf-file" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">File PDF</label>
             <input type="file" id="pdf-file" name="file" accept=".pdf,application/pdf" required
-                   class="block w-full text-sm text-slate-600 file:mr-4 file:py-2.5 file:px-4
-                          file:rounded-lg file:border-0 file:text-sm file:font-medium
-                          file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100
-                          file:cursor-pointer cursor-pointer">
-            <p class="mt-1 text-xs text-slate-400">Chỉ nhận file <code>.pdf</code> (mỗi lần một file, tối đa 200 MB).</p>
+                   class="block w-full text-xs sm:text-sm text-slate-600 dark:text-slate-300
+                          file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0
+                          file:text-xs file:font-semibold file:bg-rose-50 file:text-rose-700
+                          dark:file:bg-rose-950/60 dark:file:text-rose-300
+                          hover:file:bg-rose-100 dark:hover:file:bg-rose-900/60
+                          file:cursor-pointer cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 p-2">
+            <p class="mt-1.5 text-[11px] text-slate-400">Tối đa 200 MB mỗi file.</p>
         </div>
 
         <!-- Pages per file -->
         <div class="max-w-xs">
-            <label for="pages-per-file" class="block text-sm font-medium text-slate-700 mb-1.5">Số trang mỗi file</label>
+            <label for="pages-per-file" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Số trang mỗi file Markdown</label>
             <input type="number" id="pages-per-file" name="pages_per_file" min="1" max="500" value="{{ pages_per_file }}"
-                   class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white
-                          focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-            <p class="mt-1 text-xs text-slate-400">Từ 1 đến 500. Có thể thay đổi trong trang <a href="/settings" class="text-indigo-600 hover:underline">Cấu hình</a>.</p>
+                   class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition">
+            <p class="mt-1 text-[11px] text-slate-400">Từ 1 đến 500 trang.</p>
         </div>
 
-        <div class="flex items-center justify-end pt-2">
+        <div class="flex items-center justify-end pt-2 border-t border-slate-100 dark:border-slate-800/80">
             <button type="submit" id="convert-btn"
-                    class="inline-flex items-center px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium
-                           hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500
-                           disabled:opacity-60 disabled:cursor-not-allowed">
+                    class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white text-xs sm:text-sm font-semibold shadow-md shadow-rose-500/20 transition disabled:opacity-60 disabled:cursor-not-allowed">
                 <svg id="convert-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                     class="hidden w-4 h-4 mr-2 animate-spin" aria-hidden="true">
+                     class="hidden w-4 h-4 animate-spin" aria-hidden="true">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                 </svg>
-                <span id="convert-btn-label">Chuyển đổi</span>
+                <i data-lucide="file-text" class="w-4 h-4"></i>
+                <span id="convert-btn-label">Chuyển đổi sang Markdown</span>
             </button>
         </div>
     </form>
 
-    <!-- Folder batch conversion (local server paths) -->
-    <form id="folder-form" class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
+    <!-- Folder batch conversion -->
+    <form id="folder-form" class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-5">
         <div>
-            <h2 class="text-base font-semibold text-slate-800">Chuyển đổi theo thư mục (trên máy chủ)</h2>
-            <p class="mt-1 text-xs text-slate-500">
-                Dành cho đường dẫn cục bộ trên máy chạy app: mọi file <code>.pdf</code> trong thư mục
-                nguồn sẽ được xuất vào thư mục đích (mỗi PDF một subfolder).
+            <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <i data-lucide="folder-cog" class="w-4 h-4 text-rose-500"></i>
+                <span>Chuyển đổi theo thư mục (hàng loạt)</span>
+            </h2>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Quét toàn bộ file <code>.pdf</code> trong thư mục nguồn và tự động xuất ra thư mục đích.
             </p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-                <label for="source-folder" class="block text-sm font-medium text-slate-700 mb-1.5">Thư mục nguồn</label>
+                <label for="source-folder" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Thư mục nguồn</label>
                 <input type="text" id="source-folder" name="source_folder"
-                       class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white
-                              focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                       class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition"
                        placeholder="D:\data\pdfs">
             </div>
             <div>
-                <label for="output-folder" class="block text-sm font-medium text-slate-700 mb-1.5">Thư mục đích</label>
+                <label for="output-folder" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Thư mục đích</label>
                 <input type="text" id="output-folder" name="output_folder"
-                       class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white
-                              focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                       class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition"
                        placeholder="D:\data\markdown">
             </div>
         </div>
 
-        <div class="flex items-center justify-end pt-2">
+        <div class="flex items-center justify-end pt-2 border-t border-slate-100 dark:border-slate-800/80">
             <button type="submit" id="folder-btn"
-                    class="inline-flex items-center px-5 py-2.5 rounded-lg bg-slate-700 text-white text-sm font-medium
-                           hover:bg-slate-800 focus:ring-2 focus:ring-slate-500
-                           disabled:opacity-60 disabled:cursor-not-allowed">
+                    class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 text-white text-xs sm:text-sm font-semibold shadow-md transition disabled:opacity-60 disabled:cursor-not-allowed">
                 <svg id="folder-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                     class="hidden w-4 h-4 mr-2 animate-spin" aria-hidden="true">
+                     class="hidden w-4 h-4 animate-spin" aria-hidden="true">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                 </svg>
-                <span id="folder-btn-label">Chạy</span>
+                <i data-lucide="play" class="w-4 h-4"></i>
+                <span id="folder-btn-label">Bắt đầu quét & chuyển đổi</span>
             </button>
         </div>
 
-        <div id="folder-status" class="text-sm" hidden></div>
+        <div id="folder-status" class="text-xs sm:text-sm font-semibold" hidden></div>
         <div id="folder-results" class="hidden">
-            <table class="min-w-full text-sm">
-                <thead>
-                <tr class="text-left text-slate-500 border-b border-slate-200">
-                    <th class="py-1.5 pr-4 font-medium">File</th>
-                    <th class="py-1.5 pr-4 font-medium">Số file MD</th>
-                    <th class="py-1.5 font-medium">Trang thái</th>
-                </tr>
-                </thead>
-                <tbody id="folder-results-body"></tbody>
-            </table>
+            <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                <table class="min-w-full text-xs sm:text-sm">
+                    <thead>
+                    <tr class="text-left text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+                        <th class="py-2.5 px-4 font-semibold">Tên file</th>
+                        <th class="py-2.5 px-4 font-semibold">Số file MD</th>
+                        <th class="py-2.5 px-4 font-semibold">Trạng thái</th>
+                    </tr>
+                    </thead>
+                    <tbody id="folder-results-body" class="divide-y divide-slate-100 dark:divide-slate-800/80"></tbody>
+                </table>
+            </div>
         </div>
     </form>
 </div>
@@ -115,7 +133,6 @@
 {% block scripts %}
 <script>
 (function () {
-    // ---------- Single-file convert ----------
     const form = document.getElementById("convert-form");
     const btn = document.getElementById("convert-btn");
     const spinner = document.getElementById("convert-spinner");
@@ -123,7 +140,7 @@
     function setBusy(v) {
         btn.disabled = v;
         spinner.classList.toggle("hidden", !v);
-        document.getElementById("convert-btn-label").textContent = v ? "Đang chuyển đổi…" : "Chuyển đổi";
+        document.getElementById("convert-btn-label").textContent = v ? "Đang chuyển đổi…" : "Chuyển đổi sang Markdown";
     }
 
     form.addEventListener("submit", function (e) {
@@ -134,11 +151,9 @@
             return;
         }
         setBusy(true);
-        // Plain form POST: the browser downloads the .md (or .zip) directly.
         form.submit();
     });
 
-    // ---------- Folder batch convert ----------
     const folderForm = document.getElementById("folder-form");
     const fbtn = document.getElementById("folder-btn");
     const fspinner = document.getElementById("folder-spinner");
@@ -149,7 +164,7 @@
     function setFBusy(v) {
         fbtn.disabled = v;
         fspinner.classList.toggle("hidden", !v);
-        document.getElementById("folder-btn-label").textContent = v ? "Đang chạy…" : "Chạy";
+        document.getElementById("folder-btn-label").textContent = v ? "Đang xử lý…" : "Bắt đầu quét & chuyển đổi";
     }
 
     function esc(s) {
@@ -164,7 +179,7 @@
         const output = document.getElementById("output-folder").value.trim();
         if (!source || !output) {
             fstatus.hidden = false;
-            fstatus.className = "text-sm text-red-600";
+            fstatus.className = "text-xs sm:text-sm text-rose-500 font-semibold";
             fstatus.textContent = "Vui lòng nhập cả thư mục nguồn và thư mục đích.";
             return;
         }
@@ -188,7 +203,6 @@
             const failed = data.failed || 0;
             const total = data.total || 0;
 
-            // Render per-file rows (success first, then errors)
             const rows = [];
             for (const out of (data.outputs || [])) {
                 rows.push({ file: out.file, files: out.files, bad: false, note: out.output_path || "" });
@@ -199,30 +213,30 @@
             rows.sort((a, b) => a.file.localeCompare(b.file));
             for (const r of rows) {
                 const tr = document.createElement("tr");
-                tr.className = "border-b border-slate-100";
+                tr.className = "hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition";
                 tr.innerHTML =
-                    '<td class="py-1.5 pr-4 font-mono text-xs">' + esc(r.file) + "</td>" +
-                    '<td class="py-1.5 pr-4">' + esc(r.files) + "</td>" +
-                    '<td class="py-1.5 text-xs ' + (r.bad ? "text-red-600" : "text-slate-500") + '">' + esc(r.note) + "</td>";
+                    '<td class="py-2 px-4 font-mono text-xs text-slate-800 dark:text-slate-200">' + esc(r.file) + "</td>" +
+                    '<td class="py-2 px-4 text-xs font-semibold">' + esc(r.files) + "</td>" +
+                    '<td class="py-2 px-4 text-xs ' + (r.bad ? "text-rose-500 font-semibold" : "text-emerald-600 dark:text-emerald-400 font-semibold") + '">' + esc(r.note) + "</td>";
                 fbody.appendChild(tr);
             }
             if (rows.length) fresults.classList.remove("hidden");
 
             fstatus.hidden = false;
             if (failed === 0 && ok > 0) {
-                fstatus.className = "text-sm font-medium text-emerald-700";
+                fstatus.className = "text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-400";
                 fstatus.textContent = "✓ Thành công! Đã chuyển " + ok + "/" + total + " file PDF vào " + (data.output_folder || output) + ".";
             } else if (ok > 0) {
-                fstatus.className = "text-sm font-medium text-amber-700";
+                fstatus.className = "text-xs sm:text-sm font-semibold text-amber-500";
                 fstatus.textContent = "Đã chuyển " + ok + " file, có " + failed + " file lỗi. Xem chi tiết ở bảng bên dưới.";
             } else {
-                fstatus.className = "text-sm font-medium text-red-600";
+                fstatus.className = "text-xs sm:text-sm font-semibold text-rose-500";
                 fstatus.textContent = (data.errors && data.errors[0] && data.errors[0].error) ||
-                    (res.status + " — không thể chuyển đổi. Kiểm tra lại đường dẫn thư mục.");
+                    (res.status + " — Không thể chuyển đổi. Kiểm tra lại đường dẫn thư mục.");
             }
         } catch (err) {
             fstatus.hidden = false;
-            fstatus.className = "text-sm font-medium text-red-600";
+            fstatus.className = "text-xs sm:text-sm font-semibold text-rose-500";
             fstatus.textContent = "Lỗi: " + (err && err.message ? err.message : err);
         } finally {
             setFBusy(false);
@@ -231,4 +245,3 @@
 })();
 </script>
 {% endblock %}
-

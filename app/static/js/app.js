@@ -5,10 +5,16 @@ document.addEventListener("DOMContentLoaded", () => {
         window.lucide.createIcons();
     }
 
-    // 2. Dark / Light Mode Handling
-    const themeToggleBtn = document.getElementById("theme-toggle-btn");
+    // 2. Dark / Light Mode Handling (Unified & Synchronized)
+    const sidebarThemeToggleBtn = document.getElementById("theme-toggle-btn");
+    const topbarThemeToggleBtn = document.getElementById("topbar-theme-toggle");
     const themeThumb = document.getElementById("theme-thumb");
-    const savedTheme = localStorage.getItem("app_theme") || "light";
+
+    function getPreferredTheme() {
+        const saved = localStorage.getItem("app_theme");
+        if (saved) return saved;
+        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
 
     function applyTheme(theme) {
         if (theme === "dark") {
@@ -23,16 +29,24 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
         localStorage.setItem("app_theme", theme);
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+
+    function toggleTheme() {
+        const currentIsDark = document.documentElement.classList.contains("dark");
+        applyTheme(currentIsDark ? "light" : "dark");
     }
 
     // Apply initial theme
-    applyTheme(savedTheme);
+    applyTheme(getPreferredTheme());
 
-    if (themeToggleBtn) {
-        themeToggleBtn.addEventListener("click", () => {
-            const isDark = document.documentElement.classList.contains("dark");
-            applyTheme(isDark ? "light" : "dark");
-        });
+    if (sidebarThemeToggleBtn) {
+        sidebarThemeToggleBtn.addEventListener("click", toggleTheme);
+    }
+    if (topbarThemeToggleBtn) {
+        topbarThemeToggleBtn.addEventListener("click", toggleTheme);
     }
 
     // 3. Mobile Sidebar Drawer
@@ -88,7 +102,6 @@ document.addEventListener("DOMContentLoaded", () => {
     function updateFavoriteStars() {
         document.querySelectorAll(".fav-btn").forEach(btn => {
             const toolId = btn.getAttribute("data-fav-id");
-            const starIcon = btn.querySelector("i, svg");
             if (favorites.includes(toolId)) {
                 btn.classList.add("text-amber-400");
                 btn.classList.remove("text-slate-300", "dark:text-slate-600");
