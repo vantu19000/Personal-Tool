@@ -1,23 +1,23 @@
-<!-- Sidebar Drawer for Mobile & Desktop -->
+<!-- Sidebar Drawer for Mobile & Desktop (Light Mode default, Dark Mode on .dark) -->
 <aside id="app-sidebar"
-       class="fixed lg:sticky top-0 left-0 z-50 h-screen w-64 shrink-0 bg-[#0c1220] border-r border-slate-800/80 text-slate-200 flex flex-col transition-transform duration-300 ease-in-out -translate-x-full lg:translate-x-0 select-none">
+       class="fixed lg:sticky top-0 left-0 z-50 h-screen w-64 shrink-0 bg-white dark:bg-[#0c1220] border-r border-slate-200/90 dark:border-slate-800/80 text-slate-700 dark:text-slate-200 flex flex-col transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 select-none">
 
     <!-- Brand Header -->
-    <div class="px-5 py-5 border-b border-slate-800/60 flex items-center justify-between">
+    <div class="px-5 py-5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
         <a href="/" class="flex items-center gap-3 group">
-            <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-600/30 group-hover:scale-105 transition-transform">
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white shadow-md shadow-blue-600/30 group-hover:scale-105 transition-transform">
                 <i data-lucide="zap" class="w-5 h-5 text-white fill-white"></i>
             </div>
             <div class="min-w-0">
-                <h1 class="text-sm font-bold tracking-tight text-white group-hover:text-blue-300 transition leading-snug">
-                    Personal<br><span class="font-normal text-slate-300">Multi-Tool</span>
+                <h1 class="text-sm font-bold tracking-tight text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-300 transition leading-snug">
+                    Personal<br><span class="font-normal text-slate-500 dark:text-slate-400">Multi-Tool</span>
                 </h1>
-                <p class="text-[10px] text-slate-500 font-mono mt-0.5">v{{ settings.APP_VERSION }}</p>
+                <p class="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">v{{ settings.APP_VERSION }}</p>
             </div>
         </a>
 
         <!-- Close button for mobile -->
-        <button type="button" id="mobile-menu-close-btn" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+        <button type="button" id="mobile-menu-close-btn" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
             <i data-lucide="x" class="w-5 h-5"></i>
         </button>
     </div>
@@ -28,21 +28,21 @@
         <div class="space-y-1">
             <a href="/"
                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition group
-                      {% if active_tool == 'dashboard' %}bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30 font-semibold{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}">
-                <i data-lucide="home" class="w-4 h-4 shrink-0 {% if active_tool == 'dashboard' %}text-white{% else %}text-slate-400 group-hover:text-white{% endif %}"></i>
+                      {% if active_tool == 'dashboard' %}bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30 font-semibold{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                <i data-lucide="home" class="w-4 h-4 shrink-0 {% if active_tool == 'dashboard' %}text-white{% else %}text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white{% endif %}"></i>
                 <span>Tổng quan</span>
             </a>
 
             <a href="/#tools-section"
-               class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-400 hover:bg-slate-800/60 hover:text-white group">
-                <i data-lucide="layout-grid" class="w-4 h-4 shrink-0 text-slate-400 group-hover:text-white"></i>
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white group">
+                <i data-lucide="layout-grid" class="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"></i>
                 <span>Công cụ</span>
             </a>
 
             <a href="/settings"
                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition group
-                      {% if active_tool == 'settings' %}bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30 font-semibold{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}">
-                <i data-lucide="settings" class="w-4 h-4 shrink-0 {% if active_tool == 'settings' %}text-white{% else %}text-slate-400 group-hover:text-white{% endif %}"></i>
+                      {% if active_tool == 'settings' %}bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30 font-semibold{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                <i data-lucide="settings" class="w-4 h-4 shrink-0 {% if active_tool == 'settings' %}text-white{% else %}text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white{% endif %}"></i>
                 <span>Cấu hình chung</span>
             </a>
         </div>
@@ -58,15 +58,15 @@
                 'text-counter': 'type'
             } %}
             <div class="px-3 pb-2.5">
-                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">CÔNG CỤ SẴN CÓ</p>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">CÔNG CỤ SẴN CÓ</p>
             </div>
             <div class="space-y-1">
                 {% for tool in tools %}
                 {% set s_icon = tool.icon or sidebar_icons.get(tool.id, 'wrench') %}
                 <a href="{{ tool.path }}"
                    class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium transition group
-                          {% if active_tool == tool.id %}bg-indigo-600/90 text-white shadow-sm font-semibold{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
-                    <i data-lucide="{{ s_icon }}" class="w-4 h-4 shrink-0 {% if active_tool == tool.id %}text-white{% else %}text-slate-400 group-hover:text-indigo-400{% endif %}"></i>
+                          {% if active_tool == tool.id %}bg-indigo-600 text-white shadow-sm font-semibold{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200{% endif %}">
+                    <i data-lucide="{{ s_icon }}" class="w-4 h-4 shrink-0 {% if active_tool == tool.id %}text-white{% else %}text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400{% endif %}"></i>
                     <span class="truncate">{{ tool.name }}</span>
                 </a>
                 {% endfor %}
@@ -76,12 +76,12 @@
         <!-- Expand Section -->
         <div>
             <div class="px-3 pb-2.5">
-                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1">
                     <span>✦ MỞ RỘNG</span>
                 </p>
             </div>
             <a href="/settings"
-               class="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-xs text-slate-400 border border-slate-800 bg-slate-900/40 hover:bg-slate-800/60 hover:text-slate-300 transition">
+               class="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-xs text-slate-500 dark:text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-800 dark:hover:text-slate-300 transition">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-slate-400"></i>
                 <span>Thêm module…</span>
             </a>
@@ -89,29 +89,29 @@
     </nav>
 
     <!-- Bottom Sidebar Section -->
-    <div class="p-4 border-t border-slate-800/80 space-y-3.5 bg-[#090e18]">
+    <div class="p-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3.5 bg-slate-50/70 dark:bg-[#090e18]">
         <!-- Local-First Status Box -->
-        <div class="rounded-xl bg-slate-900/90 border border-slate-800 px-3.5 py-2.5 flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center shrink-0">
-                <i data-lucide="laptop" class="w-4 h-4 text-slate-300"></i>
+        <div class="rounded-xl bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 px-3.5 py-2.5 flex items-center gap-3 shadow-2xs">
+            <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                <i data-lucide="laptop" class="w-4 h-4 text-slate-600 dark:text-slate-300"></i>
             </div>
             <div class="min-w-0">
-                <p class="text-xs font-semibold text-slate-200 leading-tight">Local-First</p>
-                <p class="text-[10px] text-slate-400 truncate">Đang chạy 100% offline</p>
+                <p class="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-tight">Local-First</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400 truncate">Đang chạy 100% offline</p>
             </div>
         </div>
 
         <!-- Dark/Light Theme Toggle Switch -->
         <div class="flex items-center justify-between pt-1">
             <div class="flex items-center gap-2">
-                <i data-lucide="sun" class="w-3.5 h-3.5 text-slate-400"></i>
-                <button type="button" id="theme-toggle-btn"
-                        class="w-12 h-6 rounded-full bg-slate-800 border border-slate-700 p-0.5 relative transition-colors focus:outline-none">
-                    <span id="theme-thumb" class="block w-5 h-5 rounded-full bg-indigo-500 shadow-sm transition-transform duration-200 ease-in-out"></span>
+                <i data-lucide="sun" class="w-3.5 h-3.5 text-amber-500"></i>
+                <button type="button" id="theme-toggle-btn" title="Chuyển chế độ Sáng / Tối"
+                        class="w-12 h-6 rounded-full bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 p-0.5 relative transition-colors focus:outline-none cursor-pointer">
+                    <span id="theme-thumb" class="block w-5 h-5 rounded-full bg-indigo-600 shadow-sm transition-transform duration-200 ease-in-out"></span>
                 </button>
-                <i data-lucide="moon" class="w-3.5 h-3.5 text-slate-400"></i>
+                <i data-lucide="moon" class="w-3.5 h-3.5 text-slate-400 dark:text-indigo-400"></i>
             </div>
-            <span class="text-[10px] font-mono text-slate-600">v{{ settings.APP_VERSION }}</span>
+            <span class="text-[10px] font-mono text-slate-400 dark:text-slate-600">v{{ settings.APP_VERSION }}</span>
         </div>
     </div>
 </aside>

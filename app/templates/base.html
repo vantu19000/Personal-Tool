@@ -6,12 +6,12 @@
     <title>{% block title %}{{ settings.APP_NAME }}{% endblock %}</title>
     <link rel="icon" type="image/png" href="/static/favicon.png" />
 
-    <!-- Prevent Flash of Unstyled Theme (System preference fallback) -->
+    <!-- Prevent Flash of Unstyled Theme: DEFAULT TO LIGHT MODE unless explicitly saved as dark -->
     <script>
         (function() {
             try {
                 const saved = localStorage.getItem('app_theme');
-                if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                if (saved === 'dark') {
                     document.documentElement.classList.add('dark');
                 } else {
                     document.documentElement.classList.remove('dark');
@@ -73,7 +73,7 @@
     <!-- ===== Main Layout (Full Width) ===== -->
     <div class="flex-1 flex flex-col min-h-screen min-w-0 overflow-hidden w-full">
         <!-- Top bar (Full Width) -->
-        <header class="h-16 bg-white/80 dark:bg-[#0d1322]/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-10 gap-4 shrink-0 transition-colors w-full">
+        <header class="h-16 bg-white/90 dark:bg-[#0d1322]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-10 gap-4 shrink-0 transition-colors w-full">
             
             <!-- Left: Mobile menu button & Search Bar -->
             <div class="flex items-center gap-3 flex-1 max-w-xl xl:max-w-2xl">
@@ -107,7 +107,7 @@
 
                 <!-- Theme Toggle Button in Topbar -->
                 <button type="button" id="topbar-theme-toggle" title="Chuyển chế độ Sáng / Tối"
-                        class="p-2 sm:p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-slate-700 transition shadow-2xs flex items-center justify-center">
+                        class="p-2 sm:p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-slate-700 transition shadow-2xs flex items-center justify-center cursor-pointer">
                     <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
                     <i data-lucide="moon" class="w-4 h-4 block dark:hidden text-slate-600"></i>
                 </button>
@@ -128,8 +128,56 @@
         </main>
     </div>
 
-    <!-- Scripts -->
-    <script src="/static/js/app.js"></script>
+    <!-- Inline Unified Theme Switcher (Guaranteed Zero Cache Issues) -->
+    <script>
+        (function() {
+            function updateThemeUI(theme) {
+                const thumb = document.getElementById("theme-thumb");
+                const isDark = (theme === "dark");
+                if (isDark) {
+                    document.documentElement.classList.add("dark");
+                    if (thumb) thumb.style.transform = "translateX(24px)";
+                } else {
+                    document.documentElement.classList.remove("dark");
+                    if (thumb) thumb.style.transform = "translateX(0px)";
+                }
+                try { localStorage.setItem("app_theme", theme); } catch (_) {}
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }
+
+            function toggleAppTheme() {
+                const isDarkNow = document.documentElement.classList.contains("dark");
+                updateThemeUI(isDarkNow ? "light" : "dark");
+            }
+
+            document.addEventListener("DOMContentLoaded", function() {
+                // Default is LIGHT mode unless user saved 'dark'
+                const savedTheme = localStorage.getItem("app_theme") || "light";
+                updateThemeUI(savedTheme);
+
+                const sidebarBtn = document.getElementById("theme-toggle-btn");
+                const topbarBtn = document.getElementById("topbar-theme-toggle");
+
+                if (sidebarBtn) {
+                    sidebarBtn.onclick = function(e) {
+                        e.preventDefault();
+                        toggleAppTheme();
+                    };
+                }
+                if (topbarBtn) {
+                    topbarBtn.onclick = function(e) {
+                        e.preventDefault();
+                        toggleAppTheme();
+                    };
+                }
+            });
+        })();
+    </script>
+
+    <!-- Additional scripts -->
+    <script src="/static/js/app.js?v=0.1.2"></script>
     <script>
         if (window.lucide) {
             window.lucide.createIcons();
