@@ -6,18 +6,16 @@
     <title>{% block title %}{{ settings.APP_NAME }}{% endblock %}</title>
     <link rel="icon" type="image/png" href="/static/favicon.png" />
 
-    <!-- Prevent Flash of Unstyled Theme: DEFAULT TO LIGHT MODE unless explicitly saved as dark -->
+    <!-- Synchronous Theme Setup (Prevent FOUC, defaults to light) -->
     <script>
-        (function() {
-            try {
-                const saved = localStorage.getItem('app_theme');
-                if (saved === 'dark') {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                }
-            } catch (_) {}
-        })();
+        try {
+            var savedTheme = localStorage.getItem('app_theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        } catch (e) {}
     </script>
 
     <!-- Google Fonts: Plus Jakarta Sans -->
@@ -25,7 +23,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Tailwind CSS with Dark Mode -->
+    <!-- Tailwind CSS with Dark Mode (Official Play CDN format) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -51,14 +49,14 @@
                     }
                 }
             }
-        }
+        };
     </script>
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/css/app.css" />
+    <!-- Custom CSS (with cache-busting version) -->
+    <link rel="stylesheet" href="/static/css/app.css?v=0.1.4" />
 
     {% block head %}{% endblock %}
 </head>
@@ -108,8 +106,9 @@
                 <!-- Theme Toggle Button in Topbar -->
                 <button type="button" id="topbar-theme-toggle" title="Chuyển chế độ Sáng / Tối"
                         class="p-2 sm:p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-slate-700 transition shadow-2xs flex items-center justify-center cursor-pointer">
-                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
-                    <i data-lucide="moon" class="w-4 h-4 block dark:hidden text-slate-600"></i>
+                    <span id="topbar-theme-icon" class="flex items-center justify-center">
+                        <i data-lucide="moon" class="w-4 h-4 text-slate-600"></i>
+                    </span>
                 </button>
 
                 <!-- Settings Button -->
@@ -128,56 +127,76 @@
         </main>
     </div>
 
-    <!-- Inline Unified Theme Switcher (Guaranteed Zero Cache Issues) -->
+    <!-- ===== Global Single Theme Controller ===== -->
     <script>
-        (function() {
-            function updateThemeUI(theme) {
-                const thumb = document.getElementById("theme-thumb");
-                const isDark = (theme === "dark");
-                if (isDark) {
-                    document.documentElement.classList.add("dark");
-                    if (thumb) thumb.style.transform = "translateX(24px)";
-                } else {
-                    document.documentElement.classList.remove("dark");
-                    if (thumb) thumb.style.transform = "translateX(0px)";
+        function setAppTheme(theme) {
+            var isDark = (theme === "dark");
+            var html = document.documentElement;
+            var thumb = document.getElementById("theme-thumb");
+            var toggleBtn = document.getElementById("theme-toggle-btn");
+            var iconSpan = document.getElementById("topbar-theme-icon");
+
+            if (isDark) {
+                html.classList.add("dark");
+                if (thumb) thumb.style.transform = "translateX(24px)";
+                if (toggleBtn) {
+                    toggleBtn.classList.add("bg-indigo-600");
+                    toggleBtn.classList.remove("bg-slate-200");
                 }
-                try { localStorage.setItem("app_theme", theme); } catch (_) {}
-                if (window.lucide) {
-                    window.lucide.createIcons();
+                if (iconSpan) {
+                    iconSpan.innerHTML = '<i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>';
+                }
+            } else {
+                html.classList.remove("dark");
+                if (thumb) thumb.style.transform = "translateX(0px)";
+                if (toggleBtn) {
+                    toggleBtn.classList.remove("bg-indigo-600");
+                    toggleBtn.classList.add("bg-slate-200");
+                }
+                if (iconSpan) {
+                    iconSpan.innerHTML = '<i data-lucide="moon" class="w-4 h-4 text-slate-600"></i>';
                 }
             }
 
-            function toggleAppTheme() {
-                const isDarkNow = document.documentElement.classList.contains("dark");
-                updateThemeUI(isDarkNow ? "light" : "dark");
+            try { localStorage.setItem("app_theme", theme); } catch (e) {}
+            if (window.lucide) {
+                window.lucide.createIcons();
             }
+        }
 
-            document.addEventListener("DOMContentLoaded", function() {
-                // Default is LIGHT mode unless user saved 'dark'
-                const savedTheme = localStorage.getItem("app_theme") || "light";
-                updateThemeUI(savedTheme);
+        function toggleAppTheme() {
+            var currentIsDark = document.documentElement.classList.contains("dark");
+            setAppTheme(currentIsDark ? "light" : "dark");
+        }
 
-                const sidebarBtn = document.getElementById("theme-toggle-btn");
-                const topbarBtn = document.getElementById("topbar-theme-toggle");
+        // Attach click handlers when DOM is ready
+        document.addEventListener("DOMContentLoaded", function() {
+            var saved = "light";
+            try { saved = localStorage.getItem("app_theme") || "light"; } catch (e) {}
+            setAppTheme(saved);
 
-                if (sidebarBtn) {
-                    sidebarBtn.onclick = function(e) {
-                        e.preventDefault();
-                        toggleAppTheme();
-                    };
-                }
-                if (topbarBtn) {
-                    topbarBtn.onclick = function(e) {
-                        e.preventDefault();
-                        toggleAppTheme();
-                    };
-                }
-            });
-        })();
+            var sidebarBtn = document.getElementById("theme-toggle-btn");
+            var topbarBtn = document.getElementById("topbar-theme-toggle");
+
+            if (sidebarBtn) {
+                sidebarBtn.onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleAppTheme();
+                };
+            }
+            if (topbarBtn) {
+                topbarBtn.onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleAppTheme();
+                };
+            }
+        });
     </script>
 
     <!-- Additional scripts -->
-    <script src="/static/js/app.js?v=0.1.2"></script>
+    <script src="/static/js/app.js?v=0.1.3"></script>
     <script>
         if (window.lucide) {
             window.lucide.createIcons();

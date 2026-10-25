@@ -11,6 +11,137 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* ==========================================================================
+   COMPREHENSIVE DARK MODE SYSTEM (Pure CSS Overrides - 100% Guaranteed)
+   ========================================================================== */
+
+html.dark body {
+    background-color: #0b0f19 !important;
+    color: #f1f5f9 !important;
+}
+
+/* Sidebar Dark Styling */
+html.dark #app-sidebar {
+    background-color: #0c1220 !important;
+    border-color: rgba(30, 41, 59, 0.8) !important;
+    color: #cbd5e1 !important;
+}
+html.dark #app-sidebar .bg-white {
+    background-color: #0f172a !important;
+    border-color: #1e293b !important;
+    color: #f1f5f9 !important;
+}
+html.dark #app-sidebar .bg-slate-50,
+html.dark #app-sidebar .bg-slate-100 {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
+}
+html.dark #app-sidebar div[class*="bg-slate-50"] {
+    background-color: #090e18 !important;
+    border-color: rgba(30, 41, 59, 0.8) !important;
+}
+html.dark #app-sidebar a[class*="text-slate-600"] {
+    color: #94a3b8 !important;
+}
+html.dark #app-sidebar a[class*="text-slate-600"]:hover {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+}
+
+/* Header Dark Styling */
+html.dark header {
+    background-color: rgba(12, 18, 32, 0.95) !important;
+    border-color: rgba(30, 41, 59, 0.8) !important;
+}
+html.dark header input {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #ffffff !important;
+}
+html.dark header #topbar-theme-toggle,
+html.dark header a[href="/settings"] {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
+}
+
+/* Card, Section & Container Dark Overrides (Settings, Tools, Dashboard) */
+html.dark section,
+html.dark .tool-card,
+html.dark .bg-white {
+    background-color: #0f172a !important;
+    border-color: rgba(30, 41, 59, 0.8) !important;
+    color: #f1f5f9 !important;
+}
+
+html.dark section:hover,
+html.dark .tool-card:hover {
+    border-color: #6366f1 !important;
+}
+
+/* Typography Dark Mode */
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark .text-slate-800,
+html.dark .text-slate-900 {
+    color: #ffffff !important;
+}
+
+html.dark p.text-slate-500,
+html.dark p.text-slate-600,
+html.dark label,
+html.dark span.text-slate-500,
+html.dark span.text-slate-600,
+html.dark span.text-slate-700 {
+    color: #94a3b8 !important;
+}
+
+/* Form Inputs & Textareas */
+html.dark input[type="text"],
+html.dark input[type="number"],
+html.dark input[type="file"],
+html.dark textarea,
+html.dark select {
+    background-color: #090e18 !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+html.dark input:focus,
+html.dark textarea:focus,
+html.dark select:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25) !important;
+    outline: none !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+    color: #475569 !important;
+}
+
+/* Borders & Separators */
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-slate-300 {
+    border-color: rgba(30, 41, 59, 0.8) !important;
+}
+
+/* Light Backgrounds in Dark Mode (e.g. tag chips, code boxes) */
+html.dark .bg-slate-50,
+html.dark .bg-slate-100 {
+    background-color: #090e18 !important;
+    border-color: #1e293b !important;
+    color: #cbd5e1 !important;
+}
+
+/* ==========================================================================
+   INTERACTIONS & UTILITIES
+   ========================================================================== */
+
 /* Slim modern scrollbars */
 ::-webkit-scrollbar {
     width: 6px;

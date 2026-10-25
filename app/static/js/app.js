@@ -1,55 +1,11 @@
-// app.js — modern interactions, theme toggle & responsive behavior
+// app.js — modern interactions, favorites, view mode & responsive behavior
 document.addEventListener("DOMContentLoaded", () => {
     // 1. Initialize Lucide Icons
     if (window.lucide) {
         window.lucide.createIcons();
     }
 
-    // 2. Dark / Light Mode Handling (Unified & Synchronized)
-    const sidebarThemeToggleBtn = document.getElementById("theme-toggle-btn");
-    const topbarThemeToggleBtn = document.getElementById("topbar-theme-toggle");
-    const themeThumb = document.getElementById("theme-thumb");
-
-    function getPreferredTheme() {
-        const saved = localStorage.getItem("app_theme");
-        if (saved) return saved;
-        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    }
-
-    function applyTheme(theme) {
-        if (theme === "dark") {
-            document.documentElement.classList.add("dark");
-            if (themeThumb) {
-                themeThumb.style.transform = "translateX(24px)";
-            }
-        } else {
-            document.documentElement.classList.remove("dark");
-            if (themeThumb) {
-                themeThumb.style.transform = "translateX(0px)";
-            }
-        }
-        localStorage.setItem("app_theme", theme);
-        if (window.lucide) {
-            window.lucide.createIcons();
-        }
-    }
-
-    function toggleTheme() {
-        const currentIsDark = document.documentElement.classList.contains("dark");
-        applyTheme(currentIsDark ? "light" : "dark");
-    }
-
-    // Apply initial theme
-    applyTheme(getPreferredTheme());
-
-    if (sidebarThemeToggleBtn) {
-        sidebarThemeToggleBtn.addEventListener("click", toggleTheme);
-    }
-    if (topbarThemeToggleBtn) {
-        topbarThemeToggleBtn.addEventListener("click", toggleTheme);
-    }
-
-    // 3. Mobile Sidebar Drawer
+    // 2. Mobile Sidebar Drawer
     const mobileMenuOpenBtn = document.getElementById("mobile-menu-open-btn");
     const mobileMenuCloseBtn = document.getElementById("mobile-menu-close-btn");
     const sidebarDrawer = document.getElementById("app-sidebar");
@@ -83,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
         sidebarBackdrop.addEventListener("click", closeSidebar);
     }
 
-    // 4. Keyboard Shortcut: Ctrl + K or '/'
+    // 3. Keyboard Shortcut: Ctrl + K or '/'
     document.addEventListener("keydown", (e) => {
         if ((e.key === "/" && !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) || 
             ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k")) {
@@ -96,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // 5. Tool Favorites Handling
+    // 4. Tool Favorites Handling
     let favorites = JSON.parse(localStorage.getItem("app_favorites") || "[]");
 
     function updateFavoriteStars() {
@@ -129,7 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     updateFavoriteStars();
 
-    // 6. Grid View vs List View
+    // 5. Grid View vs List View
     const gridViewBtn = document.getElementById("view-grid-btn");
     const listViewBtn = document.getElementById("view-list-btn");
     const toolsGrid = document.getElementById("tools-grid");
