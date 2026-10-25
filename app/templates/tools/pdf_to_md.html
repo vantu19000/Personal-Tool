@@ -15,11 +15,11 @@
                 <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span>PDF to Markdown</span>
                     <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300">
-                        Tài liệu
+                        Tài liệu & Hình ảnh
                     </span>
                 </h1>
                 <p class="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                    Chuyển file PDF có lớp text sang Markdown. File PDF dài sẽ được tự động chia nhỏ (mặc định <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">{{ pages_per_file }}</code> trang/file và nén thành file <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">.zip</code>).
+                    Chuyển PDF sang Markdown: giữ nguyên cấu trúc dòng chảy văn bản, trích xuất biểu đồ / hình ảnh minh họa, và tự động xử lý trang scan (hỗ trợ OCR bằng AI).
                 </p>
             </div>
         </div>
@@ -27,7 +27,7 @@
 
     <!-- Single file conversion -->
     <form id="convert-form" method="post" action="/tools/pdf-to-md/convert" enctype="multipart/form-data"
-          class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-5">
+          class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-6">
         <div>
             <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <i data-lucide="file-up" class="w-4 h-4 text-rose-500"></i>
@@ -49,13 +49,96 @@
             <p class="mt-1.5 text-[11px] text-slate-400">Tối đa 200 MB mỗi file.</p>
         </div>
 
-        <!-- Pages per file -->
-        <div class="max-w-xs">
-            <label for="pages-per-file" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Số trang mỗi file Markdown</label>
-            <input type="number" id="pages-per-file" name="pages_per_file" min="1" max="500" value="{{ pages_per_file }}"
-                   class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition">
-            <p class="mt-1 text-[11px] text-slate-400">Từ 1 đến 500 trang.</p>
+        <!-- Option Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+            <!-- Chunking settings -->
+            <div>
+                <label for="pages-per-file" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Số trang mỗi file Markdown
+                </label>
+                <input type="number" id="pages-per-file" name="pages_per_file" min="1" max="500" value="{{ pages_per_file }}"
+                       class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition">
+                <p class="mt-1 text-[11px] text-slate-400">PDF dài hơn số trang này sẽ được tách nhiều file và đóng gói zip.</p>
+            </div>
+
+            <!-- OCR Settings -->
+            <div>
+                <label for="ocr-mode" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Xử lý trang Scan / Không có text
+                </label>
+                <select id="ocr-mode" name="ocr_mode"
+                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition">
+                    <option value="auto" {% if cfg.ocr_mode == 'auto' %}selected{% endif %}>Tự động (Xuất ảnh trang scan an toàn)</option>
+                    <option value="gemini" {% if cfg.ocr_mode == 'gemini' %}selected{% endif %}>AI OCR qua Google Gemini (Chính xác cao)</option>
+                    <option value="ollama" {% if cfg.ocr_mode == 'ollama' %}selected{% endif %}>AI OCR qua Ollama Vision (Local)</option>
+                    <option value="off" {% if cfg.ocr_mode == 'off' %}selected{% endif %}>Tắt OCR</option>
+                </select>
+                <p class="mt-1 text-[11px] text-slate-400">Chọn phương thức xử lý khi gặp trang scan không có text layer.</p>
+            </div>
         </div>
+
+        <!-- Dynamic OCR parameters -->
+        <div id="gemini-params" class="hidden rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200/60 dark:border-purple-800/40 p-4 space-y-2">
+            <div class="flex items-center gap-2 text-xs font-semibold text-purple-700 dark:text-purple-300">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                <span>Cấu hình Gemini Vision OCR</span>
+            </div>
+            <input type="password" id="gemini-api-key" name="gemini_api_key" value="{{ cfg.gemini_api_key }}"
+                   placeholder="Nhập Gemini API Key (AIzaSy...)"
+                   class="w-full rounded-xl border border-purple-200 dark:border-purple-800 px-3.5 py-2 text-xs sm:text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+            <p class="text-[11px] text-purple-600/80 dark:text-purple-400">
+                API Key miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-semibold">Google AI Studio</a>. Sẽ được tự động lưu trên trình duyệt của bạn.
+            </p>
+        </div>
+
+        <div id="ollama-params" class="hidden rounded-xl bg-sky-50/50 dark:bg-sky-950/20 border border-sky-200/60 dark:border-sky-800/40 p-4 space-y-2">
+            <div class="flex items-center gap-2 text-xs font-semibold text-sky-700 dark:text-sky-300">
+                <i data-lucide="cpu" class="w-4 h-4"></i>
+                <span>Cấu hình Ollama Vision</span>
+            </div>
+            <input type="text" id="ollama-model" name="ollama_model" value="{{ cfg.ollama_model or 'llama3.2-vision' }}"
+                   placeholder="llama3.2-vision"
+                   class="w-full rounded-xl border border-sky-200 dark:border-sky-800 px-3.5 py-2 text-xs sm:text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500">
+            <p class="text-[11px] text-sky-600/80 dark:text-sky-400">
+                Yêu cầu Ollama đang chạy trên máy và đã kéo model vision (ví dụ: <code>ollama pull llama3.2-vision</code>).
+            </p>
+        </div>
+
+        <!-- Image extraction options -->
+        <div class="rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 p-4 space-y-3">
+            <div class="flex items-center justify-between">
+                <label for="extract-images" class="flex items-center gap-2.5 cursor-pointer">
+                    <input type="checkbox" id="extract-images" name="extract_images" value="true"
+                           {% if cfg.extract_images %}checked{% endif %}
+                           class="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-slate-300 dark:border-slate-700">
+                    <span class="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                        Trích xuất hình ảnh minh họa (Biểu đồ, sơ đồ, ảnh chụp trong PDF)
+                    </span>
+                </label>
+                <span class="text-[11px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 font-semibold">
+                    Tự động định vị
+                </span>
+            </div>
+
+            <!-- Image format options -->
+            <div id="image-format-box" class="pt-2 pl-6 border-t border-slate-200/60 dark:border-slate-800/60 flex flex-wrap items-center gap-5 text-xs text-slate-600 dark:text-slate-300">
+                <span class="font-medium">Định dạng lưu ảnh:</span>
+                <label class="inline-flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="image_embed_mode" value="folder"
+                           {% if cfg.image_embed_mode != 'base64' %}checked{% endif %}
+                           class="text-rose-600 focus:ring-rose-500">
+                    <span>Thư mục <code>images/</code> (nén zip kèm .md — Khuyên dùng)</span>
+                </label>
+                <label class="inline-flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="image_embed_mode" value="base64"
+                           {% if cfg.image_embed_mode == 'base64' %}checked{% endif %}
+                           class="text-rose-600 focus:ring-rose-500">
+                    <span>Nhúng trực tiếp Base64 vào file .md (1 file duy nhất)</span>
+                </label>
+            </div>
+        </div>
+
+        <div id="convert-status" class="hidden text-xs sm:text-sm font-semibold rounded-xl p-3"></div>
 
         <div class="flex items-center justify-end pt-2 border-t border-slate-100 dark:border-slate-800/80">
             <button type="submit" id="convert-btn"
@@ -79,7 +162,7 @@
                 <span>Chuyển đổi theo thư mục (hàng loạt)</span>
             </h2>
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Quét toàn bộ file <code>.pdf</code> trong thư mục nguồn và tự động xuất ra thư mục đích.
+                Quét toàn bộ file <code>.pdf</code> trong thư mục nguồn và tự động xuất ra thư mục đích kèm thư mục ảnh <code>images/</code>.
             </p>
         </div>
 
@@ -119,6 +202,7 @@
                     <tr class="text-left text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
                         <th class="py-2.5 px-4 font-semibold">Tên file</th>
                         <th class="py-2.5 px-4 font-semibold">Số file MD</th>
+                        <th class="py-2.5 px-4 font-semibold">Ảnh trích xuất</th>
                         <th class="py-2.5 px-4 font-semibold">Trạng thái</th>
                     </tr>
                     </thead>
@@ -133,9 +217,53 @@
 {% block scripts %}
 <script>
 (function () {
+    const ocrSelect = document.getElementById("ocr-mode");
+    const geminiParams = document.getElementById("gemini-params");
+    const ollamaParams = document.getElementById("ollama-params");
+    const geminiInput = document.getElementById("gemini-api-key");
+    const ollamaInput = document.getElementById("ollama-model");
+    const extractCheckbox = document.getElementById("extract-images");
+    const imageFormatBox = document.getElementById("image-format-box");
+
+    // Restore saved settings from localStorage
+    try {
+        const savedGeminiKey = localStorage.getItem("pdf_to_md_gemini_key");
+        if (savedGeminiKey && !geminiInput.value) {
+            geminiInput.value = savedGeminiKey;
+        }
+        const savedOllamaModel = localStorage.getItem("pdf_to_md_ollama_model");
+        if (savedOllamaModel && !ollamaInput.value) {
+            ollamaInput.value = savedOllamaModel;
+        }
+    } catch (e) {}
+
+    function updateOcrPanels() {
+        const val = ocrSelect.value;
+        geminiParams.classList.toggle("hidden", val !== "gemini");
+        ollamaParams.classList.toggle("hidden", val !== "ollama");
+    }
+
+    function updateImageBox() {
+        imageFormatBox.classList.toggle("hidden", !extractCheckbox.checked);
+    }
+
+    ocrSelect.addEventListener("change", updateOcrPanels);
+    extractCheckbox.addEventListener("change", updateImageBox);
+    updateOcrPanels();
+    updateImageBox();
+
+    // Save inputs to localStorage on blur
+    geminiInput.addEventListener("change", function () {
+        try { localStorage.setItem("pdf_to_md_gemini_key", geminiInput.value.trim()); } catch (e) {}
+    });
+    ollamaInput.addEventListener("change", function () {
+        try { localStorage.setItem("pdf_to_md_ollama_model", ollamaInput.value.trim()); } catch (e) {}
+    });
+
     const form = document.getElementById("convert-form");
     const btn = document.getElementById("convert-btn");
     const spinner = document.getElementById("convert-spinner");
+    const convertStatus = document.getElementById("convert-status");
 
     function setBusy(v) {
         btn.disabled = v;
@@ -143,15 +271,88 @@
         document.getElementById("convert-btn-label").textContent = v ? "Đang chuyển đổi…" : "Chuyển đổi sang Markdown";
     }
 
-    form.addEventListener("submit", function (e) {
+    function showStatus(msg, isError = false) {
+        if (!convertStatus) return;
+        convertStatus.classList.remove("hidden");
+        if (isError) {
+            convertStatus.className = "text-xs sm:text-sm font-semibold rounded-xl p-3 bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60";
+        } else {
+            convertStatus.className = "text-xs sm:text-sm font-semibold rounded-xl p-3 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60";
+        }
+        convertStatus.textContent = msg;
+    }
+
+    form.addEventListener("submit", async function (e) {
         e.preventDefault();
         const fileInput = document.getElementById("pdf-file");
         if (!fileInput.files.length) {
-            e.stopImmediatePropagation();
             return;
         }
+
+        if (convertStatus) convertStatus.classList.add("hidden");
         setBusy(true);
-        form.submit();
+
+        try {
+            const formData = new FormData(form);
+            formData.set("extract_images", extractCheckbox.checked ? "true" : "false");
+
+            const res = await fetch("/tools/pdf-to-md/convert", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!res.ok) {
+                let errMsg = "Chuyển đổi thất bại (Mã lỗi: " + res.status + ")";
+                try {
+                    const errJson = await res.json();
+                    if (errJson && errJson.detail) errMsg = errJson.detail;
+                } catch (_) {
+                    const txt = await res.text();
+                    if (txt) errMsg = txt;
+                }
+                showStatus("Lỗi: " + errMsg, true);
+                return;
+            }
+
+            // Extract filename from Content-Disposition header
+            const disposition = res.headers.get("content-disposition") || "";
+            let filename = "converted_document.md";
+            const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+            if (utf8Match && utf8Match[1]) {
+                try {
+                    filename = decodeURIComponent(utf8Match[1]);
+                } catch (_) {
+                    filename = utf8Match[1];
+                }
+            } else {
+                const asciiMatch = disposition.match(/filename="?([^";]+)"?/i);
+                if (asciiMatch && asciiMatch[1]) {
+                    filename = asciiMatch[1];
+                }
+            }
+
+            // Trigger file download
+            const blob = await res.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = downloadUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 1000);
+
+            showStatus("✓ Chuyển đổi thành công! Tệp " + filename + " đã được tải về.", false);
+        } catch (err) {
+            showStatus("Lỗi kết nối: " + (err && err.message ? err.message : err), true);
+        } finally {
+            setBusy(false);
+        }
+    });
+
+    // Reset busy indicator when user returns via back navigation
+    window.addEventListener("pageshow", function () {
+        setBusy(false);
     });
 
     const folderForm = document.getElementById("folder-form");
@@ -187,8 +388,17 @@
         const fd = new FormData();
         fd.append("source_folder", source);
         fd.append("output_folder", output);
+
         const ppf = document.getElementById("pages-per-file").value;
         if (ppf) fd.append("pages_per_file", ppf);
+
+        fd.append("extract_images", extractCheckbox.checked ? "true" : "false");
+        const embedMode = document.querySelector('input[name="image_embed_mode"]:checked');
+        if (embedMode) fd.append("image_embed_mode", embedMode.value);
+
+        fd.append("ocr_mode", ocrSelect.value);
+        if (geminiInput.value.trim()) fd.append("gemini_api_key", geminiInput.value.trim());
+        if (ollamaInput.value.trim()) fd.append("ollama_model", ollamaInput.value.trim());
 
         fstatus.hidden = true;
         fresults.classList.add("hidden");
@@ -205,19 +415,32 @@
 
             const rows = [];
             for (const out of (data.outputs || [])) {
-                rows.push({ file: out.file, files: out.files, bad: false, note: out.output_path || "" });
+                rows.push({
+                    file: out.file,
+                    files: out.files,
+                    images: out.images || 0,
+                    bad: false,
+                    note: out.output_path || "Thành công"
+                });
             }
             for (const err of (data.errors || [])) {
-                rows.push({ file: err.file, files: "-", bad: true, note: err.error || "Lỗi" });
+                rows.push({
+                    file: err.file,
+                    files: "-",
+                    images: "-",
+                    bad: true,
+                    note: err.error || "Lỗi"
+                });
             }
             rows.sort((a, b) => a.file.localeCompare(b.file));
             for (const r of rows) {
                 const tr = document.createElement("tr");
                 tr.className = "hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition";
                 tr.innerHTML =
-                    '<td class="py-2 px-4 font-mono text-xs text-slate-800 dark:text-slate-200">' + esc(r.file) + "</td>" +
-                    '<td class="py-2 px-4 text-xs font-semibold">' + esc(r.files) + "</td>" +
-                    '<td class="py-2 px-4 text-xs ' + (r.bad ? "text-rose-500 font-semibold" : "text-emerald-600 dark:text-emerald-400 font-semibold") + '">' + esc(r.note) + "</td>";
+                    '<td class="py-2.5 px-4 font-mono text-xs text-slate-800 dark:text-slate-200">' + esc(r.file) + "</td>" +
+                    '<td class="py-2.5 px-4 text-xs font-semibold">' + esc(r.files) + "</td>" +
+                    '<td class="py-2.5 px-4 text-xs font-semibold text-rose-600 dark:text-rose-400">' + esc(r.images) + "</td>" +
+                    '<td class="py-2.5 px-4 text-xs ' + (r.bad ? "text-rose-500 font-semibold" : "text-emerald-600 dark:text-emerald-400 font-semibold") + '">' + esc(r.note) + "</td>";
                 fbody.appendChild(tr);
             }
             if (rows.length) fresults.classList.remove("hidden");

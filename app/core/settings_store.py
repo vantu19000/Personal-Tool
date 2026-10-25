@@ -14,7 +14,8 @@ by block id::
 
     {
         "system":        {"home_title": "...", "home_description": "..."},
-        "srt_translator": {"system_prompt": "..."}
+        "srt_translator": {"system_prompt": "..."},
+        "pdf_to_md":     {"pages_per_file": 10, ...}
     }
 """
 from __future__ import annotations
@@ -80,9 +81,14 @@ class SystemSettings(BaseModel):
 
 
 class PdfToMdSettings(BaseModel):
-    """PDF → Markdown settings block (chunking size)."""
+    """PDF → Markdown settings block."""
 
     pages_per_file: int = Field(10, ge=1, le=500)
+    extract_images: bool = Field(True)
+    image_embed_mode: str = Field("folder")
+    ocr_mode: str = Field("auto")
+    ollama_model: str = Field("llama3.2-vision", max_length=100)
+    gemini_api_key: str = Field("", max_length=200)
 
 
 class SRTSettings(BaseModel):
@@ -161,9 +167,16 @@ BLOCKS: Dict[str, BlockDef] = {
     "pdf_to_md": BlockDef(
         id="pdf_to_md",
         title="PDF to Markdown",
-        description="Cấu hình cho tool chuyển PDF text-based sang Markdown.",
+        description="Cấu hình cho tool chuyển PDF sang Markdown (hỗ trợ văn bản, ảnh minh họa và OCR).",
         model=PdfToMdSettings,
-        default={"pages_per_file": 10},
+        default={
+            "pages_per_file": 10,
+            "extract_images": True,
+            "image_embed_mode": "folder",
+            "ocr_mode": "auto",
+            "ollama_model": "llama3.2-vision",
+            "gemini_api_key": "",
+        },
         fields=[
             FieldDef(
                 key="pages_per_file",
@@ -174,6 +187,41 @@ BLOCKS: Dict[str, BlockDef] = {
                     "Mỗi file .md sẽ chứa tối đa số trang này (từ 1 đến 500). "
                     "PDF dài hơn sẽ được tách thành nhiều file/zip."
                 ),
+            ),
+            FieldDef(
+                key="extract_images",
+                label="Trích xuất hình ảnh minh họa (true / false)",
+                kind="text",
+                placeholder="true",
+                help_text="Trích xuất sơ đồ, biểu đồ, hình vẽ và chèn vào vị trí tương ứng trong Markdown.",
+            ),
+            FieldDef(
+                key="image_embed_mode",
+                label="Cách lưu ảnh (folder / base64)",
+                kind="text",
+                placeholder="folder",
+                help_text="folder: nén file zip chứa folder images/; base64: nhúng thẳng mã base64 vào file .md.",
+            ),
+            FieldDef(
+                key="ocr_mode",
+                label="Chế độ OCR cho trang scan (auto / gemini / ollama / off)",
+                kind="text",
+                placeholder="auto",
+                help_text="auto: tự động fallback; gemini: dùng Google Gemini; ollama: dùng model vision local; off: tắt OCR.",
+            ),
+            FieldDef(
+                key="gemini_api_key",
+                label="Gemini API Key (Tùy chọn cho OCR AI)",
+                kind="text",
+                placeholder="AIzaSy...",
+                help_text="API key Gemini miễn phí từ Google AI Studio để nhận diện chữ tiếng Việt từ trang scan.",
+            ),
+            FieldDef(
+                key="ollama_model",
+                label="Tên model Ollama Vision",
+                kind="text",
+                placeholder="llama3.2-vision",
+                help_text="Model multimodal trên Ollama (ví dụ llama3.2-vision, llava, minicpm-v).",
             ),
         ],
     ),
