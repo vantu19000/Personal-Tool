@@ -1,35 +1,479 @@
 {% extends "base.html" %}
 
 {% block title %}Dashboard · {{ settings.APP_NAME }}{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
+{% block page_title %}Tổng quan{% endblock %}
 
 {% block content %}
-<div class="space-y-8">
-    <!-- Hero -->
-    <section class="rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white p-8 shadow-lg">
-        <h1 class="text-2xl font-bold">{{ home_title }}</h1>
-        <p class="mt-2 text-indigo-100 max-w-2xl">{{ home_description }}</p>
-    </section>
+{# Define complete metadata fallback mapping to ensure icons, tags, and badges always render accurately #}
+{% set tool_meta = {
+    'srt-translator': {
+        'icon': 'file-text',
+        'badge': '✦ AI',
+        'badge_color': 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300',
+        'icon_bg': 'bg-purple-50 text-purple-600 dark:bg-purple-950/50 dark:text-purple-400',
+        'category': 'ai',
+        'desc': 'Dịch file SRT tự động bằng AI, hỗ trợ nhiều ngôn ngữ',
+        'tags': ['SRT', 'Translation', 'AI']
+    },
+    'pdf-to-md': {
+        'icon': 'file-code',
+        'badge': 'Tài liệu',
+        'badge_color': 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300',
+        'icon_bg': 'bg-rose-50 text-rose-500 dark:bg-rose-950/50 dark:text-rose-400',
+        'category': 'document',
+        'desc': 'Chuyển đổi file PDF sang Markdown với độ chính xác cao',
+        'tags': ['PDF', 'Markdown', 'OCR']
+    },
+    'slufy': {
+        'icon': 'image',
+        'badge': '✦ Media',
+        'badge_color': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300',
+        'icon_bg': 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400',
+        'category': 'media',
+        'desc': 'Xử lý và tối ưu ảnh hàng loạt, resize, rename, convert...',
+        'tags': ['Image', 'Batch', 'Optimize']
+    },
+    'guid-generator': {
+        'icon': 'code',
+        'badge': 'Tiện ích',
+        'badge_color': 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300',
+        'icon_bg': 'bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400',
+        'category': 'utility',
+        'desc': 'Tạo GUID, UUID với nhiều định dạng khác nhau',
+        'tags': ['GUID', 'UUID', 'Generator']
+    },
+    'hash-calculator': {
+        'icon': 'hash',
+        'badge': 'Văn bản',
+        'badge_color': 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300',
+        'icon_bg': 'bg-teal-50 text-teal-600 dark:bg-teal-950/50 dark:text-teal-400',
+        'category': 'text',
+        'desc': 'Tính hash cho file hoặc text (MD5, SHA1, SHA256, ...)',
+        'tags': ['Hash', 'MD5', 'SHA256']
+    },
+    'text-counter': {
+        'icon': 'type',
+        'badge': 'Văn bản',
+        'badge_color': 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300',
+        'icon_bg': 'bg-sky-50 text-sky-600 dark:bg-sky-950/50 dark:text-sky-400',
+        'category': 'text',
+        'desc': 'Đếm ký tự, từ, dòng trong văn bản',
+        'tags': ['Text', 'Counter', 'Analysis']
+    }
+} %}
 
-    <!-- Tools grid -->
-    <section>
-        <h2 class="text-lg font-semibold text-slate-700 mb-4">Các công cụ</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {% for tool in tools %}
-            <a href="{{ tool.path }}"
-               class="group rounded-xl bg-white border border-slate-200 p-6 shadow-sm hover:shadow-md hover:border-indigo-300 transition flex flex-col">
-                <div class="text-3xl mb-3">🛠️</div>
-                <h3 class="font-semibold text-slate-800 group-hover:text-indigo-600 transition">{{ tool.name }}</h3>
-                <p class="mt-1 text-sm text-slate-500">{{ tool.path }}</p>
-            </a>
-            {% endfor %}
+<div class="space-y-8 w-full">
 
-            <!-- Empty slot -->
-            <div class="rounded-xl border-2 border-dashed border-slate-300 p-6 flex flex-col items-center justify-center text-center min-h-[120px]">
-                <span class="text-3xl mb-2 opacity-50">＋</span>
-                <p class="text-sm text-slate-400">Chỗ trống cho tool mới</p>
+    <!-- ===== Hero Banner (Full Width) ===== -->
+    <section class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0c1220] via-[#0f1a34] to-[#0c1220] text-white p-6 sm:p-8 lg:p-10 border border-slate-800/80 shadow-2xl w-full">
+        <!-- Ambient Glow Elements -->
+        <div class="absolute -top-32 -left-20 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-32 right-1/4 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full">
+            <!-- Left Column: Title, Description & Action Buttons -->
+            <div class="lg:col-span-6 space-y-4">
+                <!-- Local Badge -->
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 backdrop-blur-md">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-subtle-pulse"></span>
+                    <span>Chạy hoàn toàn local · Bảo mật 100%</span>
+                </div>
+
+                <!-- Headline -->
+                <div>
+                    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
+                        Personal <span class="bg-gradient-to-r from-indigo-400 via-purple-300 to-blue-400 bg-clip-text text-transparent">Multi-Tool</span>
+                    </h1>
+                    <p class="mt-2 text-base sm:text-lg font-semibold text-slate-200">
+                        {{ home_title or "Bộ công cụ mini chạy hoàn toàn trên máy của bạn" }}
+                    </p>
+                </div>
+
+                <!-- Description -->
+                <p class="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-xl font-normal">
+                    {{ home_description or "Xử lý tài liệu, media, văn bản và nhiều tác vụ khác một cách nhanh chóng, không gửi dữ liệu lên server, đảm bảo riêng tư tuyệt đối." }}
+                </p>
+
+                <!-- Actions -->
+                <div class="pt-2 flex flex-wrap items-center gap-3">
+                    <a href="#tools-section"
+                       class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-blue-600/25 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                        <i data-lucide="rocket" class="w-4 h-4"></i>
+                        <span>Khám phá công cụ</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </a>
+
+                    <a href="/settings"
+                       class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white text-xs sm:text-sm font-medium transition-all">
+                        <i data-lucide="settings-2" class="w-4 h-4 text-slate-400"></i>
+                        <span>Tùy chỉnh hệ thống</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Middle Column: Visual 3D Floating Mockup -->
+            <div class="lg:col-span-4 hidden lg:flex items-center justify-center relative py-4">
+                <div class="relative w-full max-w-xs h-64 flex items-center justify-center">
+                    <!-- Central Glow Base -->
+                    <div class="absolute inset-x-8 bottom-4 h-24 bg-gradient-to-t from-indigo-600/30 to-transparent blur-2xl rounded-full"></div>
+
+                    <!-- Laptop Base Wireframe / Glow -->
+                    <div class="absolute bottom-2 w-56 h-3 bg-gradient-to-r from-slate-700 via-indigo-500 to-slate-700 rounded-full shadow-lg shadow-indigo-500/50"></div>
+                    <div class="absolute bottom-5 w-48 h-20 bg-slate-900/90 border border-indigo-500/30 rounded-xl transform perspective-500 rotate-x-25 shadow-inner">
+                        <div class="p-2 grid grid-cols-6 gap-1 opacity-40">
+                            <div class="h-2 bg-indigo-400/40 rounded"></div>
+                            <div class="h-2 bg-indigo-400/40 rounded"></div>
+                            <div class="h-2 bg-indigo-400/40 rounded"></div>
+                            <div class="h-2 bg-indigo-400/40 rounded"></div>
+                            <div class="h-2 bg-indigo-400/40 rounded"></div>
+                            <div class="h-2 bg-indigo-400/40 rounded"></div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Glass Card 1: Code </> -->
+                    <div class="absolute -top-1 left-2 p-3 rounded-2xl bg-indigo-900/60 border border-indigo-400/40 backdrop-blur-md shadow-xl text-indigo-300 animate-float-1">
+                        <i data-lucide="code" class="w-6 h-6"></i>
+                    </div>
+
+                    <!-- Floating Glass Card 2: Document -->
+                    <div class="absolute top-2 right-12 p-3 rounded-2xl bg-blue-900/60 border border-blue-400/40 backdrop-blur-md shadow-xl text-blue-300 animate-float-2">
+                        <i data-lucide="file-text" class="w-6 h-6"></i>
+                    </div>
+
+                    <!-- Floating Glass Card 3: PDF -->
+                    <div class="absolute top-16 right-0 p-2.5 rounded-2xl bg-rose-900/60 border border-rose-400/40 backdrop-blur-md shadow-xl text-rose-300 animate-float-1">
+                        <span class="font-extrabold text-xs tracking-wider">.PDF</span>
+                    </div>
+
+                    <!-- Floating Glass Card 4: Media / Image -->
+                    <div class="absolute bottom-16 left-6 p-2.5 rounded-2xl bg-emerald-900/60 border border-emerald-400/40 backdrop-blur-md shadow-xl text-emerald-300 animate-float-2">
+                        <i data-lucide="image" class="w-5 h-5"></i>
+                    </div>
+
+                    <!-- Floating Glass Card 5: Typography T -->
+                    <div class="absolute bottom-12 right-8 p-3 rounded-2xl bg-sky-900/60 border border-sky-400/40 backdrop-blur-md shadow-xl text-sky-300 font-bold text-lg animate-float-1">
+                        T
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: 4 Feature Bullet Points -->
+            <div class="lg:col-span-2 space-y-3.5 border-t lg:border-t-0 lg:border-l border-slate-800/80 pt-4 lg:pt-0 lg:pl-6">
+                <div class="flex items-center gap-2.5 text-xs font-medium text-slate-300">
+                    <div class="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                        <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <span>Nhanh chóng</span>
+                </div>
+
+                <div class="flex items-center gap-2.5 text-xs font-medium text-slate-300">
+                    <div class="w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                        <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <span>Hoàn toàn offline</span>
+                </div>
+
+                <div class="flex items-center gap-2.5 text-xs font-medium text-slate-300">
+                    <div class="w-6 h-6 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
+                        <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <span>Bảo mật dữ liệu</span>
+                </div>
+
+                <div class="flex items-center gap-2.5 text-xs font-medium text-slate-300">
+                    <div class="w-6 h-6 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                        <i data-lucide="puzzle" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <span>Mở rộng dễ dàng</span>
+                </div>
             </div>
         </div>
     </section>
+
+    <!-- ===== Key Stats / Badges Grid (Full Width) ===== -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+        <!-- Stat 1: 6 Công cụ sẵn có -->
+        <a href="#tools-section" class="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 shadow-sm hover:shadow-md transition group">
+            <div class="flex items-center gap-3.5 min-w-0">
+                <div class="w-11 h-11 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                    <i data-lucide="folder" class="w-5 h-5"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="text-xl font-bold text-slate-800 dark:text-slate-100 leading-tight">{{ tools|length }}</div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400 truncate">Công cụ sẵn có</div>
+                </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:text-indigo-600 transition shrink-0"></i>
+        </a>
+
+        <!-- Stat 2: 100% Chạy cục bộ -->
+        <div class="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 shadow-sm hover:shadow-md transition group">
+            <div class="flex items-center gap-3.5 min-w-0">
+                <div class="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <i data-lucide="wifi-off" class="w-5 h-5"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="text-xl font-bold text-slate-800 dark:text-slate-100 leading-tight">100%</div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400 truncate">Chạy cục bộ (offline)</div>
+                </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:text-emerald-600 transition shrink-0"></i>
+        </div>
+
+        <!-- Stat 3: Zero Latency -->
+        <div class="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 shadow-sm hover:shadow-md transition group">
+            <div class="flex items-center gap-3.5 min-w-0">
+                <div class="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <i data-lucide="zap" class="w-5 h-5"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="text-xl font-bold text-slate-800 dark:text-slate-100 leading-tight">Zero Latency</div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400 truncate">Không phụ thuộc server</div>
+                </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:text-amber-600 transition shrink-0"></i>
+        </div>
+
+        <!-- Stat 4: Gemini AI -->
+        <div class="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 shadow-sm hover:shadow-md transition group">
+            <div class="flex items-center gap-3.5 min-w-0">
+                <div class="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="text-xl font-bold text-slate-800 dark:text-slate-100 leading-tight">Gemini AI</div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400 truncate">Tích hợp dịch SRT thông minh</div>
+                </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:text-blue-600 transition shrink-0"></i>
+        </div>
+    </section>
+
+    <!-- ===== All Tools Section Header & Filter Bar ===== -->
+    <section id="tools-section" class="space-y-6 scroll-mt-24 w-full">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full">
+            <!-- Left: Section Title with Grid Icon -->
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                    <i data-lucide="grid" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Tất cả công cụ</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Chọn một công cụ bên dưới để bắt đầu công việc của bạn</p>
+                </div>
+            </div>
+
+            <!-- Right: Filter Pills & View Mode Switches -->
+            <div class="flex items-center gap-3 flex-wrap">
+                <!-- Filter Category Buttons -->
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none" id="category-filter-container">
+                    <button type="button" data-filter="all"
+                            class="filter-tab active px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition shadow-xs">
+                        Tất cả
+                    </button>
+                    <button type="button" data-filter="document"
+                            class="filter-tab px-3.5 py-1.5 rounded-xl text-xs font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                        Tài liệu
+                    </button>
+                    <button type="button" data-filter="media"
+                            class="filter-tab px-3.5 py-1.5 rounded-xl text-xs font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                        Media
+                    </button>
+                    <button type="button" data-filter="text"
+                            class="filter-tab px-3.5 py-1.5 rounded-xl text-xs font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                        Văn bản
+                    </button>
+                    <button type="button" data-filter="ai"
+                            class="filter-tab px-3.5 py-1.5 rounded-xl text-xs font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                        AI
+                    </button>
+                    <button type="button" data-filter="utility"
+                            class="filter-tab px-3.5 py-1.5 rounded-xl text-xs font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                        Tiện ích
+                    </button>
+                </div>
+
+                <!-- View Mode Toggle: Grid vs List (Matching Mockup Icons) -->
+                <div class="hidden sm:flex items-center p-0.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shrink-0">
+                    <button type="button" id="view-grid-btn" title="Chế độ lưới"
+                            class="p-1.5 rounded-lg bg-indigo-600 text-white transition">
+                        <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                    </button>
+                    <button type="button" id="view-list-btn" title="Chế độ danh sách"
+                            class="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+                        <i data-lucide="list" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Tools Grid (Full Width, Matching Exact Mockup) ===== -->
+        <div id="tools-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5 w-full">
+            {% for tool in tools %}
+            {% set meta = tool_meta.get(tool.id, {}) %}
+            {% set icon_name = meta.icon or tool.icon or 'wrench' %}
+            {% set icon_bg = meta.icon_bg or tool.icon_bg or 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' %}
+            {% set badge_text = meta.badge or tool.badge %}
+            {% set badge_color = meta.badge_color or tool.badge_color or 'bg-slate-100 text-slate-700' %}
+            {% set desc_text = meta.desc or tool.description or 'Công cụ xử lý tiện ích' %}
+            {% set tag_list = meta.tags or tool.tags or [] %}
+            {% set cat = meta.category or tool.category or 'utility' %}
+
+            <a href="{{ tool.path }}"
+               data-tool-id="{{ tool.id }}"
+               data-category="{{ cat }}"
+               data-name="{{ tool.name | lower }}"
+               data-desc="{{ desc_text | lower }}"
+               class="tool-card group relative flex flex-col justify-between rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs hover:border-indigo-300 dark:hover:border-indigo-600 transition">
+
+                <!-- Main Card Content (Icon, Header, Desc, Tags) -->
+                <div class="card-main-content">
+                    <div class="flex items-start gap-4">
+                        <!-- Icon Box with exact pastel tint -->
+                        <div class="w-12 h-12 rounded-2xl {{ icon_bg }} flex items-center justify-center shrink-0">
+                            <i data-lucide="{{ icon_name }}" class="w-6 h-6"></i>
+                        </div>
+
+                        <!-- Header & Info -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="font-bold text-slate-900 dark:text-white text-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">
+                                        {{ tool.name }}
+                                    </h3>
+                                    {% if badge_text %}
+                                    <span class="text-[11px] font-semibold px-2 py-0.5 rounded-md {{ badge_color }}">
+                                        {{ badge_text }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Favorite Star Toggle Button -->
+                                <button type="button" class="fav-btn p-1 text-slate-300 dark:text-slate-600 hover:text-amber-400 transition" data-fav-id="{{ tool.id }}" title="Đánh dấu yêu thích">
+                                    <i data-lucide="star" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+
+                            <!-- Description -->
+                            <p class="tool-desc mt-1.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2">
+                                {{ desc_text }}
+                            </p>
+
+                            <!-- Tag Chips -->
+                            {% if tag_list %}
+                            <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+                                {% for tag in tag_list %}
+                                <span class="text-[10px] font-medium font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60">
+                                    {{ tag }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer: Route Path & Round Blue Action Button -->
+                <div class="card-footer-content mt-5 pt-3.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                    <span class="font-mono text-[11px] text-slate-400 dark:text-slate-500">
+                        {{ tool.path }}
+                    </span>
+
+                    <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center group-hover:scale-105 transition-transform shadow-xs">
+                        <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-0.5 transition-transform"></i>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- No Results Fallback State -->
+        <div id="no-tools-found" class="hidden rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 p-10 text-center w-full">
+            <div class="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                <i data-lucide="search-x" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-sm font-semibold text-slate-800 dark:text-white">Không tìm thấy công cụ phù hợp</h3>
+            <p class="text-xs text-slate-400 mt-1">Vui lòng thử tìm kiếm với từ khóa khác hoặc bấm đặt lại bộ lọc.</p>
+            <button type="button" id="reset-filter-action"
+                    class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-500 transition">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                <span>Đặt lại tìm kiếm</span>
+            </button>
+        </div>
+    </section>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const searchInput = document.getElementById("tool-search-input");
+    const filterTabs = document.querySelectorAll(".filter-tab");
+    const toolCards = document.querySelectorAll("#tools-grid .tool-card");
+    const noResults = document.getElementById("no-tools-found");
+    const resetBtn = document.getElementById("reset-filter-action");
+
+    let currentFilter = "all";
+    let searchQuery = "";
+
+    function filterTools() {
+        let matchCount = 0;
+
+        toolCards.forEach(card => {
+            const cardCat = card.getAttribute("data-category");
+            const cardName = card.getAttribute("data-name") || "";
+            const cardDesc = card.getAttribute("data-desc") || "";
+
+            const matchesCategory = (currentFilter === "all") || (cardCat === currentFilter);
+            const matchesSearch = !searchQuery || cardName.includes(searchQuery) || cardDesc.includes(searchQuery);
+
+            if (matchesCategory && matchesSearch) {
+                card.style.display = "";
+                matchCount++;
+            } else {
+                card.style.display = "none";
+            }
+        });
+
+        if (matchCount === 0) {
+            noResults.classList.remove("hidden");
+        } else {
+            noResults.classList.add("hidden");
+        }
+
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener("input", (e) => {
+            searchQuery = e.target.value.trim().toLowerCase();
+            filterTools();
+        });
+    }
+
+    filterTabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+            filterTabs.forEach(t => {
+                t.classList.remove("active", "bg-indigo-600", "text-white", "shadow-xs");
+                t.classList.add("bg-white", "dark:bg-slate-900", "border", "border-slate-200", "dark:border-slate-800", "text-slate-600", "dark:text-slate-300");
+            });
+
+            tab.classList.add("active", "bg-indigo-600", "text-white", "shadow-xs");
+            tab.classList.remove("bg-white", "dark:bg-slate-900", "border", "border-slate-200", "dark:border-slate-800", "text-slate-600", "dark:text-slate-300");
+
+            currentFilter = tab.getAttribute("data-filter");
+            filterTools();
+        });
+    });
+
+    if (resetBtn) {
+        resetBtn.addEventListener("click", () => {
+            if (searchInput) searchInput.value = "";
+            searchQuery = "";
+            const allTab = document.querySelector('.filter-tab[data-filter="all"]');
+            if (allTab) allTab.click();
+        });
+    }
+});
+</script>
 {% endblock %}
