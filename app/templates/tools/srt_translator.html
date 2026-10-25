@@ -4,37 +4,148 @@
 {% block page_title %}SRT Translator{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl space-y-6">
-    <!-- Tool header -->
-    <section class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm">
-        <h1 class="text-xl font-bold text-slate-800">SRT Translator</h1>
-        <p class="mt-1 text-sm text-slate-500">
-            Dịch file phụ đề .srt bằng model Ollama chạy cục bộ (mặc định:
-            <code class="text-xs bg-slate-100 px-1.5 py-0.5 rounded">{{ default_model }}</code> trên
-            <code class="text-xs bg-slate-100 px-1.5 py-0.5 rounded">localhost:11434</code>).
-        </p>
+<div class="w-full space-y-6">
+
+    <!-- Tool Header (Full Width) -->
+    <section class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs w-full">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-2xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                    <i data-lucide="languages" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>SRT Translator</span>
+                        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
+                            ✦ AI Powered
+                        </span>
+                    </h1>
+                    <p class="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                        Dịch file phụ đề <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">.srt</code> tự động bằng AI qua máy chủ Ollama cục bộ (<code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">localhost:11434</code>).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Real-time Ollama status pill -->
+            <div id="ollama-status-pill" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition">
+                <span class="w-2 h-2 rounded-full animate-subtle-pulse bg-slate-400"></span>
+                <span class="status-text">Đang kiểm tra Ollama…</span>
+            </div>
+        </div>
     </section>
 
-    <!-- Translation form -->
+    <!-- ===== OLLAMA OFFLINE WARNING BANNER (With Pull Command) ===== -->
+    <div id="ollama-offline-banner" class="hidden rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 p-5 sm:p-6 shadow-xs transition-all w-full">
+        <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
+                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <h3 class="text-sm sm:text-base font-bold text-rose-900 dark:text-rose-200 flex items-center gap-2">
+                        <span>Cảnh báo: Dịch vụ Ollama chưa được bật hoặc không thể kết nối!</span>
+                    </h3>
+                    <button type="button" id="ollama-recheck-btn"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-200/80 hover:bg-rose-200 dark:bg-rose-900/80 dark:hover:bg-rose-800 text-rose-900 dark:text-rose-200 transition shadow-2xs">
+                        <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                        <span>Kiểm tra lại kết nối</span>
+                    </button>
+                </div>
+                <p class="mt-1.5 text-xs sm:text-sm text-rose-700 dark:text-rose-300 leading-relaxed">
+                    Công cụ SRT Translator chạy mô hình AI dịch thuật offline thông qua Ollama tại cổng <code class="font-mono bg-rose-100 dark:bg-rose-900/70 px-1.5 py-0.5 rounded text-xs font-semibold">http://localhost:11434</code>. Hiện tại hệ thống không thể kết nối tới dịch vụ này.
+                </p>
+
+                <!-- Detailed Setup Commands Box -->
+                <div class="mt-4 p-4 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-rose-200/80 dark:border-rose-900/50 space-y-3.5">
+                    <p class="text-xs font-bold text-rose-900 dark:text-rose-200">Các bước khởi động & câu lệnh lấy model về máy:</p>
+
+                    <!-- Step 1: Start Ollama -->
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-slate-700 dark:text-slate-300 font-semibold">1. Khởi động dịch vụ Ollama:</span>
+                            <button type="button" onclick="copyCommand('ollama serve', this)" class="text-[11px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-mono transition flex items-center gap-1">
+                                <i data-lucide="copy" class="w-3 h-3"></i>
+                                <span>Copy</span>
+                            </button>
+                        </div>
+                        <pre class="px-3 py-2 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs select-all overflow-x-auto">ollama serve</pre>
+                    </div>
+
+                    <!-- Step 2: Pull translategemma:4b -->
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-slate-700 dark:text-slate-300 font-semibold">2. Tải model dịch thuật mặc định (<span class="text-purple-600 dark:text-purple-400 font-bold">translategemma:4b</span>):</span>
+                            <button type="button" onclick="copyCommand('ollama pull translategemma:4b', this)" class="text-[11px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-mono transition flex items-center gap-1">
+                                <i data-lucide="copy" class="w-3 h-3"></i>
+                                <span>Copy</span>
+                            </button>
+                        </div>
+                        <pre class="px-3 py-2 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs select-all overflow-x-auto">ollama pull translategemma:4b</pre>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                            💡 <strong class="text-slate-700 dark:text-slate-300">translategemma:4b</strong> là mô hình Google Gemma được tinh chỉnh chuyên sâu cho dịch phụ đề đa ngữ, chạy nhanh và nhẹ. Bạn chỉ cần tải về một lần duy nhất.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notice Banner when Ollama is online but translategemma:4b is not yet downloaded -->
+    <div id="model-missing-banner" class="hidden rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300/80 dark:border-amber-800/80 p-5 shadow-xs transition-all w-full">
+        <div class="flex items-start gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                <i data-lucide="info" class="w-5 h-5"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <h3 class="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
+                        Chưa phát hiện model mặc định <code>translategemma:4b</code> trong Ollama
+                    </h3>
+                    <button type="button" onclick="copyCommand('ollama pull translategemma:4b', this)" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-amber-200/70 hover:bg-amber-200 dark:bg-amber-900/60 dark:hover:bg-amber-800 text-amber-900 dark:text-amber-200 transition">
+                        <i data-lucide="copy" class="w-3 h-3"></i>
+                        <span>Copy lệnh tải</span>
+                    </button>
+                </div>
+                <p class="mt-1 text-xs text-amber-700 dark:text-amber-300/90 leading-relaxed">
+                    Ollama đang chạy nhưng máy bạn chưa có model tối ưu <code>translategemma:4b</code>. Bạn có thể mở terminal và chạy lệnh sau để tải về:
+                </p>
+                <div class="mt-2">
+                    <pre class="px-3 py-1.5 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs select-all inline-block">ollama pull translategemma:4b</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Single File Translation Form -->
     <form id="translate-form" method="post" action="/tools/srt-translator/translate" enctype="multipart/form-data"
-          class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
+          class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-6 w-full">
+        <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <i data-lucide="file-text" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
+                <span>Dịch từng file phụ đề</span>
+            </h2>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Tải lên tệp .srt đơn lẻ để dịch và tải về kết quả tức thì.</p>
+        </div>
+
         <!-- File picker -->
         <div>
-            <label for="srt-file" class="block text-sm font-medium text-slate-700 mb-1.5">File phụ đề</label>
+            <label for="srt-file" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">File phụ đề .srt</label>
             <input type="file" id="srt-file" name="file" accept=".srt" required
-                   class="block w-full text-sm text-slate-600 file:mr-4 file:py-2.5 file:px-4
-                          file:rounded-lg file:border-0 file:text-sm file:font-medium
-                          file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100
-                          file:cursor-pointer cursor-pointer">
-            <p class="mt-1 text-xs text-slate-400">Chỉ nhận file <code>.srt</code> (một file mỗi lần).</p>
+                   class="block w-full text-xs sm:text-sm text-slate-600 dark:text-slate-300
+                          file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0
+                          file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700
+                          dark:file:bg-purple-950/60 dark:file:text-purple-300
+                          hover:file:bg-purple-100 dark:hover:file:bg-purple-900/60
+                          file:cursor-pointer cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 p-2">
+            <p class="mt-1.5 text-[11px] text-slate-400">Chỉ chấp nhận file định dạng <code>.srt</code>.</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <!-- Target language -->
             <div>
-                <label for="target" class="block text-sm font-medium text-slate-700 mb-1.5">Ngôn ngữ đích</label>
+                <label for="target" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Ngôn ngữ đích</label>
                 <select id="target" name="target"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition">
                     {% for code, (label, _suffix) in languages.items() %}
                     <option value="{{ code }}" {% if code == "vi" %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
@@ -43,54 +154,53 @@
 
             <!-- Ollama model -->
             <div>
-                <label for="model" class="block text-sm font-medium text-slate-700 mb-1.5">Model Ollama</label>
+                <label for="model" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Model Ollama</label>
                 <select id="model" name="model"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white
-                               focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition">
                     <option value="{{ default_model }}" selected>{{ default_model }}</option>
                 </select>
-                <p id="model-status" class="mt-1 text-xs text-amber-600" hidden>
-                    Không liên hệ được Ollama — đang dùng model mặc định.
+                <p id="model-status" class="mt-1.5 text-[11px] text-rose-500 dark:text-rose-400 hidden">
+                    ⚠️ Không liên hệ được Ollama — vui lòng bật Ollama để tải danh sách model.
                 </p>
             </div>
         </div>
 
-        <div class="flex items-center justify-end pt-2">
-            <button type="submit" id="translate-btn"
-                    class="inline-flex items-center px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium
-                           hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500
-                           disabled:opacity-60 disabled:cursor-not-allowed">
-                <svg id="translate-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                     class="animate-spin -mr-2 h-4 w-4 text-white" hidden>
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                </svg>
-                <span id="translate-label">Dịch phụ đề ↓</span>
-            </button>
+        <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
+            <span id="ollama-notice-single" class="text-xs text-rose-500 dark:text-rose-400 font-medium hidden">
+                ⚠️ Ollama chưa chạy, quá trình dịch sẽ thất bại.
+            </span>
+            <div class="ml-auto">
+                <button type="submit" id="translate-btn"
+                        class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-semibold shadow-md shadow-blue-600/20 transition disabled:opacity-60 disabled:cursor-not-allowed">
+                    <svg id="translate-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                         class="animate-spin h-4 w-4 text-white hidden">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                    <i data-lucide="download" id="translate-icon" class="w-4 h-4"></i>
+                    <span id="translate-label">Dịch phụ đề ↓</span>
+                </button>
+            </div>
         </div>
     </form>
 
-    <p class="text-xs text-slate-400 text-center">
-        Kết quả sẽ được tải về dưới dạng <code>&lt;tên file&gt;.&lt;ngôn ngữ&gt;.srt</code>.
-        Dịch bằng AI cục bộ — có thể mất vài phút với file dài.
-    </p>
-
-    <!-- Batch mode: translate every .srt in a local folder -->
-    <section class="rounded-xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
+    <!-- Batch mode section (Full Width) -->
+    <section class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-6 w-full">
         <div>
-            <h2 class="text-base font-semibold text-slate-800">Dịch hàng loạt (nhiều file)</h2>
-            <p class="mt-1 text-sm text-slate-500">
-                Chọn thư mục nguồn chứa các file <code>.srt</code> (kể cả thư mục con) và thư
-                mục đích. Mỗi file sẽ được dịch và ghi thành
-                <code>&lt;tên file&gt;.&lt;ngôn ngữ&gt;.srt</code> vào thư mục đích (giữ nguyên cấu trúc thư mục con).
+            <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <i data-lucide="folder-output" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
+                <span>Dịch hàng loạt (toàn bộ thư mục)</span>
+            </h2>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Quét và tự động dịch toàn bộ các file <code>.srt</code> trong thư mục nguồn sang thư mục đích.
             </p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-                <label for="batch-target" class="block text-sm font-medium text-slate-700 mb-1.5">Ngôn ngữ đích</label>
+                <label for="batch-target" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Ngôn ngữ đích</label>
                 <select id="batch-target"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition">
                     {% for code, (label, _suffix) in languages.items() %}
                     <option value="{{ code }}"{% if code == "vi" %} selected{% endif %}>{{ label }}</option>
                     {% endfor %}
@@ -98,53 +208,56 @@
             </div>
 
             <div>
-                <label for="batch-model" class="block text-sm font-medium text-slate-700 mb-1.5">Model Ollama</label>
+                <label for="batch-model" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Model Ollama</label>
                 <select id="batch-model"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white
-                               focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition">
                     <option value="{{ default_model }}" selected>{{ default_model }}</option>
                 </select>
             </div>
         </div>
 
         <form id="batch-form" class="space-y-4" novalidate>
-            <div>
-                <label for="batch-source" class="block text-sm font-medium text-slate-700 mb-1.5">Thư mục nguồn (chứa file .srt)</label>
-                <input type="text" id="batch-source" placeholder="vd: D:\Videos\subtitles"
-                       class="block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm
-                              focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-            </div>
-            <div>
-                <label for="batch-output" class="block text-sm font-medium text-slate-700 mb-1.5">Thư mục đích</label>
-                <input type="text" id="batch-output" placeholder="vd: D:\Videos\subtitles_translated"
-                       class="block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm
-                              focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-            </div>
-
-            <div id="batch-scan-note" class="text-sm" hidden></div>
-
-            <div class="flex flex-wrap items-center gap-3">
-                <button type="button" id="batch-scan-btn"
-                        class="inline-flex items-center px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 text-sm font-medium
-                               hover:bg-slate-50 focus:ring-2 focus:ring-indigo-500">
-                    Kiểm tra thư mục
-                </button>
-                <button type="submit" id="batch-start-btn"
-                        class="inline-flex items-center px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium
-                               hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500
-                               disabled:opacity-60 disabled:cursor-not-allowed">
-                    <svg id="batch-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                         class="animate-spin -mr-2 h-4 w-4 text-white" hidden>
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                    </svg>
-                    <span id="batch-start-label">Bắt đầu dịch</span>
-                </button>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="batch-source" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Thư mục nguồn (chứa file .srt)</label>
+                    <input type="text" id="batch-source" placeholder="vd: D:\Videos\subtitles"
+                           class="block w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition">
+                </div>
+                <div>
+                    <label for="batch-output" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Thư mục đích (lưu kết quả)</label>
+                    <input type="text" id="batch-output" placeholder="vd: D:\Videos\subtitles_translated"
+                           class="block w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition">
+                </div>
             </div>
 
-            <div id="batch-progress" class="hidden space-y-2">
-                <ul id="batch-file-list" class="text-sm divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden max-h-64 overflow-y-auto"></ul>
-                <div id="batch-final-status" class="text-sm font-medium" hidden></div>
+            <div id="batch-scan-note" class="text-xs sm:text-sm" hidden></div>
+
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <span id="ollama-notice-batch" class="text-xs text-rose-500 dark:text-rose-400 font-medium hidden">
+                    ⚠️ Ollama chưa chạy, không thể bắt đầu dịch.
+                </span>
+                <div class="flex items-center gap-3 ml-auto">
+                    <button type="button" id="batch-scan-btn"
+                            class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                        <i data-lucide="scan" class="w-4 h-4"></i>
+                        <span>Kiểm tra thư mục</span>
+                    </button>
+                    <button type="submit" id="batch-start-btn"
+                            class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-semibold shadow-md shadow-blue-600/20 transition disabled:opacity-60 disabled:cursor-not-allowed">
+                        <svg id="batch-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                             class="animate-spin h-4 w-4 text-white hidden">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        <i data-lucide="play" id="batch-start-icon" class="w-4 h-4"></i>
+                        <span id="batch-start-label">Bắt đầu dịch hàng loạt</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="batch-progress" class="hidden space-y-3 pt-3">
+                <ul id="batch-file-list" class="text-xs sm:text-sm divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden max-h-64 overflow-y-auto"></ul>
+                <div id="batch-final-status" class="text-xs sm:text-sm font-semibold" hidden></div>
             </div>
         </form>
     </section>
@@ -153,61 +266,59 @@
 
 {% block scripts %}
 <script>
-    // Loading state for the submit button: spinner + disabled while the
-    // translation runs. On success the browser navigates (file download) and
-    // on error the page reloads, so a fresh button comes back either way.
-    (function () {
-        const form = document.getElementById("translate-form");
-        const btn = document.getElementById("translate-btn");
-        const spinner = document.getElementById("translate-spinner");
-        const label = document.getElementById("translate-label");
-        const idleText = label ? label.textContent : "";
+    // Helper to copy command to clipboard
+    function copyCommand(text, btn) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                const oldContent = btn.innerHTML;
+                btn.innerHTML = '<span class="text-emerald-500 font-bold">✓ Đã copy!</span>';
+                setTimeout(() => { btn.innerHTML = oldContent; }, 1800);
+            });
+        }
+    }
 
-        function setLoading(isLoading) {
-            if (btn) {
-                btn.disabled = isLoading;
-                btn.classList.toggle("opacity-60", isLoading);
-                btn.classList.toggle("cursor-not-allowed", isLoading);
-            }
-            if (spinner) spinner.hidden = !isLoading;
-            if (label) label.textContent = isLoading ? "Đang dịch phụ đề…" : idleText;
+    // State management for Ollama connectivity
+    let isOllamaOnline = false;
+
+    async function checkOllamaConnection() {
+        const banner = document.getElementById("ollama-offline-banner");
+        const modelMissingBanner = document.getElementById("model-missing-banner");
+        const statusPill = document.getElementById("ollama-status-pill");
+        const modelStatus = document.getElementById("model-status");
+        const noticeSingle = document.getElementById("ollama-notice-single");
+        const noticeBatch = document.getElementById("ollama-notice-batch");
+        const modelSelects = [document.getElementById("model"), document.getElementById("batch-model")].filter(Boolean);
+
+        // Update pill to checking state
+        if (statusPill) {
+            statusPill.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700";
+            statusPill.innerHTML = '<span class="w-2 h-2 rounded-full animate-subtle-pulse bg-slate-400"></span><span>Đang kiểm tra kết nối Ollama…</span>';
         }
 
-        if (form && btn) {
-            form.addEventListener("submit", () => setLoading(true));
-            window.addEventListener("pageshow", () => setLoading(false)); // reset after back/forward restore
-        }
-    })();
+        try {
+            const res = await fetch("/tools/srt-translator/models");
+            const data = await res.json();
 
-    // Populate both Ollama model selects from GET /tools/srt-translator/models
-    // and keep them in sync with each other, same for the target-language selects.
-    (function () {
-        const modelSelects = [document.getElementById("model"), document.getElementById("batch-model")]
-            .filter(Boolean);
-        const targetSelects = [document.getElementById("target"), document.getElementById("batch-target")]
-            .filter(Boolean);
-        const status = document.getElementById("model-status");
-        if (!modelSelects.length) return;
+            if (data.online && Array.isArray(data.models)) {
+                isOllamaOnline = true;
+                // Online UI
+                if (banner) banner.classList.add("hidden");
+                if (modelStatus) modelStatus.classList.add("hidden");
+                if (noticeSingle) noticeSingle.classList.add("hidden");
+                if (noticeBatch) noticeBatch.classList.add("hidden");
 
-        function syncSelects(group) {
-            const value = group[0].value;
-            for (let i = 1; i < group.length; i++) group[i].value = value;
-        }
-
-        modelSelects.forEach((select) =>
-            select.addEventListener("change", () => syncSelects(modelSelects)));
-        targetSelects.forEach((select) =>
-            select.addEventListener("change", () => syncSelects(targetSelects)));
-
-        const fallback = modelSelects[0].value; // default model baked in by the server
-
-        fetch("/tools/srt-translator/models")
-            .then((r) => r.json())
-            .then((data) => {
-                if (!data.online || !Array.isArray(data.models) || !data.models.length) {
-                    if (status) status.hidden = false;
-                    return;
+                const hasTranslateGemma = data.models.includes("translategemma:4b") || data.models.some(m => m.startsWith("translategemma"));
+                if (modelMissingBanner) {
+                    modelMissingBanner.classList.toggle("hidden", hasTranslateGemma);
                 }
+
+                if (statusPill) {
+                    statusPill.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60";
+                    statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-subtle-pulse"></span><span>Ollama Online (${data.models.length} model)</span>`;
+                }
+
+                // Populate models
+                const fallback = "translategemma:4b";
                 for (const select of modelSelects) {
                     select.innerHTML = "";
                     for (const name of data.models) {
@@ -216,15 +327,83 @@
                         opt.textContent = name;
                         select.appendChild(opt);
                     }
-                    // Keep the server default when available, otherwise pick the first.
-                    select.value = data.models.includes(fallback) ? fallback : data.models[0];
+                    if (data.models.includes(fallback)) {
+                        select.value = fallback;
+                    } else if (data.models.length > 0) {
+                        select.value = data.models[0];
+                    }
                 }
-            })
-            .catch(() => {
-                if (status) status.hidden = false;
+            } else {
+                throw new Error("Ollama returned offline or no models found");
+            }
+        } catch (err) {
+            isOllamaOnline = false;
+            // Offline UI - SHOW PROMINENT WARNING WITH COMMANDS
+            if (banner) banner.classList.remove("hidden");
+            if (modelMissingBanner) modelMissingBanner.classList.add("hidden");
+            if (modelStatus) modelStatus.classList.remove("hidden");
+            if (noticeSingle) noticeSingle.classList.remove("hidden");
+            if (noticeBatch) noticeBatch.classList.remove("hidden");
+
+            if (statusPill) {
+                statusPill.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60";
+                statusPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>Ollama Chưa Bật (Offline)</span>';
+            }
+        }
+
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        checkOllamaConnection();
+
+        const recheckBtn = document.getElementById("ollama-recheck-btn");
+        if (recheckBtn) {
+            recheckBtn.addEventListener("click", () => {
+                recheckBtn.classList.add("opacity-50", "pointer-events-none");
+                checkOllamaConnection().finally(() => {
+                    setTimeout(() => {
+                        recheckBtn.classList.remove("opacity-50", "pointer-events-none");
+                    }, 600);
+                });
             });
+        }
+    });
+
+    // Form submit handlers & loading states
+    (function () {
+        const form = document.getElementById("translate-form");
+        const btn = document.getElementById("translate-btn");
+        const spinner = document.getElementById("translate-spinner");
+        const icon = document.getElementById("translate-icon");
+        const label = document.getElementById("translate-label");
+
+        if (form && btn) {
+            form.addEventListener("submit", (e) => {
+                if (!isOllamaOnline) {
+                    if (!confirm("Cảnh báo: Dịch vụ Ollama chưa được bật. Quá trình dịch nhiều khả năng sẽ thất bại.\n\nBạn có vẫn muốn tiếp tục gửi yêu cầu không?")) {
+                        e.preventDefault();
+                        return;
+                    }
+                }
+                btn.disabled = true;
+                if (spinner) spinner.classList.remove("hidden");
+                if (icon) icon.classList.add("hidden");
+                if (label) label.textContent = "Đang dịch phụ đề…";
+            });
+
+            window.addEventListener("pageshow", () => {
+                btn.disabled = false;
+                if (spinner) spinner.classList.add("hidden");
+                if (icon) icon.classList.remove("hidden");
+                if (label) label.textContent = "Dịch phụ đề ↓";
+            });
+        }
     })();
-    // ---- Batch mode: scan folder, then stream per-file progress from the server ----
+
+    // Batch translation logic
     (function () {
         const form = document.getElementById("batch-form");
         if (!form) return;
@@ -236,6 +415,7 @@
         const scanBtn = document.getElementById("batch-scan-btn");
         const startBtn = document.getElementById("batch-start-btn");
         const spinner = document.getElementById("batch-spinner");
+        const startIcon = document.getElementById("batch-start-icon");
         const startLabel = document.getElementById("batch-start-label");
         const scanNote = document.getElementById("batch-scan-note");
         const progressBox = document.getElementById("batch-progress");
@@ -245,8 +425,9 @@
         function setBusy(isBusy) {
             if (startBtn) startBtn.disabled = isBusy;
             if (scanBtn) scanBtn.disabled = isBusy;
-            if (spinner) spinner.hidden = !isBusy;
-            if (startLabel) startLabel.textContent = isBusy ? "Đang dịch…" : "Bắt đầu dịch";
+            if (spinner) spinner.classList.toggle("hidden", !isBusy);
+            if (startIcon) startIcon.classList.toggle("hidden", isBusy);
+            if (startLabel) startLabel.textContent = isBusy ? "Đang dịch…" : "Bắt đầu dịch hàng loạt";
         }
 
         function resetProgress() {
@@ -254,63 +435,62 @@
             if (finalStatus) {
                 finalStatus.hidden = true;
                 finalStatus.textContent = "";
-                finalStatus.className = "text-sm font-medium";
             }
             if (progressBox) progressBox.classList.remove("hidden");
         }
 
         function appendFileRow(filename, ok, detail) {
             const li = document.createElement("li");
-            li.className = "flex items-start gap-2 px-3 py-2 bg-white";
+            li.className = "flex items-start gap-2 px-3.5 py-2.5 bg-white dark:bg-[#0c1220]";
             const nameSpan = document.createElement("span");
             nameSpan.textContent = filename;
-            nameSpan.className = "flex-1 break-all";
+            nameSpan.className = "flex-1 break-all text-slate-800 dark:text-slate-200 font-mono text-xs";
             li.appendChild(nameSpan);
-            li.insertAdjacentText("beforeend", ok ? " ✅" : " ❌");
+
+            const badge = document.createElement("span");
+            badge.className = ok ? "text-emerald-600 font-bold" : "text-rose-500 font-bold";
+            badge.textContent = ok ? "✓ Đã dịch" : "✕ Lỗi";
+            li.appendChild(badge);
+
             if (detail) {
                 const err = document.createElement("span");
                 err.textContent = " — " + detail;
-                err.className = ok ? "text-slate-500" : "text-red-600";
+                err.className = ok ? "text-slate-400 text-xs" : "text-rose-500 text-xs";
                 li.appendChild(err);
             }
             if (fileList) fileList.appendChild(li);
         }
 
-        // "Check folder" — non-destructive preview of what will be translated.
         if (scanBtn) {
             scanBtn.addEventListener("click", async () => {
                 const source = sourceInput && sourceInput.value.trim();
                 if (!source) {
                     if (scanNote) {
                         scanNote.hidden = false;
-                        scanNote.className = "text-sm text-red-600";
-                        scanNote.textContent = "Vui lòng nhập thư mục nguồn trước.";
+                        scanNote.className = "text-xs text-rose-500 font-medium";
+                        scanNote.textContent = "Vui lòng nhập đường dẫn thư mục nguồn trước.";
                     }
                     return;
                 }
                 if (scanNote) {
                     scanNote.hidden = false;
-                    scanNote.className = "text-sm text-slate-500";
-                    scanNote.textContent = "Đang kiểm tra…";
+                    scanNote.className = "text-xs text-slate-500";
+                    scanNote.textContent = "Đang kiểm tra thư mục…";
                 }
                 try {
-                    const res = await fetch(
-                        "/tools/srt-translator/folder/scan?source_folder=" + encodeURIComponent(source),
-                    );
+                    const res = await fetch("/tools/srt-translator/folder/scan?source=" + encodeURIComponent(source));
                     if (!res.ok) throw new Error((await res.json()).detail || "Lỗi khi quét thư mục");
                     const data = await res.json();
                     if (!data.files || !data.files.length) {
-                        scanNote.className = "text-sm text-amber-600";
+                        scanNote.className = "text-xs text-amber-500 font-medium";
                         scanNote.textContent = "Không tìm thấy file .srt nào trong thư mục này.";
                         return;
                     }
-                    scanNote.className = "text-sm text-emerald-700";
-                    scanNote.textContent =
-                        "Tìm thấy " + data.files.length + " file .srt, tổng " +
-                        (data.total_entries || 0) + " dòng phụ đề. Bấm \"Bắt đầu dịch\" để tiến hành.";
+                    scanNote.className = "text-xs text-emerald-600 dark:text-emerald-400 font-semibold";
+                    scanNote.textContent = `✓ Tìm thấy ${data.count} file .srt. Bấm "Bắt đầu dịch hàng loạt" để tiến hành.`;
                 } catch (err) {
-                    scanNote.className = "text-sm text-red-600";
-                    scanNote.textContent = err.message || "Không kiểm tra được thư mục.";
+                    scanNote.className = "text-xs text-rose-500 font-medium";
+                    scanNote.textContent = err.message || "Không thể kiểm tra thư mục.";
                 }
             });
         }
@@ -343,9 +523,7 @@
                         const line = pending.shift();
                         try {
                             return JSON.parse(line);
-                        } catch (e) {
-                            // Ignore a malformed line rather than crashing the loop.
-                        }
+                        } catch (e) {}
                     }
                     return null;
                 },
@@ -365,6 +543,12 @@
 
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
+
+            if (!isOllamaOnline) {
+                if (!confirm("Cảnh báo: Dịch vụ Ollama chưa được bật. Quá trình dịch nhiều khả năng sẽ thất bại.\n\nBạn có muốn tiếp tục không?")) {
+                    return;
+                }
+            }
 
             const source = sourceInput && sourceInput.value.trim();
             const output = outputInput && outputInput.value.trim();
@@ -388,7 +572,7 @@
                 const res = await fetch("/tools/srt-translator/folder", { method: "POST", body: formData });
                 if (!res.ok) {
                     let detail = "Lỗi không xác định";
-                    try { detail = (await res.json()).detail || detail; } catch (_) { /* ignore */ }
+                    try { detail = (await res.json()).detail || detail; } catch (_) {}
                     throw new Error(detail);
                 }
                 const stream = readNdjsonLines(res.body);
@@ -408,28 +592,24 @@
                         const total = event.total || 0;
                         finalStatus.hidden = false;
                         if (failed === 0) {
-                            finalStatus.className = "text-sm font-medium text-emerald-700";
-                            finalStatus.textContent =
-                                "✓ Thành công! Đã dịch " + ok + "/" + total +
-                                " file phụ đề vào " + event.output_folder + ".";
+                            finalStatus.className = "text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-400";
+                            finalStatus.textContent = `✓ Hoàn thành! Đã dịch ${ok}/${total} file phụ đề vào ${event.output_folder}.`;
                         } else {
-                            finalStatus.className = "text-sm font-medium text-amber-700";
-                            finalStatus.textContent =
-                                "Đã dịch " + ok + " file, có " + failed +
-                                " file lỗi. Xem chi tiết từng file ở trên.";
+                            finalStatus.className = "text-xs sm:text-sm font-semibold text-amber-600 dark:text-amber-400";
+                            finalStatus.textContent = `Đã dịch ${ok} file, có ${failed} file lỗi. Xem chi tiết bên trên.`;
                         }
                         break;
                     }
                 }
                 if (!finished && finalStatus) {
                     finalStatus.hidden = false;
-                    finalStatus.className = "text-sm font-medium text-amber-700";
+                    finalStatus.className = "text-xs sm:text-sm font-semibold text-amber-600";
                     finalStatus.textContent = "Kết thúc bất thường — không nhận được sự kiện hoàn thành từ máy chủ.";
                 }
             } catch (err) {
                 if (finalStatus) {
                     finalStatus.hidden = false;
-                    finalStatus.className = "text-sm font-medium text-red-600";
+                    finalStatus.className = "text-xs sm:text-sm font-semibold text-rose-500";
                     finalStatus.textContent = "Lỗi: " + (err && err.message ? err.message : err);
                 }
             } finally {
@@ -437,6 +617,5 @@
             }
         });
     })();
-
 </script>
 {% endblock %}

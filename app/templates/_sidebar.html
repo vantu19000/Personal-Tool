@@ -49,15 +49,24 @@
 
         <!-- Available Tools Section -->
         <div>
+            {% set sidebar_icons = {
+                'srt-translator': 'file-text',
+                'pdf-to-md': 'file-code',
+                'slufy': 'image',
+                'guid-generator': 'code',
+                'hash-calculator': 'hash',
+                'text-counter': 'type'
+            } %}
             <div class="px-3 pb-2.5">
                 <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">CÔNG CỤ SẴN CÓ</p>
             </div>
             <div class="space-y-1">
                 {% for tool in tools %}
+                {% set s_icon = tool.icon or sidebar_icons.get(tool.id, 'wrench') %}
                 <a href="{{ tool.path }}"
                    class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium transition group
                           {% if active_tool == tool.id %}bg-indigo-600/90 text-white shadow-sm font-semibold{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
-                    <i data-lucide="{{ tool.icon or 'wrench' }}" class="w-4 h-4 shrink-0 {% if active_tool == tool.id %}text-white{% else %}text-slate-400 group-hover:text-indigo-400{% endif %}"></i>
+                    <i data-lucide="{{ s_icon }}" class="w-4 h-4 shrink-0 {% if active_tool == tool.id %}text-white{% else %}text-slate-400 group-hover:text-indigo-400{% endif %}"></i>
                     <span class="truncate">{{ tool.name }}</span>
                 </a>
                 {% endfor %}
