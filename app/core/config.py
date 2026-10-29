@@ -32,6 +32,19 @@ settings = Settings()
 # ``id`` is used to highlight the active link in the sidebar.
 TOOLS = [
     {
+        "id": "image-to-prompt",
+        "name": "Image to Prompt",
+        "path": "/tools/image-to-prompt",
+        "description": "Dịch ngược ảnh thành prompt tạo ảnh AI (Midjourney, SD, Flux) qua Ollama",
+        "category": "ai",
+        "category_name": "AI",
+        "badge": "✦ Vision AI",
+        "badge_color": "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950/60 dark:text-fuchsia-300",
+        "icon": "sparkles",
+        "icon_bg": "bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-950/50 dark:text-fuchsia-400",
+        "tags": ["Image", "Prompt", "Vision", "Ollama"],
+    },
+    {
         "id": "srt-translator",
         "name": "SRT Translator",
         "path": "/tools/srt-translator",

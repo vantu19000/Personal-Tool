@@ -91,6 +91,22 @@ class PdfToMdSettings(BaseModel):
     gemini_api_key: str = Field("", max_length=200)
 
 
+class ImageToPromptSettings(BaseModel):
+    """Image to Prompt settings block."""
+
+    default_model: str = Field("qween3.8", max_length=100)
+    system_prompt: str = Field(..., min_length=5, max_length=8000)
+
+
+DEFAULT_IMAGE_TO_PROMPT = (
+    "You are an expert AI prompt engineer. Analyze this image and write a detailed, "
+    "highly descriptive prompt to recreate it using an AI image generator (such as Midjourney, "
+    "Stable Diffusion, or Flux). Include subject, appearance, composition, artistic style, "
+    "medium, lighting, color palette, details, and atmosphere. "
+    "Return ONLY the prompt text, without any conversational prefix, introductory phrases, or explanation."
+)
+
+
 class SRTSettings(BaseModel):
     """SRT Translator settings block (the model's system prompt).
 
@@ -142,6 +158,32 @@ BLOCKS: Dict[str, BlockDef] = {
                 label="Mô tả trang chủ",
                 kind="textarea",
                 placeholder="Mô tả ngắn gọn của trang chủ",
+            ),
+        ],
+    ),
+    "image_to_prompt": BlockDef(
+        id="image_to_prompt",
+        title="Image to Prompt",
+        description="Cấu hình cho tool dịch ngược ảnh sang prompt AI qua Ollama Vision.",
+        model=ImageToPromptSettings,
+        default={
+            "default_model": "qween3.8",
+            "system_prompt": DEFAULT_IMAGE_TO_PROMPT,
+        },
+        fields=[
+            FieldDef(
+                key="default_model",
+                label="Model Ollama mặc định",
+                kind="text",
+                placeholder="qween3.8",
+                help_text="Tên model Vision trên Ollama (ví dụ: qween3.8, qwen2.5-vl, llava).",
+            ),
+            FieldDef(
+                key="system_prompt",
+                label="Chỉ dẫn trích xuất prompt (System Prompt)",
+                kind="textarea",
+                placeholder="Prompt gửi cho Ollama...",
+                help_text="Câu lệnh yêu cầu AI phân tích ảnh và sinh prompt tạo ảnh tương ứng.",
             ),
         ],
     ),

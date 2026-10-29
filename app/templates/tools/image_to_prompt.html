@@ -1,0 +1,863 @@
+{% extends "base.html" %}
+
+{% block title %}Image to Prompt · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}Image to Prompt{% endblock %}
+
+{% block content %}
+<div class="w-full space-y-6">
+
+    <!-- Tool Header (Full Width) -->
+    <section class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs w-full">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-2xl bg-fuchsia-50 dark:bg-fuchsia-950/50 text-fuchsia-600 dark:text-fuchsia-400 flex items-center justify-center shrink-0">
+                    <i data-lucide="sparkles" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>Image to Prompt</span>
+                        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950/60 dark:text-fuchsia-300">
+                            ✦ Vision AI
+                        </span>
+                    </h1>
+                    <p class="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                        Dịch ngược ảnh thành prompt tạo ảnh AI (Midjourney, SD, Flux) tự động qua Ollama (<code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">localhost:11434</code>), lưu file <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">.txt</code> tương ứng ngay trong thư mục.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Real-time Ollama status pill -->
+            <div id="ollama-status-pill" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition">
+                <span class="w-2 h-2 rounded-full animate-subtle-pulse bg-slate-400"></span>
+                <span class="status-text">Đang kiểm tra Ollama…</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== OLLAMA OFFLINE WARNING BANNER ===== -->
+    <div id="ollama-offline-banner" class="hidden rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 p-5 sm:p-6 shadow-xs transition-all w-full">
+        <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
+                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <h3 class="text-sm sm:text-base font-bold text-rose-900 dark:text-rose-200 flex items-center gap-2">
+                        <span>Cảnh báo: Dịch vụ Ollama chưa được bật hoặc không thể kết nối!</span>
+                    </h3>
+                    <button type="button" id="ollama-recheck-btn"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-200/80 hover:bg-rose-200 dark:bg-rose-900/80 dark:hover:bg-rose-800 text-rose-900 dark:text-rose-200 transition shadow-2xs">
+                        <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                        <span>Kiểm tra lại kết nối</span>
+                    </button>
+                </div>
+                <p class="mt-1.5 text-xs sm:text-sm text-rose-700 dark:text-rose-300 leading-relaxed">
+                    Công cụ Image to Prompt phân tích ảnh bằng các mô hình Vision qua Ollama tại cổng <code class="font-mono bg-rose-100 dark:bg-rose-900/70 px-1.5 py-0.5 rounded text-xs font-semibold">http://localhost:11434</code>. Hiện tại hệ thống không thể kết nối tới dịch vụ này.
+                </p>
+
+                <!-- Detailed Setup Commands Box -->
+                <div class="mt-4 p-4 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-rose-200/80 dark:border-rose-900/50 space-y-3.5">
+                    <p class="text-xs font-bold text-rose-900 dark:text-rose-200">Các bước khởi động & câu lệnh lấy model về máy:</p>
+
+                    <!-- Step 1: Start Ollama -->
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-slate-700 dark:text-slate-300 font-semibold">1. Khởi động dịch vụ Ollama:</span>
+                            <button type="button" onclick="copyCommand('ollama serve', this)" class="text-[11px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-mono transition flex items-center gap-1">
+                                <i data-lucide="copy" class="w-3 h-3"></i>
+                                <span>Copy</span>
+                            </button>
+                        </div>
+                        <pre class="px-3 py-2 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs select-all overflow-x-auto">ollama serve</pre>
+                    </div>
+
+                    <!-- Step 2: Pull Vision Model -->
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-slate-700 dark:text-slate-300 font-semibold">2. Tải model vision (ví dụ: <span class="text-fuchsia-600 dark:text-fuchsia-400 font-bold">qwen2.5-vl</span> hoặc <span class="text-fuchsia-600 dark:text-fuchsia-400 font-bold">qween3.8</span>):</span>
+                            <button type="button" onclick="copyCommand('ollama pull qwen2.5-vl', this)" class="text-[11px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-mono transition flex items-center gap-1">
+                                <i data-lucide="copy" class="w-3 h-3"></i>
+                                <span>Copy</span>
+                            </button>
+                        </div>
+                        <pre class="px-3 py-2 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs select-all overflow-x-auto">ollama pull qwen2.5-vl</pre>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                            💡 Lưu ý: Cần model hỗ trợ Vision (thị giác máy tính) như <strong class="text-slate-700 dark:text-slate-300">qwen2.5-vl</strong>, <strong class="text-slate-700 dark:text-slate-300">qween3.8</strong>, hoặc <strong class="text-slate-700 dark:text-slate-300">llava</strong> để có thể đọc hiểu và dịch ngược hình ảnh.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs (Folder Batch / Single Test) -->
+    <div class="flex border-b border-slate-200 dark:border-slate-800 gap-2">
+        <button type="button" id="tab-batch-btn"
+                class="px-4 py-2.5 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 flex items-center gap-2 transition">
+            <i data-lucide="folder-archive" class="w-4 h-4"></i>
+            <span>Dịch hàng loạt thư mục</span>
+        </button>
+        <button type="button" id="tab-single-btn"
+                class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2 transition">
+            <i data-lucide="image" class="w-4 h-4"></i>
+            <span>Thử nghiệm 1 ảnh</span>
+        </button>
+    </div>
+
+    <!-- ===== BATCH MODE SECTION ===== -->
+    <section id="batch-section" class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-6 w-full">
+        <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <i data-lucide="folder-output" class="w-4 h-4 text-fuchsia-600 dark:text-fuchsia-400"></i>
+                <span>Cấu hình dịch ngược ảnh trong thư mục</span>
+            </h2>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Quét toàn bộ ảnh (<code class="font-mono">.jpg, .jpeg, .png, .webp, .bmp</code>), tạo prompt tương ứng và lưu thành file <code class="font-mono">.txt</code> cùng tên tại chính thư mục đó.
+            </p>
+        </div>
+
+        <!-- Model selection -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+                <label for="batch-model" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Model Ollama Vision
+                </label>
+                <div class="relative">
+                    <select id="batch-model"
+                            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
+                        <option value="{{ default_model }}" selected>{{ default_model }}</option>
+                    </select>
+                </div>
+                <p class="mt-1 text-[11px] text-slate-400">Tự động nạp danh sách model từ Ollama cục bộ. Mặc định: <strong>{{ default_model }}</strong></p>
+            </div>
+
+            <div>
+                <label for="prompt-preset" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Mẫu yêu cầu tạo prompt
+                </label>
+                <select id="prompt-preset"
+                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
+                    <option value="detailed" selected>Chi tiết cao (Midjourney, Stable Diffusion, Flux) - Mặc định</option>
+                    <option value="concise">Ngắn gọn, súc tích (Key tags, descriptors)</option>
+                    <option value="photorealistic">Chân thực như chụp ảnh (Photorealistic / Cinematic)</option>
+                    <option value="anime">Phong cách Anime / Digital Illustration</option>
+                    <option value="custom">Tự định nghĩa câu lệnh (Custom)</option>
+                </select>
+                <p class="mt-1 text-[11px] text-slate-400">Chọn mẫu câu chỉ thị gửi tới model AI.</p>
+            </div>
+        </div>
+
+        <!-- Custom Prompt Instruction (Collapsible / Toggleable) -->
+        <div id="custom-prompt-container" class="space-y-1.5">
+            <div class="flex items-center justify-between">
+                <label for="batch-prompt" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Câu lệnh chỉ dẫn (Prompt gửi cho AI):
+                </label>
+                <button type="button" id="reset-prompt-btn" class="text-[11px] text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline">
+                    Đặt lại mặc định
+                </button>
+            </div>
+            <textarea id="batch-prompt" rows="3"
+                      class="block w-full rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition font-mono">{{ default_prompt }}</textarea>
+        </div>
+
+        <!-- Form for folder batch -->
+        <form id="batch-form" class="space-y-5" novalidate>
+            <div>
+                <label for="batch-folder" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Đường dẫn thư mục chứa ảnh
+                </label>
+                <div class="relative">
+                    <input type="text" id="batch-folder" placeholder="vd: D:\Images\Nature hoặc C:\Users\name\Pictures"
+                           class="block w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition font-mono">
+                </div>
+            </div>
+
+            <!-- Options: Overwrite & Recursive -->
+            <div class="flex flex-wrap items-center gap-6 pt-1">
+                <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" id="batch-overwrite" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium">Ghi đè file <code class="font-mono text-xs">.txt</code> nếu đã tồn tại</span>
+                </label>
+                <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" id="batch-recursive" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium">Quét cả thư mục con (Recursive)</span>
+                </label>
+            </div>
+
+            <!-- Scan Note Area -->
+            <div id="batch-scan-note" class="hidden p-3.5 rounded-xl border text-xs sm:text-sm transition"></div>
+
+            <!-- Action buttons -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                <span id="ollama-notice-batch" class="text-xs text-rose-500 dark:text-rose-400 font-medium hidden">
+                    ⚠️ Ollama chưa chạy, không thể bắt đầu dịch ngược.
+                </span>
+
+                <div class="flex items-center gap-3 ml-auto">
+                    <button type="button" id="batch-scan-btn"
+                            class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                        <i data-lucide="scan-search" class="w-4 h-4"></i>
+                        <span>Kiểm tra thư mục</span>
+                    </button>
+                    <button type="submit" id="batch-start-btn"
+                            class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-semibold shadow-md shadow-fuchsia-600/20 transition disabled:opacity-60 disabled:cursor-not-allowed">
+                        <svg id="batch-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                             class="animate-spin h-4 w-4 text-white hidden">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        <i data-lucide="sparkles" id="batch-start-icon" class="w-4 h-4"></i>
+                        <span id="batch-start-label">Bắt đầu dịch ngược ảnh → Prompt</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Batch Progress Panel (Live) -->
+        <div id="batch-progress" class="hidden space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <div class="flex items-center gap-2">
+                    <span id="batch-progress-title" class="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                        Đang xử lý hình ảnh…
+                    </span>
+                    <span id="batch-progress-count" class="text-xs font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        0 / 0
+                    </span>
+                </div>
+                <span id="batch-progress-percent" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 font-mono">
+                    0%
+                </span>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div id="batch-progress-bar"
+                     class="h-full bg-gradient-to-r from-fuchsia-600 to-indigo-600 rounded-full transition-all duration-300"
+                     style="width: 0%"></div>
+            </div>
+
+            <!-- Final Status banner -->
+            <div id="batch-final-status" class="text-xs sm:text-sm font-semibold p-3.5 rounded-xl hidden" role="status"></div>
+
+            <!-- Real-time File List Container -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between text-xs text-slate-500 font-semibold px-1">
+                    <span>Danh sách ảnh đang xử lý:</span>
+                    <span id="batch-results-stats" class="text-[11px] font-normal"></span>
+                </div>
+                <div class="max-h-96 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800/80 bg-slate-50/50 dark:bg-slate-950/40">
+                    <ul id="batch-file-list" class="divide-y divide-slate-100 dark:divide-slate-800/80">
+                        <!-- Populated dynamically via JS -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SINGLE IMAGE TEST SECTION ===== -->
+    <section id="single-section" class="hidden rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-6 w-full">
+        <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <i data-lucide="image" class="w-4 h-4 text-fuchsia-600 dark:text-fuchsia-400"></i>
+                <span>Thử nghiệm dịch ngược trên 1 ảnh</span>
+            </h2>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Tải lên 1 ảnh đơn lẻ để kiểm tra chất lượng prompt được sinh ra từ model Ollama trước khi chạy hàng loạt.
+            </p>
+        </div>
+
+        <form id="single-form" class="space-y-5" novalidate>
+            <div>
+                <label class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Chọn file ảnh
+                </label>
+                <input type="file" id="single-file-input" accept="image/*"
+                       class="block w-full text-xs sm:text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-fuchsia-50 file:text-fuchsia-700 dark:file:bg-fuchsia-950/50 dark:file:text-fuchsia-300 hover:file:bg-fuchsia-100 dark:hover:file:bg-fuchsia-900/60 file:transition cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl p-2 bg-slate-50/60 dark:bg-slate-900">
+            </div>
+
+            <!-- Image Preview Box -->
+            <div id="single-preview-box" class="hidden p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center gap-4">
+                <img id="single-preview-img" src="" alt="Preview" class="w-20 h-20 object-cover rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
+                <div class="min-w-0 flex-1">
+                    <p id="single-preview-name" class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate"></p>
+                    <p id="single-preview-size" class="text-[11px] text-slate-400 mt-0.5"></p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button type="submit" id="single-submit-btn"
+                        class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-semibold shadow-md shadow-fuchsia-600/20 transition disabled:opacity-60 disabled:cursor-not-allowed">
+                    <svg id="single-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                         class="animate-spin h-4 w-4 text-white hidden">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                    <i data-lucide="sparkles" id="single-submit-icon" class="w-4 h-4"></i>
+                    <span id="single-submit-label">Dịch ngược ảnh này</span>
+                </button>
+            </div>
+        </form>
+
+        <!-- Single Result Box -->
+        <div id="single-result-box" class="hidden space-y-3 p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
+                    <span>Kết quả Prompt tạo ra:</span>
+                </span>
+                <button type="button" id="copy-single-prompt-btn"
+                        class="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                    <span>Copy Prompt</span>
+                </button>
+            </div>
+            <pre id="single-result-text" class="p-4 rounded-xl bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-mono whitespace-pre-wrap leading-relaxed select-all"></pre>
+        </div>
+    </section>
+
+</div>
+
+<script>
+    // Utility: Copy text to clipboard
+    function copyCommand(text, btn) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                const oldContent = btn.innerHTML;
+                btn.innerHTML = '<span class="text-emerald-500 font-bold">✓ Đã copy!</span>';
+                setTimeout(() => { btn.innerHTML = oldContent; }, 1800);
+            });
+        }
+    }
+
+    // State management for Ollama connectivity
+    let isOllamaOnline = false;
+    const defaultModelFallback = "{{ default_model }}";
+
+    const promptPresets = {
+        detailed: {{ default_prompt|tojson }},
+        concise: "Analyze this image and write a concise, comma-separated list of visual tags and core descriptors to recreate this image with AI. Include subject, style, lighting, and palette. Return ONLY the tags, no explanation.",
+        photorealistic: "Analyze this image and write a prompt to recreate it as a high-end photograph. Include camera type, lens focal length, aperture, lighting conditions, depth of field, subject details, color grading, and realistic textures. Return ONLY the prompt, no explanation.",
+        anime: "Analyze this image and write a prompt to recreate it in detailed anime/manga or digital illustration style. Include art style, linework, coloring technique, character design, atmosphere, and visual effects. Return ONLY the prompt, no explanation.",
+    };
+
+    async function checkOllamaConnection() {
+        const banner = document.getElementById("ollama-offline-banner");
+        const statusPill = document.getElementById("ollama-status-pill");
+        const noticeBatch = document.getElementById("ollama-notice-batch");
+        const modelSelect = document.getElementById("batch-model");
+
+        if (statusPill) {
+            statusPill.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700";
+            statusPill.innerHTML = '<span class="w-2 h-2 rounded-full animate-subtle-pulse bg-slate-400"></span><span>Đang kiểm tra kết nối Ollama…</span>';
+        }
+
+        try {
+            const res = await fetch("/tools/image-to-prompt/models");
+            const data = await res.json();
+
+            if (data.online && Array.isArray(data.models)) {
+                isOllamaOnline = true;
+                if (banner) banner.classList.add("hidden");
+                if (noticeBatch) noticeBatch.classList.add("hidden");
+
+                if (statusPill) {
+                    statusPill.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60";
+                    statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-subtle-pulse"></span><span>Ollama Online (${data.models.length} model)</span>`;
+                }
+
+                // Populate model dropdown
+                if (modelSelect) {
+                    modelSelect.innerHTML = "";
+                    const targetDefault = data.default || defaultModelFallback;
+                    let selected = false;
+
+                    for (const name of data.models) {
+                        const opt = document.createElement("option");
+                        opt.value = name;
+                        opt.textContent = name;
+                        modelSelect.appendChild(opt);
+                    }
+
+                    // Check if target default or any qwen/vision model is available
+                    const matchedModel = data.models.find(m => 
+                        m === targetDefault || 
+                        m.toLowerCase() === targetDefault.toLowerCase() ||
+                        m.toLowerCase().startsWith(targetDefault.toLowerCase().replace(":latest", "")) ||
+                        (targetDefault.toLowerCase().includes("qwen") && m.toLowerCase().includes("qwen3.8")) ||
+                        (targetDefault.toLowerCase().includes("qween") && m.toLowerCase().includes("qwen3.8"))
+                    );
+
+                    if (matchedModel) {
+                        modelSelect.value = matchedModel;
+                        selected = true;
+                    } else if (data.models.includes(targetDefault)) {
+                        modelSelect.value = targetDefault;
+                        selected = true;
+                    } else {
+                        // Find any vision or qwen model
+                        const visionModel = data.models.find(m => m.toLowerCase().includes("qwen") || m.toLowerCase().includes("vision") || m.toLowerCase().includes("llava"));
+                        if (visionModel) {
+                            modelSelect.value = visionModel;
+                            selected = true;
+                        } else if (data.models.length > 0) {
+                            modelSelect.value = data.models[0];
+                            selected = true;
+                        }
+                    }
+
+                    // If neither targetDefault nor a match was found in list, show it as un-downloaded option
+                    if (!selected && !data.models.includes(targetDefault)) {
+                        const opt = document.createElement("option");
+                        opt.value = targetDefault;
+                        opt.textContent = `${targetDefault} (Chưa tải về)`;
+                        opt.selected = true;
+                        modelSelect.appendChild(opt);
+                    }
+                }
+            } else {
+                throw new Error("Ollama offline");
+            }
+        } catch (err) {
+            isOllamaOnline = false;
+            if (banner) banner.classList.remove("hidden");
+            if (noticeBatch) noticeBatch.classList.remove("hidden");
+
+            if (statusPill) {
+                statusPill.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60";
+                statusPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>Ollama Chưa Bật (Offline)</span>';
+            }
+        }
+
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+
+    // Tabs switching
+    document.addEventListener("DOMContentLoaded", () => {
+        checkOllamaConnection();
+
+        const recheckBtn = document.getElementById("ollama-recheck-btn");
+        if (recheckBtn) {
+            recheckBtn.addEventListener("click", () => {
+                recheckBtn.classList.add("opacity-50", "pointer-events-none");
+                checkOllamaConnection().finally(() => {
+                    setTimeout(() => {
+                        recheckBtn.classList.remove("opacity-50", "pointer-events-none");
+                    }, 600);
+                });
+            });
+        }
+
+        const tabBatchBtn = document.getElementById("tab-batch-btn");
+        const tabSingleBtn = document.getElementById("tab-single-btn");
+        const batchSection = document.getElementById("batch-section");
+        const singleSection = document.getElementById("single-section");
+
+        tabBatchBtn.addEventListener("click", () => {
+            tabBatchBtn.className = "px-4 py-2.5 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 flex items-center gap-2 transition";
+            tabSingleBtn.className = "px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2 transition";
+            batchSection.classList.remove("hidden");
+            singleSection.classList.add("hidden");
+        });
+
+        tabSingleBtn.addEventListener("click", () => {
+            tabSingleBtn.className = "px-4 py-2.5 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 flex items-center gap-2 transition";
+            tabBatchBtn.className = "px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2 transition";
+            singleSection.classList.remove("hidden");
+            batchSection.classList.add("hidden");
+        });
+
+        // Prompt Preset Selector
+        const presetSelect = document.getElementById("prompt-preset");
+        const promptTextarea = document.getElementById("batch-prompt");
+        const resetPromptBtn = document.getElementById("reset-prompt-btn");
+
+        presetSelect.addEventListener("change", () => {
+            const val = presetSelect.value;
+            if (val !== "custom" && promptPresets[val]) {
+                promptTextarea.value = promptPresets[val];
+            }
+        });
+
+        resetPromptBtn.addEventListener("click", () => {
+            promptTextarea.value = promptPresets.detailed;
+            presetSelect.value = "detailed";
+        });
+    });
+
+    // NDJSON Stream Reader
+    function readNdjsonLines(readableStream) {
+        const reader = readableStream.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        const pending = [];
+        return {
+            push() {
+                return reader.read().then((result) => {
+                    if (result.done) {
+                        if (buffer.trim()) pending.push(buffer.trim());
+                        buffer = "";
+                        return false;
+                    }
+                    buffer += decoder.decode(result.value, { stream: true });
+                    let idx;
+                    while ((idx = buffer.indexOf("\n")) >= 0) {
+                        const line = buffer.slice(0, idx).trim();
+                        buffer = buffer.slice(idx + 1);
+                        if (line) pending.push(line);
+                    }
+                    return true;
+                });
+            },
+            next() {
+                while (pending.length) {
+                    const line = pending.shift();
+                    try {
+                        return JSON.parse(line);
+                    } catch (e) {}
+                }
+                return null;
+            },
+            async *events() {
+                for (;;) {
+                    let event = this.next();
+                    while (event === null) {
+                        const hasMore = await this.push();
+                        if (!hasMore) return;
+                        event = this.next();
+                    }
+                    yield event;
+                }
+            },
+        };
+    }
+
+    // Batch Processing Implementation
+    (function () {
+        const folderInput = document.getElementById("batch-folder");
+        const modelSelect = document.getElementById("batch-model");
+        const promptInput = document.getElementById("batch-prompt");
+        const overwriteCheck = document.getElementById("batch-overwrite");
+        const recursiveCheck = document.getElementById("batch-recursive");
+        const scanBtn = document.getElementById("batch-scan-btn");
+        const scanNote = document.getElementById("batch-scan-note");
+        const form = document.getElementById("batch-form");
+        const startBtn = document.getElementById("batch-start-btn");
+        const spinner = document.getElementById("batch-spinner");
+        const startIcon = document.getElementById("batch-start-icon");
+        const startLabel = document.getElementById("batch-start-label");
+
+        const progressBox = document.getElementById("batch-progress");
+        const progressBar = document.getElementById("batch-progress-bar");
+        const progressCount = document.getElementById("batch-progress-count");
+        const progressPercent = document.getElementById("batch-progress-percent");
+        const finalStatus = document.getElementById("batch-final-status");
+        const fileList = document.getElementById("batch-file-list");
+        const resultsStats = document.getElementById("batch-results-stats");
+
+        let totalFiles = 0;
+        let currentItemMap = new Map();
+
+        // Scan folder button handler
+        scanBtn.addEventListener("click", async () => {
+            const folder = folderInput.value.trim();
+            if (!folder) {
+                alert("Vui lòng nhập đường dẫn thư mục cần kiểm tra.");
+                folderInput.focus();
+                return;
+            }
+
+            scanBtn.disabled = true;
+            scanNote.className = "p-3.5 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 text-xs sm:text-sm";
+            scanNote.innerHTML = '<div class="flex items-center gap-2"><svg class="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg><span>Đang quét thư mục...</span></div>';
+            scanNote.classList.remove("hidden");
+
+            try {
+                const params = new URLSearchParams({
+                    folder: folder,
+                    recursive: recursiveCheck.checked ? "true" : "false",
+                });
+                const res = await fetch(`/tools/image-to-prompt/scan?${params.toString()}`);
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.detail || "Không thể quét thư mục");
+                }
+
+                if (data.count === 0) {
+                    scanNote.className = "p-3.5 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-xs sm:text-sm";
+                    scanNote.innerHTML = `⚠️ Thư mục hợp lệ nhưng không tìm thấy file ảnh hợp lệ (.jpg, .jpeg, .png, .webp, .bmp).`;
+                } else {
+                    scanNote.className = "p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs sm:text-sm";
+                    scanNote.innerHTML = `✓ Tìm thấy <strong>${data.count}</strong> file ảnh. (Đã có <strong>${data.existing_txt_count}</strong> file .txt tương ứng).`;
+                }
+            } catch (err) {
+                scanNote.className = "p-3.5 rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 text-xs sm:text-sm";
+                scanNote.innerHTML = `❌ Lỗi: ${err.message}`;
+            } finally {
+                scanBtn.disabled = false;
+            }
+        });
+
+        function setBusy(isBusy) {
+            startBtn.disabled = isBusy;
+            scanBtn.disabled = isBusy;
+            spinner.classList.toggle("hidden", !isBusy);
+            startIcon.classList.toggle("hidden", isBusy);
+            startLabel.textContent = isBusy ? "Đang xử lý ảnh..." : "Bắt đầu dịch ngược ảnh → Prompt";
+        }
+
+        function createOrUpdateRow(file, status, textPath, promptOrError) {
+            let li = currentItemMap.get(file);
+            if (!li) {
+                li = document.createElement("li");
+                li.className = "p-3.5 bg-white dark:bg-[#0c1220] transition";
+                fileList.appendChild(li);
+                currentItemMap.set(file, li);
+            }
+
+            const fileName = file.split(/[/\\]/).pop();
+
+            let statusBadge = '';
+            if (status === 'processing') {
+                statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"><span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span>Đang xử lý</span>';
+            } else if (status === 'ok') {
+                statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">✓ Đã lưu .txt</span>';
+            } else if (status === 'skipped') {
+                statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">Đã bỏ qua (đã có .txt)</span>';
+            } else {
+                statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">✕ Lỗi</span>';
+            }
+
+            let contentHtml = `
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <i data-lucide="file-image" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                        <span class="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">${fileName}</span>
+                    </div>
+                    <div class="shrink-0 flex items-center gap-2">
+                        ${statusBadge}
+                    </div>
+                </div>
+            `;
+
+            if (status === 'ok' && promptOrError) {
+                contentHtml += `
+                    <div class="mt-2.5 p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+                            <span>Prompt tạo ra:</span>
+                            <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(promptOrError)}); this.textContent='✓ Đã copy'; setTimeout(() => this.textContent='Copy', 1500);" class="text-indigo-600 dark:text-indigo-400 hover:underline">Copy</button>
+                        </div>
+                        <p class="font-mono text-xs text-slate-700 dark:text-slate-300 line-clamp-3 select-all">${promptOrError}</p>
+                    </div>
+                `;
+            } else if (status === 'error') {
+                contentHtml += `
+                    <p class="mt-1 text-xs text-rose-500 font-mono">${promptOrError || 'Lỗi không xác định'}</p>
+                `;
+            }
+
+            li.innerHTML = contentHtml;
+            if (window.lucide) window.lucide.createIcons();
+            li.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            if (!isOllamaOnline) {
+                if (!confirm("Cảnh báo: Dịch vụ Ollama chưa được bật. Quá trình dịch ngược sẽ thất bại.\n\nBạn có muốn tiếp tục thử không?")) {
+                    return;
+                }
+            }
+
+            const folder = folderInput.value.trim();
+            if (!folder) {
+                alert("Vui lòng nhập đường dẫn thư mục.");
+                folderInput.focus();
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("folder", folder);
+            formData.append("model", modelSelect.value);
+            formData.append("prompt", promptInput.value);
+            formData.append("overwrite", overwriteCheck.checked ? "true" : "false");
+            formData.append("recursive", recursiveCheck.checked ? "true" : "false");
+
+            // Reset progress UI
+            fileList.innerHTML = "";
+            currentItemMap.clear();
+            finalStatus.classList.add("hidden");
+            progressBar.style.width = "0%";
+            progressPercent.textContent = "0%";
+            progressCount.textContent = "0 / 0";
+            progressBox.classList.remove("hidden");
+            setBusy(true);
+
+            let finished = false;
+            let okCount = 0, skippedCount = 0, errorCount = 0;
+
+            try {
+                const res = await fetch("/tools/image-to-prompt/process", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (!res.ok) {
+                    let detail = "Lỗi khởi chạy tiến trình";
+                    try { detail = (await res.json()).detail || detail; } catch (_) {}
+                    throw new Error(detail);
+                }
+
+                const stream = readNdjsonLines(res.body);
+                for await (const event of stream.events()) {
+                    if (event.type === "start") {
+                        totalFiles = event.total || 0;
+                        progressCount.textContent = `0 / ${totalFiles}`;
+                    } else if (event.type === "file_start") {
+                        createOrUpdateRow(event.file, "processing", "", "");
+                    } else if (event.type === "file_done") {
+                        okCount++;
+                        createOrUpdateRow(event.file, "ok", event.txt_file, event.prompt);
+                    } else if (event.type === "file_skipped") {
+                        skippedCount++;
+                        createOrUpdateRow(event.file, "skipped", event.txt_file, event.prompt);
+                    } else if (event.type === "file_error") {
+                        errorCount++;
+                        createOrUpdateRow(event.file, "error", event.txt_file, event.error);
+                    }
+
+                    if (event.index && totalFiles > 0) {
+                        const pct = Math.round((event.index / totalFiles) * 100);
+                        progressBar.style.width = `${pct}%`;
+                        progressPercent.textContent = `${pct}%`;
+                        progressCount.textContent = `${event.index} / ${totalFiles}`;
+                    }
+
+                    if (event.type === "done") {
+                        finished = true;
+                        progressBar.style.width = "100%";
+                        progressPercent.textContent = "100%";
+                        finalStatus.classList.remove("hidden");
+
+                        if (event.failed === 0) {
+                            finalStatus.className = "text-xs sm:text-sm font-semibold p-3.5 rounded-xl bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900";
+                            finalStatus.textContent = `✓ Hoàn thành tất cả! Đã tạo ${event.ok} file prompt .txt (Bỏ qua: ${event.skipped}, Lỗi: 0).`;
+                        } else {
+                            finalStatus.className = "text-xs sm:text-sm font-semibold p-3.5 rounded-xl bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900";
+                            finalStatus.textContent = `Đã xử lý xong: Thành công ${event.ok}, Bỏ qua ${event.skipped}, Lỗi ${event.failed}. Xem chi tiết bên dưới.`;
+                        }
+                        break;
+                    }
+                }
+
+                if (!finished) {
+                    finalStatus.classList.remove("hidden");
+                    finalStatus.className = "text-xs sm:text-sm font-semibold p-3.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200";
+                    finalStatus.textContent = "Kết thúc bất thường — luồng dữ liệu bị ngắt trước khi hoàn thành.";
+                }
+            } catch (err) {
+                finalStatus.classList.remove("hidden");
+                finalStatus.className = "text-xs sm:text-sm font-semibold p-3.5 rounded-xl bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-900";
+                finalStatus.textContent = `Lỗi: ${err.message || err}`;
+            } finally {
+                setBusy(false);
+            }
+        });
+    })();
+
+    // Single Image Test Implementation
+    (function () {
+        const fileInput = document.getElementById("single-file-input");
+        const previewBox = document.getElementById("single-preview-box");
+        const previewImg = document.getElementById("single-preview-img");
+        const previewName = document.getElementById("single-preview-name");
+        const previewSize = document.getElementById("single-preview-size");
+        const singleForm = document.getElementById("single-form");
+        const submitBtn = document.getElementById("single-submit-btn");
+        const spinner = document.getElementById("single-spinner");
+        const submitIcon = document.getElementById("single-submit-icon");
+        const submitLabel = document.getElementById("single-submit-label");
+        const resultBox = document.getElementById("single-result-box");
+        const resultText = document.getElementById("single-result-text");
+        const copyBtn = document.getElementById("copy-single-prompt-btn");
+        const modelSelect = document.getElementById("batch-model");
+        const promptInput = document.getElementById("batch-prompt");
+
+        fileInput.addEventListener("change", () => {
+            const file = fileInput.files[0];
+            if (file) {
+                previewName.textContent = file.name;
+                previewSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImg.src = e.target.result;
+                    previewBox.classList.remove("hidden");
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewBox.classList.add("hidden");
+            }
+        });
+
+        copyBtn.addEventListener("click", () => {
+            if (resultText.textContent) {
+                navigator.clipboard.writeText(resultText.textContent).then(() => {
+                    const original = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<span class="text-emerald-500 font-bold">✓ Đã copy!</span>';
+                    setTimeout(() => { copyBtn.innerHTML = original; }, 1800);
+                });
+            }
+        });
+
+        singleForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Vui lòng chọn 1 ảnh để thử nghiệm.");
+                return;
+            }
+
+            if (!isOllamaOnline) {
+                if (!confirm("Cảnh báo: Dịch vụ Ollama chưa bật. Bạn có muốn tiếp tục không?")) return;
+            }
+
+            submitBtn.disabled = true;
+            spinner.classList.remove("hidden");
+            submitIcon.classList.add("hidden");
+            submitLabel.textContent = "Đang phân tích ảnh…";
+            resultBox.classList.add("hidden");
+
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("model", modelSelect.value);
+            formData.append("prompt", promptInput.value);
+
+            try {
+                const res = await fetch("/tools/image-to-prompt/single", {
+                    method: "POST",
+                    body: formData,
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.detail || "Không thể phân tích ảnh");
+                }
+
+                resultText.textContent = data.prompt;
+                resultBox.classList.remove("hidden");
+                resultBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            } catch (err) {
+                alert("Lỗi: " + (err.message || err));
+            } finally {
+                submitBtn.disabled = false;
+                spinner.classList.add("hidden");
+                submitIcon.classList.remove("hidden");
+                submitLabel.textContent = "Dịch ngược ảnh này";
+            }
+        });
+    })();
+</script>
+{% endblock %}
