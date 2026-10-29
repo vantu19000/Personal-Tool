@@ -95,6 +95,7 @@ class ImageToPromptSettings(BaseModel):
     """Image to Prompt settings block."""
 
     default_model: str = Field("qween3.8", max_length=100)
+    default_language: str = Field("en", max_length=20)
     system_prompt: str = Field(..., min_length=5, max_length=8000)
     timeout_seconds: int = Field(1200, ge=30, le=7200)
 
@@ -102,9 +103,9 @@ class ImageToPromptSettings(BaseModel):
 DEFAULT_IMAGE_TO_PROMPT = (
     "You are an expert AI prompt engineer specializing in prompt creation for modern cloud image generation "
     "models like Google Gemini (Imagen 3) and ChatGPT (DALL-E 3).\n\n"
-    "Analyze this image and write a rich, highly descriptive prompt in natural English to recreate this image accurately.\n\n"
+    "Analyze this image and write a rich, highly descriptive prompt in {output_language} to recreate this image accurately.\n\n"
     "Guidelines for Gemini & ChatGPT:\n"
-    "- Write in fluent, descriptive natural language sentences rather than comma-separated tags.\n"
+    "- Write the prompt in {output_language} using fluent, descriptive natural language sentences rather than comma-separated tags.\n"
     "- Describe the subject(s) in detail: appearance, facial expression, pose, clothing, and actions.\n"
     "- Describe the environment, background, setting, lighting (e.g., golden hour, soft studio light, volumetric rays), atmosphere, and color palette.\n"
     "- Specify the artistic medium and camera perspective (e.g., cinematic photography, eye-level shot, 35mm film still, digital illustration).\n"
@@ -174,6 +175,7 @@ BLOCKS: Dict[str, BlockDef] = {
         model=ImageToPromptSettings,
         default={
             "default_model": "qween3.8",
+            "default_language": "en",
             "system_prompt": DEFAULT_IMAGE_TO_PROMPT,
             "timeout_seconds": 1200,
         },
@@ -184,6 +186,13 @@ BLOCKS: Dict[str, BlockDef] = {
                 kind="text",
                 placeholder="qween3.8",
                 help_text="Tên model Vision trên Ollama (ví dụ: qween3.8, qwen2.5-vl, llava).",
+            ),
+            FieldDef(
+                key="default_language",
+                label="Ngôn ngữ Prompt mặc định",
+                kind="text",
+                placeholder="en",
+                help_text="Mã ngôn ngữ prompt sinh ra (vd: en cho tiếng Anh, vi cho tiếng Việt).",
             ),
             FieldDef(
                 key="timeout_seconds",
@@ -197,7 +206,7 @@ BLOCKS: Dict[str, BlockDef] = {
                 label="Chỉ dẫn trích xuất prompt (System Prompt)",
                 kind="textarea",
                 placeholder="Prompt gửi cho Ollama...",
-                help_text="Câu lệnh yêu cầu AI phân tích ảnh và sinh prompt tạo ảnh tương ứng.",
+                help_text="Câu lệnh gửi cho AI. Dùng {output_language} để tự động điền ngôn ngữ được chọn.",
             ),
         ],
     ),

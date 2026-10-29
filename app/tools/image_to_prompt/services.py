@@ -16,12 +16,23 @@ DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 DEFAULT_MODEL = "qween3.8"
 DEFAULT_TIMEOUT_SECONDS = 1200.0  # 20 phút (20 * 60s)
 
+PROMPT_LANGUAGES = {
+    "en": "English",
+    "vi": "Vietnamese (Tiếng Việt)",
+    "ja": "Japanese (Tiếng Nhật)",
+    "ko": "Korean (Tiếng Hàn)",
+    "zh": "Chinese (Tiếng Trung)",
+    "fr": "French (Tiếng Pháp)",
+    "de": "German (Tiếng Đức)",
+    "es": "Spanish (Tiếng Tây Ban Nha)",
+}
+
 DEFAULT_SYSTEM_PROMPT = (
     "You are an expert AI prompt engineer specializing in prompt creation for modern cloud image generation "
     "models like Google Gemini (Imagen 3) and ChatGPT (DALL-E 3).\n\n"
-    "Analyze this image and write a rich, highly descriptive prompt in natural English to recreate this image accurately.\n\n"
+    "Analyze this image and write a rich, highly descriptive prompt in {output_language} to recreate this image accurately.\n\n"
     "Guidelines for Gemini & ChatGPT:\n"
-    "- Write in fluent, descriptive natural language sentences rather than comma-separated tags.\n"
+    "- Write the prompt in {output_language} using fluent, descriptive natural language sentences rather than comma-separated tags.\n"
     "- Describe the subject(s) in detail: appearance, facial expression, pose, clothing, and actions.\n"
     "- Describe the environment, background, setting, lighting (e.g., golden hour, soft studio light, volumetric rays), atmosphere, and color palette.\n"
     "- Specify the artistic medium and camera perspective (e.g., cinematic photography, eye-level shot, 35mm film still, digital illustration).\n"
@@ -43,9 +54,21 @@ class PromptConfig:
     base_url: str = DEFAULT_OLLAMA_BASE_URL
     model: str = DEFAULT_MODEL
     prompt: str = DEFAULT_SYSTEM_PROMPT
+    language: str = "en"
     temperature: float = 0.2
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
     overwrite: bool = False
+
+
+def prepare_prompt(prompt: str, language: str = "en") -> str:
+    """Inject output language into the prompt template or append language requirement."""
+    lang_name = PROMPT_LANGUAGES.get(language, language)
+    p = prompt or DEFAULT_SYSTEM_PROMPT
+    if "{output_language}" in p:
+        return p.replace("{output_language}", lang_name)
+    if language.lower() not in ("en", "english"):
+        return f"{p}\n\nImportant Requirement: The generated image prompt MUST be written entirely in {lang_name}."
+    return p
 
 
 async def list_ollama_models(
@@ -151,6 +174,7 @@ async def generate_prompt_for_image_bytes(
         raise ImageToPromptError("Dữ liệu ảnh trống.")
 
     model_to_use = await resolve_model_name(config.model, config.base_url)
+    final_prompt = prepare_prompt(config.prompt, config.language)
 
     b64_img = base64.b64encode(image_bytes).decode("utf-8")
     base = config.base_url.rstrip("/")
@@ -161,7 +185,7 @@ async def generate_prompt_for_image_bytes(
         "messages": [
             {
                 "role": "user",
-                "content": config.prompt,
+                "content": final_prompt,
                 "images": [b64_img],
             }
         ],
@@ -189,7 +213,7 @@ async def generate_prompt_for_image_bytes(
                 if resp.status == 404 and "404 page not found" in err_body.lower():
                     gen_payload = {
                         "model": model_to_use,
-                        "prompt": config.prompt,
+                        "prompt": final_prompt,
                         "images": [b64_img],
                         "stream": False,
                         "options": {

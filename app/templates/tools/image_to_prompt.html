@@ -116,8 +116,9 @@
             </p>
         </div>
 
-        <!-- Model selection -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <!-- Model, Language & Preset selection -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <!-- 1. Model Ollama Vision -->
             <div>
                 <label for="batch-model" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                     Model Ollama Vision
@@ -128,20 +129,39 @@
                         <option value="{{ default_model }}" selected>{{ default_model }}</option>
                     </select>
                 </div>
-                <p class="mt-1 text-[11px] text-slate-400">Tự động nạp danh sách model từ Ollama cục bộ. Mặc định: <strong>{{ default_model }}</strong></p>
+                <p class="mt-1 text-[11px] text-slate-400">Model trên máy của bạn. Mặc định: <strong>{{ default_model }}</strong></p>
             </div>
 
+            <!-- 2. Ngôn ngữ Prompt đầu ra (Output Language) -->
+            <div>
+                <label for="batch-language" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Ngôn ngữ Prompt đầu ra
+                </label>
+                <div class="relative">
+                    <select id="batch-language"
+                            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
+                        {% for code, name in languages.items() %}
+                        <option value="{{ code }}"{% if code == default_language %} selected{% endif %}>
+                            {{ name }}{% if code == "en" %} (Khuyên dùng cho Gemini/ChatGPT){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <p class="mt-1 text-[11px] text-slate-400">Mặc định: <strong>English</strong> (Khuyên dùng tốt nhất cho Cloud AI).</p>
+            </div>
+
+            <!-- 3. Mục tiêu / Phong cách tạo Prompt -->
             <div>
                 <label for="prompt-preset" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                     Mục tiêu tạo Prompt
                 </label>
                 <select id="prompt-preset"
                         class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
-                    <option value="detailed" selected>Google Gemini & ChatGPT / DALL-E 3 (Văn phong tự nhiên, chi tiết) - Mặc định</option>
-                    <option value="chatgpt_cinematic">ChatGPT / DALL-E 3 (Phong cách điện ảnh & kể chuyện)</option>
-                    <option value="gemini_photorealistic">Google Gemini (Nhiếp ảnh chân thực, ánh sáng & góc máy)</option>
-                    <option value="cloud_illustration">Gemini & ChatGPT (Anime / Minh họa kỹ thuật số)</option>
-                    <option value="midjourney_tags">Midjourney / Stable Diffusion (Từ khóa Tags & Thông số)</option>
+                    <option value="detailed" selected>Google Gemini & ChatGPT / DALL-E 3 (Mặc định)</option>
+                    <option value="chatgpt_cinematic">ChatGPT / DALL-E 3 (Điện ảnh & Kể chuyện)</option>
+                    <option value="gemini_photorealistic">Google Gemini (Nhiếp ảnh chân thực, ánh sáng)</option>
+                    <option value="cloud_illustration">Gemini & ChatGPT (Anime / Minh họa số)</option>
+                    <option value="midjourney_tags">Midjourney / Stable Diffusion (Tags & Thông số)</option>
                     <option value="custom">Tự định nghĩa câu lệnh (Custom)</option>
                 </select>
                 <p class="mt-1 text-[11px] text-slate-400">Tối ưu phong cách viết prompt cho các dịch vụ tạo ảnh.</p>
@@ -151,15 +171,17 @@
         <!-- Custom Prompt Instruction (Collapsible / Toggleable) -->
         <div id="custom-prompt-container" class="space-y-1.5">
             <div class="flex items-center justify-between">
-                <label for="batch-prompt" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Câu lệnh chỉ dẫn (Prompt gửi cho AI):
+                <label for="batch-prompt" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                    <span>Câu lệnh chỉ dẫn (Prompt gửi cho Ollama):</span>
+                    <span class="text-[11px] font-normal text-slate-400 dark:text-slate-500">(Bạn có thể chỉnh sửa tự do câu lệnh bên dưới)</span>
                 </label>
                 <button type="button" id="reset-prompt-btn" class="text-[11px] text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline">
                     Đặt lại mặc định
                 </button>
             </div>
-            <textarea id="batch-prompt" rows="3"
+            <textarea id="batch-prompt" rows="4"
                       class="block w-full rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition font-mono">{{ default_prompt }}</textarea>
+            <p class="text-[11px] text-slate-400">💡 Mẹo: Giữ lại biến <code>{output_language}</code> trong câu chỉ thị để ngôn ngữ tự động thay đổi theo lựa chọn ở trên.</p>
         </div>
 
         <!-- Form for folder batch -->
@@ -738,10 +760,12 @@
                 return;
             }
 
+            const languageSelect = document.getElementById("batch-language");
             const formData = new FormData();
             formData.append("folder", folder);
             formData.append("model", modelSelect.value);
             formData.append("prompt", promptInput.value);
+            if (languageSelect) formData.append("language", languageSelect.value);
             formData.append("overwrite", overwriteCheck.checked ? "true" : "false");
             formData.append("recursive", recursiveCheck.checked ? "true" : "false");
 
@@ -910,10 +934,12 @@
             resultBox.classList.add("hidden");
             if (singleErrorBox) singleErrorBox.classList.add("hidden");
 
+            const languageSelect = document.getElementById("batch-language");
             const formData = new FormData();
             formData.append("file", file);
             formData.append("model", modelSelect.value);
             formData.append("prompt", promptInput.value);
+            if (languageSelect) formData.append("language", languageSelect.value);
 
             try {
                 const res = await fetch("/tools/image-to-prompt/single", {

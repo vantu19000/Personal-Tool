@@ -26,13 +26,14 @@ def _get_configured_defaults():
     block = settings_store.get_block("image_to_prompt")
     model = block.get("default_model") or services.DEFAULT_MODEL
     prompt = block.get("system_prompt") or services.DEFAULT_SYSTEM_PROMPT
+    language = block.get("default_language") or "en"
     timeout = float(block.get("timeout_seconds") or services.DEFAULT_TIMEOUT_SECONDS)
-    return model, prompt, timeout
+    return model, prompt, language, timeout
 
 
 @router.get("/image-to-prompt", name="image-to-prompt")
 async def image_to_prompt_page(request: Request):
-    default_model, default_prompt, _ = _get_configured_defaults()
+    default_model, default_prompt, default_language, _ = _get_configured_defaults()
     return templates.TemplateResponse(
         request,
         "tools/image_to_prompt.html",
@@ -40,6 +41,8 @@ async def image_to_prompt_page(request: Request):
             "active_tool": "image-to-prompt",
             "default_model": default_model,
             "default_prompt": default_prompt,
+            "default_language": default_language,
+            "languages": services.PROMPT_LANGUAGES,
         },
     )
 
@@ -47,7 +50,7 @@ async def image_to_prompt_page(request: Request):
 @router.get("/image-to-prompt/models", name="image-to-prompt-models")
 async def image_to_prompt_models() -> JSONResponse:
     """Check Ollama connectivity and return available models."""
-    default_model, _, _ = _get_configured_defaults()
+    default_model, _, _, _ = _get_configured_defaults()
     try:
         models = await services.list_ollama_models()
         return JSONResponse(
@@ -114,16 +117,18 @@ async def image_to_prompt_single(
     file: UploadFile = File(..., description="File hình ảnh cần tạo prompt"),
     model: str = Form(services.DEFAULT_MODEL),
     prompt: str = Form(""),
+    language: str = Form("en"),
 ):
     """Test generating a reverse prompt on a single uploaded image."""
     raw = await file.read()
     if not raw:
         raise HTTPException(status_code=400, detail="File tải lên không có dữ liệu.")
 
-    _, default_prompt, default_timeout = _get_configured_defaults()
+    _, default_prompt, default_language, default_timeout = _get_configured_defaults()
     config = services.PromptConfig(
         model=model.strip() or services.DEFAULT_MODEL,
         prompt=prompt.strip() or default_prompt,
+        language=language.strip() or default_language,
         timeout_seconds=default_timeout,
     )
 
@@ -141,6 +146,7 @@ async def image_to_prompt_process(
     folder: str = Form(..., description="Thư mục chứa ảnh"),
     model: str = Form(services.DEFAULT_MODEL),
     prompt: str = Form(""),
+    language: str = Form("en"),
     overwrite: bool = Form(False),
     recursive: bool = Form(False),
 ):
@@ -159,10 +165,11 @@ async def image_to_prompt_process(
             detail=f"Không tìm thấy hình ảnh nào ({', '.join(services.SUPPORTED_EXTENSIONS)}) trong thư mục {folder_path}",
         )
 
-    _, default_prompt, default_timeout = _get_configured_defaults()
+    _, default_prompt, default_language, default_timeout = _get_configured_defaults()
     config = services.PromptConfig(
         model=model.strip() or services.DEFAULT_MODEL,
         prompt=prompt.strip() or default_prompt,
+        language=language.strip() or default_language,
         timeout_seconds=default_timeout,
         overwrite=overwrite,
     )

@@ -127,6 +127,16 @@ try:
         assert err_json["detail"] == "Multimodal data provided, but model does not support multimodal requests."
         print(f"   -> OK! Status 400 trả đúng nguyên bản lỗi: {err_json['detail']}")
 
+    print("9. Kiểm tra tùy chọn ngôn ngữ đầu ra (prepare_prompt)...")
+    from app.tools.image_to_prompt.services import prepare_prompt
+    tpl = "Describe in {output_language}."
+    assert prepare_prompt(tpl, "en") == "Describe in English."
+    assert "Vietnamese (Tiếng Việt)" in prepare_prompt(tpl, "vi")
+    custom_p = "A custom prompt without placeholders."
+    assert "Vietnamese" in prepare_prompt(custom_p, "vi")
+    assert prepare_prompt(custom_p, "en") == custom_p
+    print("   -> OK! Ngôn ngữ và prompt tùy chỉnh hoạt động chính xác.")
+
 finally:
     shutil.rmtree(temp_dir, ignore_errors=True)
 
