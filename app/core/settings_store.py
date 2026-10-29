@@ -96,14 +96,20 @@ class ImageToPromptSettings(BaseModel):
 
     default_model: str = Field("qween3.8", max_length=100)
     system_prompt: str = Field(..., min_length=5, max_length=8000)
+    timeout_seconds: int = Field(1200, ge=30, le=7200)
 
 
 DEFAULT_IMAGE_TO_PROMPT = (
-    "You are an expert AI prompt engineer. Analyze this image and write a detailed, "
-    "highly descriptive prompt to recreate it using an AI image generator (such as Midjourney, "
-    "Stable Diffusion, or Flux). Include subject, appearance, composition, artistic style, "
-    "medium, lighting, color palette, details, and atmosphere. "
-    "Return ONLY the prompt text, without any conversational prefix, introductory phrases, or explanation."
+    "You are an expert AI prompt engineer specializing in prompt creation for modern cloud image generation "
+    "models like Google Gemini (Imagen 3) and ChatGPT (DALL-E 3).\n\n"
+    "Analyze this image and write a rich, highly descriptive prompt in natural English to recreate this image accurately.\n\n"
+    "Guidelines for Gemini & ChatGPT:\n"
+    "- Write in fluent, descriptive natural language sentences rather than comma-separated tags.\n"
+    "- Describe the subject(s) in detail: appearance, facial expression, pose, clothing, and actions.\n"
+    "- Describe the environment, background, setting, lighting (e.g., golden hour, soft studio light, volumetric rays), atmosphere, and color palette.\n"
+    "- Specify the artistic medium and camera perspective (e.g., cinematic photography, eye-level shot, 35mm film still, digital illustration).\n"
+    "- Avoid negative prompts, keyword spam, or model parameters (no '--ar', no weights like '(masterpiece:1.2)').\n"
+    "- Return ONLY the final prompt text. Do not include any greeting, introduction, explanation, or markdown quotes."
 )
 
 
@@ -169,6 +175,7 @@ BLOCKS: Dict[str, BlockDef] = {
         default={
             "default_model": "qween3.8",
             "system_prompt": DEFAULT_IMAGE_TO_PROMPT,
+            "timeout_seconds": 1200,
         },
         fields=[
             FieldDef(
@@ -177,6 +184,13 @@ BLOCKS: Dict[str, BlockDef] = {
                 kind="text",
                 placeholder="qween3.8",
                 help_text="Tên model Vision trên Ollama (ví dụ: qween3.8, qwen2.5-vl, llava).",
+            ),
+            FieldDef(
+                key="timeout_seconds",
+                label="Thời gian chờ tối đa (giây)",
+                kind="number",
+                placeholder="1200",
+                help_text="Thời gian chờ Ollama xử lý mỗi ảnh (mặc định 1200s = 20 phút).",
             ),
             FieldDef(
                 key="system_prompt",

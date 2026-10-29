@@ -107,6 +107,26 @@ try:
         assert "Cyberpunk" in single_body["prompt"]
         print("   -> OK! Prompt đơn lẻ trả về chính xác.")
 
+    print("7. Kiểm tra trích xuất nguyên bản lỗi từ Ollama (extract_ollama_error)...")
+    from app.tools.image_to_prompt.services import extract_ollama_error, ImageToPromptError
+    raw_ollama_json = '{"error": "Multimodal data provided, but model does not support multimodal requests."}'
+    extracted = extract_ollama_error(raw_ollama_json)
+    assert extracted == "Multimodal data provided, but model does not support multimodal requests."
+    print("   -> OK! Lấy nguyên bản lỗi từ JSON Ollama chính xác.")
+
+    print("8. Kiểm tra báo lỗi khi gọi API /single...")
+    with patch(
+        "app.tools.image_to_prompt.services.generate_prompt_for_image_bytes",
+        new_callable=AsyncMock,
+    ) as mock_generate:
+        mock_generate.side_effect = ImageToPromptError("Multimodal data provided, but model does not support multimodal requests.")
+        files = {"file": ("test.png", b"\x89PNGdummy", "image/png")}
+        r = client.post("/tools/image-to-prompt/single", files=files, data={"model": "llama3:latest"})
+        assert r.status_code == 400
+        err_json = r.json()
+        assert err_json["detail"] == "Multimodal data provided, but model does not support multimodal requests."
+        print(f"   -> OK! Status 400 trả đúng nguyên bản lỗi: {err_json['detail']}")
+
 finally:
     shutil.rmtree(temp_dir, ignore_errors=True)
 

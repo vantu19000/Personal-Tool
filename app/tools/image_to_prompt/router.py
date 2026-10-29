@@ -26,12 +26,13 @@ def _get_configured_defaults():
     block = settings_store.get_block("image_to_prompt")
     model = block.get("default_model") or services.DEFAULT_MODEL
     prompt = block.get("system_prompt") or services.DEFAULT_SYSTEM_PROMPT
-    return model, prompt
+    timeout = float(block.get("timeout_seconds") or services.DEFAULT_TIMEOUT_SECONDS)
+    return model, prompt, timeout
 
 
 @router.get("/image-to-prompt", name="image-to-prompt")
 async def image_to_prompt_page(request: Request):
-    default_model, default_prompt = _get_configured_defaults()
+    default_model, default_prompt, _ = _get_configured_defaults()
     return templates.TemplateResponse(
         request,
         "tools/image_to_prompt.html",
@@ -46,7 +47,7 @@ async def image_to_prompt_page(request: Request):
 @router.get("/image-to-prompt/models", name="image-to-prompt-models")
 async def image_to_prompt_models() -> JSONResponse:
     """Check Ollama connectivity and return available models."""
-    default_model, _ = _get_configured_defaults()
+    default_model, _, _ = _get_configured_defaults()
     try:
         models = await services.list_ollama_models()
         return JSONResponse(
@@ -119,17 +120,20 @@ async def image_to_prompt_single(
     if not raw:
         raise HTTPException(status_code=400, detail="File tải lên không có dữ liệu.")
 
-    _, default_prompt = _get_configured_defaults()
+    _, default_prompt, default_timeout = _get_configured_defaults()
     config = services.PromptConfig(
         model=model.strip() or services.DEFAULT_MODEL,
         prompt=prompt.strip() or default_prompt,
+        timeout_seconds=default_timeout,
     )
 
     try:
         result_prompt = await services.generate_prompt_for_image_bytes(raw, config)
         return JSONResponse({"prompt": result_prompt, "filename": file.filename or "image"})
     except services.ImageToPromptError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.post("/image-to-prompt/process", name="image-to-prompt-process")
@@ -155,10 +159,11 @@ async def image_to_prompt_process(
             detail=f"Không tìm thấy hình ảnh nào ({', '.join(services.SUPPORTED_EXTENSIONS)}) trong thư mục {folder_path}",
         )
 
-    _, default_prompt = _get_configured_defaults()
+    _, default_prompt, default_timeout = _get_configured_defaults()
     config = services.PromptConfig(
         model=model.strip() or services.DEFAULT_MODEL,
         prompt=prompt.strip() or default_prompt,
+        timeout_seconds=default_timeout,
         overwrite=overwrite,
     )
 
@@ -171,6 +176,7 @@ async def image_to_prompt_process(
         yield line({"type": "start", "total": total, "folder": str(folder_path)})
 
         ok = skipped = failed = 0
+        last_error = None
 
         for index, img_path in enumerate(files):
             # Signal image processing started
@@ -188,6 +194,7 @@ async def image_to_prompt_process(
                 yield line({"type": "file_skipped", "index": index + 1, "total": total, **result})
             else:
                 failed += 1
+                last_error = result.get("error")
                 yield line({"type": "file_error", "index": index + 1, "total": total, **result})
 
         yield line({
@@ -197,6 +204,7 @@ async def image_to_prompt_process(
             "skipped": skipped,
             "failed": failed,
             "folder": str(folder_path),
+            "last_error": last_error if failed > 0 else None,
         })
 
     return StreamingResponse(event_stream(), media_type="application/x-ndjson; charset=utf-8")

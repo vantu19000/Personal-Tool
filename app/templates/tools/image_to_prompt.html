@@ -21,7 +21,7 @@
                         </span>
                     </h1>
                     <p class="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                        Dịch ngược ảnh thành prompt tạo ảnh AI (Midjourney, SD, Flux) tự động qua Ollama (<code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">localhost:11434</code>), lưu file <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">.txt</code> tương ứng ngay trong thư mục.
+                        Dịch ngược ảnh thành prompt văn phong tự nhiên tối ưu cho các dịch vụ cloud như <strong>Google Gemini (Imagen 3)</strong> & <strong>ChatGPT (DALL-E 3)</strong> qua Ollama (<code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">localhost:11434</code>), tự động lưu file <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">.txt</code> tương ứng trong thư mục.
                     </p>
                 </div>
             </div>
@@ -133,17 +133,18 @@
 
             <div>
                 <label for="prompt-preset" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Mẫu yêu cầu tạo prompt
+                    Mục tiêu tạo Prompt
                 </label>
                 <select id="prompt-preset"
                         class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
-                    <option value="detailed" selected>Chi tiết cao (Midjourney, Stable Diffusion, Flux) - Mặc định</option>
-                    <option value="concise">Ngắn gọn, súc tích (Key tags, descriptors)</option>
-                    <option value="photorealistic">Chân thực như chụp ảnh (Photorealistic / Cinematic)</option>
-                    <option value="anime">Phong cách Anime / Digital Illustration</option>
+                    <option value="detailed" selected>Google Gemini & ChatGPT / DALL-E 3 (Văn phong tự nhiên, chi tiết) - Mặc định</option>
+                    <option value="chatgpt_cinematic">ChatGPT / DALL-E 3 (Phong cách điện ảnh & kể chuyện)</option>
+                    <option value="gemini_photorealistic">Google Gemini (Nhiếp ảnh chân thực, ánh sáng & góc máy)</option>
+                    <option value="cloud_illustration">Gemini & ChatGPT (Anime / Minh họa kỹ thuật số)</option>
+                    <option value="midjourney_tags">Midjourney / Stable Diffusion (Từ khóa Tags & Thông số)</option>
                     <option value="custom">Tự định nghĩa câu lệnh (Custom)</option>
                 </select>
-                <p class="mt-1 text-[11px] text-slate-400">Chọn mẫu câu chỉ thị gửi tới model AI.</p>
+                <p class="mt-1 text-[11px] text-slate-400">Tối ưu phong cách viết prompt cho các dịch vụ tạo ảnh.</p>
             </div>
         </div>
 
@@ -213,6 +214,30 @@
                 </div>
             </div>
         </form>
+
+        <!-- Prominent Red Error Banner for Ollama Errors (Batch Mode) -->
+        <div id="batch-error-banner" class="hidden rounded-2xl bg-rose-50 dark:bg-rose-950/50 border-2 border-rose-500 p-5 shadow-xs transition-all w-full space-y-2">
+            <div class="flex items-start gap-3.5">
+                <div class="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
+                    <i data-lucide="alert-octagon" class="w-5 h-5"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <h3 class="text-sm sm:text-base font-bold text-rose-900 dark:text-rose-200 flex items-center gap-2">
+                            <span>Lỗi phản hồi từ Ollama API</span>
+                        </h3>
+                        <button type="button" onclick="document.getElementById('batch-error-banner').classList.add('hidden')"
+                                class="text-xs text-rose-500 hover:text-rose-700 dark:text-rose-400 hover:underline">
+                            ✕ Đóng
+                        </button>
+                    </div>
+                    <p class="mt-1 text-xs text-rose-700 dark:text-rose-300">
+                        Ollama phản hồi lỗi nguyên bản sau:
+                    </p>
+                    <div id="batch-error-message" class="mt-2.5 p-3.5 rounded-xl bg-white/90 dark:bg-[#0c1220] border border-rose-300 dark:border-rose-900 font-mono text-xs sm:text-sm text-rose-800 dark:text-rose-200 whitespace-pre-wrap select-all font-semibold"></div>
+                </div>
+            </div>
+        </div>
 
         <!-- Batch Progress Panel (Live) -->
         <div id="batch-progress" class="hidden space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
@@ -299,6 +324,30 @@
             </div>
         </form>
 
+        <!-- Single Image Error Box (Red Message on Screen) -->
+        <div id="single-error-box" class="hidden rounded-2xl bg-rose-50 dark:bg-rose-950/50 border-2 border-rose-500 p-5 shadow-xs transition-all w-full space-y-2">
+            <div class="flex items-start gap-3.5">
+                <div class="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
+                    <i data-lucide="alert-octagon" class="w-5 h-5"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <h3 class="text-sm sm:text-base font-bold text-rose-900 dark:text-rose-200 flex items-center gap-2">
+                            <span>Lỗi phản hồi từ Ollama API</span>
+                        </h3>
+                        <button type="button" onclick="document.getElementById('single-error-box').classList.add('hidden')"
+                                class="text-xs text-rose-500 hover:text-rose-700 dark:text-rose-400 hover:underline">
+                            ✕ Đóng
+                        </button>
+                    </div>
+                    <p class="mt-1 text-xs text-rose-700 dark:text-rose-300">
+                        Ollama phản hồi lỗi nguyên bản sau:
+                    </p>
+                    <div id="single-error-text" class="mt-2.5 p-3.5 rounded-xl bg-white/90 dark:bg-[#0c1220] border border-rose-300 dark:border-rose-900 font-mono text-xs sm:text-sm text-rose-800 dark:text-rose-200 whitespace-pre-wrap select-all font-semibold"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Single Result Box -->
         <div id="single-result-box" class="hidden space-y-3 p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
             <div class="flex items-center justify-between">
@@ -336,9 +385,10 @@
 
     const promptPresets = {
         detailed: {{ default_prompt|tojson }},
-        concise: "Analyze this image and write a concise, comma-separated list of visual tags and core descriptors to recreate this image with AI. Include subject, style, lighting, and palette. Return ONLY the tags, no explanation.",
-        photorealistic: "Analyze this image and write a prompt to recreate it as a high-end photograph. Include camera type, lens focal length, aperture, lighting conditions, depth of field, subject details, color grading, and realistic textures. Return ONLY the prompt, no explanation.",
-        anime: "Analyze this image and write a prompt to recreate it in detailed anime/manga or digital illustration style. Include art style, linework, coloring technique, character design, atmosphere, and visual effects. Return ONLY the prompt, no explanation.",
+        chatgpt_cinematic: "Analyze this image and generate an evocative, narrative-driven prompt in natural English tailored for ChatGPT and DALL-E 3. Describe the scene as a vivid cinematic moment: focal subject, subtle emotion, authentic textures, spatial depth, camera perspective, and ambient lighting mood. Write in fluent descriptive prose without technical jargon or tags. Return ONLY the raw prompt text, without any intro or explanation.",
+        gemini_photorealistic: "Analyze this image and write a photorealistic image generation prompt in natural English optimized for Google Gemini (Imagen 3). Describe the subject, composition, camera shot type (e.g. macro, eye-level, medium close-up), lighting quality (e.g. golden hour, soft diffuse daylight, chiaroscuro), natural skin/material textures, depth of field, and color temperature. Do not use tags or parameter syntax. Return ONLY the raw prompt text.",
+        cloud_illustration: "Analyze this image and write a detailed prompt in natural English for Google Gemini or ChatGPT to recreate it as a high-quality digital artwork or anime illustration. Describe the art style, linework, color harmonies, character visual details, whimsical or dramatic atmosphere, and lighting effects. Return ONLY the raw prompt text.",
+        midjourney_tags: "Analyze this image and write a prompt using descriptive keywords and visual tags for Midjourney and Stable Diffusion. Include subject, style, lighting, color palette, camera shot, and artistic medium. Return ONLY the raw prompt text."
     };
 
     async function checkOllamaConnection() {
@@ -556,6 +606,8 @@
         const finalStatus = document.getElementById("batch-final-status");
         const fileList = document.getElementById("batch-file-list");
         const resultsStats = document.getElementById("batch-results-stats");
+        const batchErrorBanner = document.getElementById("batch-error-banner");
+        const batchErrorMessage = document.getElementById("batch-error-message");
 
         let totalFiles = 0;
         let currentItemMap = new Map();
@@ -655,7 +707,13 @@
                 `;
             } else if (status === 'error') {
                 contentHtml += `
-                    <p class="mt-1 text-xs text-rose-500 font-mono">${promptOrError || 'Lỗi không xác định'}</p>
+                    <div class="mt-2.5 p-3 rounded-lg bg-rose-50/90 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-900/80">
+                        <div class="flex items-center gap-1.5 text-[11px] font-bold text-rose-700 dark:text-rose-300 mb-1">
+                            <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-500 shrink-0"></i>
+                            <span>Lỗi từ Ollama API:</span>
+                        </div>
+                        <pre class="font-mono text-xs text-rose-800 dark:text-rose-200 whitespace-pre-wrap select-all font-semibold leading-relaxed">${promptOrError || 'Lỗi không xác định'}</pre>
+                    </div>
                 `;
             }
 
@@ -691,6 +749,8 @@
             fileList.innerHTML = "";
             currentItemMap.clear();
             finalStatus.classList.add("hidden");
+            if (batchErrorBanner) batchErrorBanner.classList.add("hidden");
+            if (batchErrorMessage) batchErrorMessage.textContent = "";
             progressBar.style.width = "0%";
             progressPercent.textContent = "0%";
             progressCount.textContent = "0 / 0";
@@ -728,6 +788,11 @@
                     } else if (event.type === "file_error") {
                         errorCount++;
                         createOrUpdateRow(event.file, "error", event.txt_file, event.error);
+                        if (batchErrorBanner && batchErrorMessage) {
+                            batchErrorBanner.classList.remove("hidden");
+                            batchErrorMessage.textContent = event.error || "Ollama trả về lỗi không xác định.";
+                            if (window.lucide) window.lucide.createIcons();
+                        }
                     }
 
                     if (event.index && totalFiles > 0) {
@@ -744,11 +809,16 @@
                         finalStatus.classList.remove("hidden");
 
                         if (event.failed === 0) {
-                            finalStatus.className = "text-xs sm:text-sm font-semibold p-3.5 rounded-xl bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900";
+                            finalStatus.className = "text-xs sm:text-sm font-semibold p-4 rounded-xl bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900";
                             finalStatus.textContent = `✓ Hoàn thành tất cả! Đã tạo ${event.ok} file prompt .txt (Bỏ qua: ${event.skipped}, Lỗi: 0).`;
                         } else {
-                            finalStatus.className = "text-xs sm:text-sm font-semibold p-3.5 rounded-xl bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900";
-                            finalStatus.textContent = `Đã xử lý xong: Thành công ${event.ok}, Bỏ qua ${event.skipped}, Lỗi ${event.failed}. Xem chi tiết bên dưới.`;
+                            if (batchErrorBanner && batchErrorMessage && event.last_error) {
+                                batchErrorBanner.classList.remove("hidden");
+                                batchErrorMessage.textContent = event.last_error;
+                                if (window.lucide) window.lucide.createIcons();
+                            }
+                            finalStatus.className = "text-xs sm:text-sm font-semibold p-4 rounded-xl bg-rose-50 text-rose-900 dark:bg-rose-950/70 dark:text-rose-200 border-2 border-rose-500 shadow-xs";
+                            finalStatus.innerHTML = `⚠️ Quá trình hoàn tất với <strong>${event.failed}</strong> file lỗi (Thành công: <strong>${event.ok}</strong>, Bỏ qua: <strong>${event.skipped}</strong>). Lỗi nguyên bản từ Ollama được báo đỏ bên trên.`;
                         }
                         break;
                     }
@@ -756,13 +826,19 @@
 
                 if (!finished) {
                     finalStatus.classList.remove("hidden");
-                    finalStatus.className = "text-xs sm:text-sm font-semibold p-3.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200";
+                    finalStatus.className = "text-xs sm:text-sm font-semibold p-4 rounded-xl bg-rose-50 text-rose-900 dark:bg-rose-950/70 dark:text-rose-200 border-2 border-rose-500";
                     finalStatus.textContent = "Kết thúc bất thường — luồng dữ liệu bị ngắt trước khi hoàn thành.";
                 }
             } catch (err) {
+                if (batchErrorBanner && batchErrorMessage) {
+                    batchErrorBanner.classList.remove("hidden");
+                    batchErrorMessage.textContent = err.message || err;
+                    batchErrorBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    if (window.lucide) window.lucide.createIcons();
+                }
                 finalStatus.classList.remove("hidden");
-                finalStatus.className = "text-xs sm:text-sm font-semibold p-3.5 rounded-xl bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-900";
-                finalStatus.textContent = `Lỗi: ${err.message || err}`;
+                finalStatus.className = "text-xs sm:text-sm font-semibold p-4 rounded-xl bg-rose-50 text-rose-900 dark:bg-rose-950/70 dark:text-rose-200 border-2 border-rose-500 shadow-xs";
+                finalStatus.textContent = `Lỗi từ Ollama API: ${err.message || err}`;
             } finally {
                 setBusy(false);
             }
@@ -784,6 +860,8 @@
         const resultBox = document.getElementById("single-result-box");
         const resultText = document.getElementById("single-result-text");
         const copyBtn = document.getElementById("copy-single-prompt-btn");
+        const singleErrorBox = document.getElementById("single-error-box");
+        const singleErrorText = document.getElementById("single-error-text");
         const modelSelect = document.getElementById("batch-model");
         const promptInput = document.getElementById("batch-prompt");
 
@@ -830,6 +908,7 @@
             submitIcon.classList.add("hidden");
             submitLabel.textContent = "Đang phân tích ảnh…";
             resultBox.classList.add("hidden");
+            if (singleErrorBox) singleErrorBox.classList.add("hidden");
 
             const formData = new FormData();
             formData.append("file", file);
@@ -843,14 +922,22 @@
                 });
                 const data = await res.json();
                 if (!res.ok) {
-                    throw new Error(data.detail || "Không thể phân tích ảnh");
+                    const errMsg = data.detail || data.error || (typeof data === "string" ? data : "Không thể phân tích ảnh");
+                    throw new Error(errMsg);
                 }
 
                 resultText.textContent = data.prompt;
                 resultBox.classList.remove("hidden");
                 resultBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
             } catch (err) {
-                alert("Lỗi: " + (err.message || err));
+                if (singleErrorBox && singleErrorText) {
+                    singleErrorBox.classList.remove("hidden");
+                    singleErrorText.textContent = err.message || err;
+                    singleErrorBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                    if (window.lucide) window.lucide.createIcons();
+                } else {
+                    alert("Lỗi: " + (err.message || err));
+                }
             } finally {
                 submitBtn.disabled = false;
                 spinner.classList.add("hidden");

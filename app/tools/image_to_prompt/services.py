@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import json
 import os
 import re
 from dataclasses import dataclass
@@ -13,13 +14,19 @@ import aiohttp
 
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 DEFAULT_MODEL = "qween3.8"
+DEFAULT_TIMEOUT_SECONDS = 1200.0  # 20 phút (20 * 60s)
 
 DEFAULT_SYSTEM_PROMPT = (
-    "You are an expert AI prompt engineer. Analyze this image and write a detailed, "
-    "highly descriptive prompt to recreate it using an AI image generator (such as Midjourney, "
-    "Stable Diffusion, or Flux). Include subject, appearance, composition, artistic style, "
-    "medium, lighting, color palette, details, and atmosphere. "
-    "Return ONLY the prompt text, without any conversational prefix, introductory phrases, or explanation."
+    "You are an expert AI prompt engineer specializing in prompt creation for modern cloud image generation "
+    "models like Google Gemini (Imagen 3) and ChatGPT (DALL-E 3).\n\n"
+    "Analyze this image and write a rich, highly descriptive prompt in natural English to recreate this image accurately.\n\n"
+    "Guidelines for Gemini & ChatGPT:\n"
+    "- Write in fluent, descriptive natural language sentences rather than comma-separated tags.\n"
+    "- Describe the subject(s) in detail: appearance, facial expression, pose, clothing, and actions.\n"
+    "- Describe the environment, background, setting, lighting (e.g., golden hour, soft studio light, volumetric rays), atmosphere, and color palette.\n"
+    "- Specify the artistic medium and camera perspective (e.g., cinematic photography, eye-level shot, 35mm film still, digital illustration).\n"
+    "- Avoid negative prompts, keyword spam, or model parameters (no '--ar', no weights like '(masterpiece:1.2)').\n"
+    "- Return ONLY the final prompt text. Do not include any greeting, introduction, explanation, or markdown quotes."
 )
 
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tiff"}
@@ -37,7 +44,7 @@ class PromptConfig:
     model: str = DEFAULT_MODEL
     prompt: str = DEFAULT_SYSTEM_PROMPT
     temperature: float = 0.2
-    timeout_seconds: float = 180.0
+    timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
     overwrite: bool = False
 
 
@@ -76,6 +83,23 @@ def scan_image_files(folder: str | Path, recursive: bool = False) -> list[Path]:
             files.append(p)
 
     return sorted(files, key=lambda x: str(x).lower())
+
+
+def extract_ollama_error(raw_response: str) -> str:
+    """Extract raw error message directly from Ollama response JSON or text."""
+    if not raw_response or not raw_response.strip():
+        return "Lỗi rỗng từ dịch vụ Ollama."
+    text = raw_response.strip()
+    try:
+        data = json.loads(text)
+        if isinstance(data, dict):
+            if "error" in data and data["error"]:
+                return str(data["error"])
+            if "message" in data and data["message"]:
+                return str(data["message"])
+    except Exception:
+        pass
+    return text
 
 
 def clean_extracted_prompt(text: str) -> str:
@@ -130,7 +154,7 @@ async def generate_prompt_for_image_bytes(
 
     b64_img = base64.b64encode(image_bytes).decode("utf-8")
     base = config.base_url.rstrip("/")
-    timeout = aiohttp.ClientTimeout(total=config.timeout_seconds)
+    timeout = aiohttp.ClientTimeout(total=config.timeout_seconds, connect=30.0)
 
     chat_payload = {
         "model": model_to_use,
@@ -147,11 +171,9 @@ async def generate_prompt_for_image_bytes(
         },
     }
 
-    last_error: Exception | None = None
-
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        # First attempt: POST /api/chat
-        try:
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            # First attempt: POST /api/chat
             async with session.post(f"{base}/api/chat", json=chat_payload) as resp:
                 if resp.status == 200:
                     data = await resp.json()
@@ -159,41 +181,44 @@ async def generate_prompt_for_image_bytes(
                     cleaned = clean_extracted_prompt(content)
                     if cleaned:
                         return cleaned
-                else:
-                    err_body = await resp.text()
-                    last_error = ImageToPromptError(f"Ollama /api/chat trả về mã {resp.status}: {err_body}")
-        except Exception as exc:
-            last_error = exc
+                    raise ImageToPromptError("Ollama trả về nội dung prompt rỗng.")
 
-        # Fallback attempt: POST /api/generate
-        try:
-            gen_payload = {
-                "model": model_to_use,
-                "prompt": config.prompt,
-                "images": [b64_img],
-                "stream": False,
-                "options": {
-                    "temperature": config.temperature,
-                },
-            }
-            async with session.post(f"{base}/api/generate", json=gen_payload) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    content = data.get("response", "")
-                    cleaned = clean_extracted_prompt(content)
-                    if cleaned:
-                        return cleaned
-                else:
-                    err_body = await resp.text()
-                    raise ImageToPromptError(f"Ollama /api/generate trả về mã {resp.status}: {err_body}")
-        except Exception as exc:
-            if last_error:
-                raise ImageToPromptError(f"Lỗi gọi Ollama: {exc} (Trước đó: {last_error})") from exc
-            raise ImageToPromptError(f"Lỗi gọi Ollama: {exc}") from exc
+                err_body = await resp.text()
 
-    if last_error:
-        raise ImageToPromptError(f"Không nhận được prompt từ Ollama: {last_error}")
-    raise ImageToPromptError("Phản hồi rỗng từ mô hình Ollama.")
+                # If Ollama endpoint itself is not found (e.g. legacy Ollama), fallback to /api/generate
+                if resp.status == 404 and "404 page not found" in err_body.lower():
+                    gen_payload = {
+                        "model": model_to_use,
+                        "prompt": config.prompt,
+                        "images": [b64_img],
+                        "stream": False,
+                        "options": {
+                            "temperature": config.temperature,
+                        },
+                    }
+                    async with session.post(f"{base}/api/generate", json=gen_payload) as gen_resp:
+                        if gen_resp.status == 200:
+                            gen_data = await gen_resp.json()
+                            gen_content = gen_data.get("response", "")
+                            cleaned = clean_extracted_prompt(gen_content)
+                            if cleaned:
+                                return cleaned
+                            raise ImageToPromptError("Ollama trả về nội dung prompt rỗng.")
+                        gen_err = await gen_resp.text()
+                        raise ImageToPromptError(extract_ollama_error(gen_err))
+
+                # Extract and raise the EXACT error returned by Ollama
+                raise ImageToPromptError(extract_ollama_error(err_body))
+
+    except aiohttp.ClientConnectorError as exc:
+        raise ImageToPromptError(f"Không thể kết nối đến Ollama tại {base}. Dịch vụ có đang chạy không?") from exc
+    except asyncio.TimeoutError:
+        mins = int(config.timeout_seconds // 60)
+        raise ImageToPromptError(f"Hết thời gian chờ phản hồi từ Ollama ({int(config.timeout_seconds)}s ~ {mins} phút).")
+    except ImageToPromptError:
+        raise
+    except Exception as exc:
+        raise ImageToPromptError(str(exc)) from exc
 
 
 async def generate_prompt_for_file(
