@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Image to Prompt · {{ settings.APP_NAME }}{% endblock %}
-{% block page_title %}Image to Prompt{% endblock %}
+{% block title %}{{ t('image_to_prompt.page_title') }} · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}{{ t('image_to_prompt.page_title') }}{% endblock %}
 
 {% block content %}
 <div class="w-full space-y-6">
@@ -15,13 +15,13 @@
                 </div>
                 <div>
                     <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <span>Image to Prompt</span>
+                        <span>{{ t('image_to_prompt.page_title') }}</span>
                         <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950/60 dark:text-fuchsia-300">
-                            ✦ Vision AI
+                            {{ t('image_to_prompt.badge') }}
                         </span>
                     </h1>
                     <p class="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                        Dịch ngược ảnh thành prompt văn phong tự nhiên tối ưu cho các dịch vụ cloud như <strong>Google Gemini (Imagen 3)</strong> & <strong>ChatGPT (DALL-E 3)</strong> qua Ollama (<code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">localhost:11434</code>), tự động lưu file <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">.txt</code> tương ứng trong thư mục.
+                        {{ t('image_to_prompt.description')|safe }}
                     </p>
                 </div>
             </div>
@@ -29,7 +29,7 @@
             <!-- Real-time Ollama status pill -->
             <div id="ollama-status-pill" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition">
                 <span class="w-2 h-2 rounded-full animate-subtle-pulse bg-slate-400"></span>
-                <span class="status-text">Đang kiểm tra Ollama…</span>
+                <span class="status-text">{{ t('image_to_prompt.checking_ollama') }}</span>
             </div>
         </div>
     </section>
@@ -43,29 +43,29 @@
             <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between gap-3 flex-wrap">
                     <h3 class="text-sm sm:text-base font-bold text-rose-900 dark:text-rose-200 flex items-center gap-2">
-                        <span>Cảnh báo: Dịch vụ Ollama chưa được bật hoặc không thể kết nối!</span>
+                        <span>{{ t('image_to_prompt.warning_title') }}</span>
                     </h3>
                     <button type="button" id="ollama-recheck-btn"
                             class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-200/80 hover:bg-rose-200 dark:bg-rose-900/80 dark:hover:bg-rose-800 text-rose-900 dark:text-rose-200 transition shadow-2xs">
                         <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
-                        <span>Kiểm tra lại kết nối</span>
+                        <span>{{ t('image_to_prompt.recheck_btn') }}</span>
                     </button>
                 </div>
                 <p class="mt-1.5 text-xs sm:text-sm text-rose-700 dark:text-rose-300 leading-relaxed">
-                    Công cụ Image to Prompt phân tích ảnh bằng các mô hình Vision qua Ollama tại cổng <code class="font-mono bg-rose-100 dark:bg-rose-900/70 px-1.5 py-0.5 rounded text-xs font-semibold">http://localhost:11434</code>. Hiện tại hệ thống không thể kết nối tới dịch vụ này.
+                    {{ t('image_to_prompt.warning_desc')|safe }}
                 </p>
 
                 <!-- Detailed Setup Commands Box -->
                 <div class="mt-4 p-4 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-rose-200/80 dark:border-rose-900/50 space-y-3.5">
-                    <p class="text-xs font-bold text-rose-900 dark:text-rose-200">Các bước khởi động & câu lệnh lấy model về máy:</p>
+                    <p class="text-xs font-bold text-rose-900 dark:text-rose-200">{{ t('image_to_prompt.setup_steps_title') }}</p>
 
                     <!-- Step 1: Start Ollama -->
                     <div class="space-y-1.5">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs text-slate-700 dark:text-slate-300 font-semibold">1. Khởi động dịch vụ Ollama:</span>
+                            <span class="text-xs text-slate-700 dark:text-slate-300 font-semibold">{{ t('image_to_prompt.step1_title') }}</span>
                             <button type="button" onclick="copyCommand('ollama serve', this)" class="text-[11px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-mono transition flex items-center gap-1">
                                 <i data-lucide="copy" class="w-3 h-3"></i>
-                                <span>Copy</span>
+                                <span>{{ t('common.copy') }}</span>
                             </button>
                         </div>
                         <pre class="px-3 py-2 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs select-all overflow-x-auto">ollama serve</pre>
@@ -74,15 +74,15 @@
                     <!-- Step 2: Pull Vision Model -->
                     <div class="space-y-1.5">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs text-slate-700 dark:text-slate-300 font-semibold">2. Tải model vision (ví dụ: <span class="text-fuchsia-600 dark:text-fuchsia-400 font-bold">qwen2.5-vl</span> hoặc <span class="text-fuchsia-600 dark:text-fuchsia-400 font-bold">qween3.8</span>):</span>
+                            <span class="text-xs text-slate-700 dark:text-slate-300 font-semibold">{{ t('image_to_prompt.step2_title')|safe }}</span>
                             <button type="button" onclick="copyCommand('ollama pull qwen2.5-vl', this)" class="text-[11px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-mono transition flex items-center gap-1">
                                 <i data-lucide="copy" class="w-3 h-3"></i>
-                                <span>Copy</span>
+                                <span>{{ t('common.copy') }}</span>
                             </button>
                         </div>
                         <pre class="px-3 py-2 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs select-all overflow-x-auto">ollama pull qwen2.5-vl</pre>
                         <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                            💡 Lưu ý: Cần model hỗ trợ Vision (thị giác máy tính) như <strong class="text-slate-700 dark:text-slate-300">qwen2.5-vl</strong>, <strong class="text-slate-700 dark:text-slate-300">qween3.8</strong>, hoặc <strong class="text-slate-700 dark:text-slate-300">llava</strong> để có thể đọc hiểu và dịch ngược hình ảnh.
+                            {{ t('image_to_prompt.model_hint')|safe }}
                         </p>
                     </div>
                 </div>
@@ -95,12 +95,12 @@
         <button type="button" id="tab-batch-btn"
                 class="px-4 py-2.5 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 flex items-center gap-2 transition">
             <i data-lucide="folder-archive" class="w-4 h-4"></i>
-            <span>Dịch hàng loạt thư mục</span>
+            <span>{{ t('image_to_prompt.tab_batch') }}</span>
         </button>
         <button type="button" id="tab-single-btn"
                 class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2 transition">
             <i data-lucide="image" class="w-4 h-4"></i>
-            <span>Thử nghiệm 1 ảnh</span>
+            <span>{{ t('image_to_prompt.tab_single') }}</span>
         </button>
     </div>
 
@@ -109,10 +109,10 @@
         <div>
             <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <i data-lucide="folder-output" class="w-4 h-4 text-fuchsia-600 dark:text-fuchsia-400"></i>
-                <span>Cấu hình dịch ngược ảnh trong thư mục</span>
+                <span>{{ t('image_to_prompt.batch_title') }}</span>
             </h2>
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Quét toàn bộ ảnh (<code class="font-mono">.jpg, .jpeg, .png, .webp, .bmp</code>), tạo prompt tương ứng và lưu thành file <code class="font-mono">.txt</code> cùng tên tại chính thư mục đó.
+                {{ t('image_to_prompt.batch_desc')|safe }}
             </p>
         </div>
 
@@ -121,7 +121,7 @@
             <!-- 1. Model Ollama Vision -->
             <div>
                 <label for="batch-model" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Model Ollama Vision
+                    {{ t('image_to_prompt.model_label') }}
                 </label>
                 <div class="relative">
                     <select id="batch-model"
@@ -129,42 +129,42 @@
                         <option value="{{ default_model }}" selected>{{ default_model }}</option>
                     </select>
                 </div>
-                <p class="mt-1 text-[11px] text-slate-400">Model trên máy của bạn. Mặc định: <strong>{{ default_model }}</strong></p>
+                <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.model_local_hint', default_model=default_model)|safe }}</p>
             </div>
 
             <!-- 2. Ngôn ngữ Prompt đầu ra (Output Language) -->
             <div>
                 <label for="batch-language" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Ngôn ngữ Prompt đầu ra
+                    {{ t('image_to_prompt.output_lang_label') }}
                 </label>
                 <div class="relative">
                     <select id="batch-language"
                             class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
                         {% for code, name in languages.items() %}
                         <option value="{{ code }}"{% if code == default_language %} selected{% endif %}>
-                            {{ name }}{% if code == "en" %} (Khuyên dùng cho Gemini/ChatGPT){% endif %}
+                            {{ name }}{% if code == "en" %} {{ t('image_to_prompt.recommended_cloud') }}{% endif %}
                         </option>
                         {% endfor %}
                     </select>
                 </div>
-                <p class="mt-1 text-[11px] text-slate-400">Mặc định: <strong>English</strong> (Khuyên dùng tốt nhất cho Cloud AI).</p>
+                <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.output_lang_hint')|safe }}</p>
             </div>
 
             <!-- 3. Mục tiêu / Phong cách tạo Prompt -->
             <div>
                 <label for="prompt-preset" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Mục tiêu tạo Prompt
+                    {{ t('image_to_prompt.preset_label') }}
                 </label>
                 <select id="prompt-preset"
                         class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
-                    <option value="detailed" selected>Google Gemini & ChatGPT / DALL-E 3 (Mặc định)</option>
-                    <option value="chatgpt_cinematic">ChatGPT / DALL-E 3 (Điện ảnh & Kể chuyện)</option>
-                    <option value="gemini_photorealistic">Google Gemini (Nhiếp ảnh chân thực, ánh sáng)</option>
-                    <option value="cloud_illustration">Gemini & ChatGPT (Anime / Minh họa số)</option>
-                    <option value="midjourney_tags">Midjourney / Stable Diffusion (Tags & Thông số)</option>
-                    <option value="custom">Tự định nghĩa câu lệnh (Custom)</option>
+                    <option value="detailed" selected>{{ t('image_to_prompt.preset_detailed') }}</option>
+                    <option value="chatgpt_cinematic">{{ t('image_to_prompt.preset_chatgpt_cinematic') }}</option>
+                    <option value="gemini_photorealistic">{{ t('image_to_prompt.preset_gemini_photorealistic') }}</option>
+                    <option value="cloud_illustration">{{ t('image_to_prompt.preset_cloud_illustration') }}</option>
+                    <option value="midjourney_tags">{{ t('image_to_prompt.preset_midjourney_tags') }}</option>
+                    <option value="custom">{{ t('image_to_prompt.preset_custom') }}</option>
                 </select>
-                <p class="mt-1 text-[11px] text-slate-400">Tối ưu phong cách viết prompt cho các dịch vụ tạo ảnh.</p>
+                <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.preset_hint') }}</p>
             </div>
         </div>
 
@@ -172,26 +172,26 @@
         <div id="custom-prompt-container" class="space-y-1.5">
             <div class="flex items-center justify-between">
                 <label for="batch-prompt" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                    <span>Câu lệnh chỉ dẫn (Prompt gửi cho Ollama):</span>
-                    <span class="text-[11px] font-normal text-slate-400 dark:text-slate-500">(Bạn có thể chỉnh sửa tự do câu lệnh bên dưới)</span>
+                    <span>{{ t('image_to_prompt.instruction_label') }}</span>
+                    <span class="text-[11px] font-normal text-slate-400 dark:text-slate-500">{{ t('image_to_prompt.instruction_sublabel') }}</span>
                 </label>
                 <button type="button" id="reset-prompt-btn" class="text-[11px] text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline">
-                    Đặt lại mặc định
+                    {{ t('image_to_prompt.reset_default') }}
                 </button>
             </div>
             <textarea id="batch-prompt" rows="4"
                       class="block w-full rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition font-mono">{{ default_prompt }}</textarea>
-            <p class="text-[11px] text-slate-400">💡 Mẹo: Giữ lại biến <code>{output_language}</code> trong câu chỉ thị để ngôn ngữ tự động thay đổi theo lựa chọn ở trên.</p>
+            <p class="text-[11px] text-slate-400">{{ t('image_to_prompt.instruction_tip')|safe }}</p>
         </div>
 
         <!-- Form for folder batch -->
         <form id="batch-form" class="space-y-5" novalidate>
             <div>
                 <label for="batch-folder" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Đường dẫn thư mục chứa ảnh
+                    {{ t('image_to_prompt.folder_label') }}
                 </label>
                 <div class="relative">
-                    <input type="text" id="batch-folder" placeholder="vd: D:\Images\Nature hoặc C:\Users\name\Pictures"
+                    <input type="text" id="batch-folder" placeholder="{{ t('image_to_prompt.folder_placeholder') }}"
                            class="block w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition font-mono">
                 </div>
             </div>
@@ -200,11 +200,11 @@
             <div class="flex flex-wrap items-center gap-6 pt-1">
                 <label class="inline-flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" id="batch-overwrite" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                    <span class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium">Ghi đè file <code class="font-mono text-xs">.txt</code> nếu đã tồn tại</span>
+                    <span class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium">{{ t('image_to_prompt.opt_overwrite')|safe }}</span>
                 </label>
                 <label class="inline-flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" id="batch-recursive" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                    <span class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium">Quét cả thư mục con (Recursive)</span>
+                    <span class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium">{{ t('image_to_prompt.opt_recursive') }}</span>
                 </label>
             </div>
 
@@ -214,14 +214,14 @@
             <!-- Action buttons -->
             <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
                 <span id="ollama-notice-batch" class="text-xs text-rose-500 dark:text-rose-400 font-medium hidden">
-                    ⚠️ Ollama chưa chạy, không thể bắt đầu dịch ngược.
+                    {{ t('image_to_prompt.ollama_notice_batch') }}
                 </span>
 
                 <div class="flex items-center gap-3 ml-auto">
                     <button type="button" id="batch-scan-btn"
                             class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition">
                         <i data-lucide="scan-search" class="w-4 h-4"></i>
-                        <span>Kiểm tra thư mục</span>
+                        <span>{{ t('image_to_prompt.btn_scan') }}</span>
                     </button>
                     <button type="submit" id="batch-start-btn"
                             class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-semibold shadow-md shadow-fuchsia-600/20 transition disabled:opacity-60 disabled:cursor-not-allowed">
@@ -231,7 +231,7 @@
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                         </svg>
                         <i data-lucide="sparkles" id="batch-start-icon" class="w-4 h-4"></i>
-                        <span id="batch-start-label">Bắt đầu dịch ngược ảnh → Prompt</span>
+                        <span id="batch-start-label">{{ t('image_to_prompt.btn_start') }}</span>
                     </button>
                 </div>
             </div>
@@ -246,15 +246,15 @@
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between gap-2 flex-wrap">
                         <h3 class="text-sm sm:text-base font-bold text-rose-900 dark:text-rose-200 flex items-center gap-2">
-                            <span>Lỗi phản hồi từ Ollama API</span>
+                            <span>{{ t('image_to_prompt.ollama_error_title') }}</span>
                         </h3>
                         <button type="button" onclick="document.getElementById('batch-error-banner').classList.add('hidden')"
                                 class="text-xs text-rose-500 hover:text-rose-700 dark:text-rose-400 hover:underline">
-                            ✕ Đóng
+                            ✕ {{ t('common.close') }}
                         </button>
                     </div>
                     <p class="mt-1 text-xs text-rose-700 dark:text-rose-300">
-                        Ollama phản hồi lỗi nguyên bản sau:
+                        {{ t('image_to_prompt.ollama_error_desc') }}
                     </p>
                     <div id="batch-error-message" class="mt-2.5 p-3.5 rounded-xl bg-white/90 dark:bg-[#0c1220] border border-rose-300 dark:border-rose-900 font-mono text-xs sm:text-sm text-rose-800 dark:text-rose-200 whitespace-pre-wrap select-all font-semibold"></div>
                 </div>
@@ -266,7 +266,7 @@
             <div class="flex items-center justify-between flex-wrap gap-2">
                 <div class="flex items-center gap-2">
                     <span id="batch-progress-title" class="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
-                        Đang xử lý hình ảnh…
+                        {{ t('image_to_prompt.progress_title') }}
                     </span>
                     <span id="batch-progress-count" class="text-xs font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                         0 / 0
@@ -290,7 +290,7 @@
             <!-- Real-time File List Container -->
             <div class="space-y-2">
                 <div class="flex items-center justify-between text-xs text-slate-500 font-semibold px-1">
-                    <span>Danh sách ảnh đang xử lý:</span>
+                    <span>{{ t('image_to_prompt.file_list_title') }}</span>
                     <span id="batch-results-stats" class="text-[11px] font-normal"></span>
                 </div>
                 <div class="max-h-96 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800/80 bg-slate-50/50 dark:bg-slate-950/40">
@@ -307,17 +307,17 @@
         <div>
             <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <i data-lucide="image" class="w-4 h-4 text-fuchsia-600 dark:text-fuchsia-400"></i>
-                <span>Thử nghiệm dịch ngược trên 1 ảnh</span>
+                <span>{{ t('image_to_prompt.single_title') }}</span>
             </h2>
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Tải lên 1 ảnh đơn lẻ để kiểm tra chất lượng prompt được sinh ra từ model Ollama trước khi chạy hàng loạt.
+                {{ t('image_to_prompt.single_desc') }}
             </p>
         </div>
 
         <form id="single-form" class="space-y-5" novalidate>
             <div>
                 <label class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Chọn file ảnh
+                    {{ t('image_to_prompt.choose_file') }}
                 </label>
                 <input type="file" id="single-file-input" accept="image/*"
                        class="block w-full text-xs sm:text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-fuchsia-50 file:text-fuchsia-700 dark:file:bg-fuchsia-950/50 dark:file:text-fuchsia-300 hover:file:bg-fuchsia-100 dark:hover:file:bg-fuchsia-900/60 file:transition cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl p-2 bg-slate-50/60 dark:bg-slate-900">
@@ -341,7 +341,7 @@
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                     </svg>
                     <i data-lucide="sparkles" id="single-submit-icon" class="w-4 h-4"></i>
-                    <span id="single-submit-label">Dịch ngược ảnh này</span>
+                    <span id="single-submit-label">{{ t('image_to_prompt.btn_analyze') }}</span>
                 </button>
             </div>
         </form>
@@ -355,15 +355,15 @@
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between gap-2 flex-wrap">
                         <h3 class="text-sm sm:text-base font-bold text-rose-900 dark:text-rose-200 flex items-center gap-2">
-                            <span>Lỗi phản hồi từ Ollama API</span>
+                            <span>{{ t('image_to_prompt.ollama_error_title') }}</span>
                         </h3>
                         <button type="button" onclick="document.getElementById('single-error-box').classList.add('hidden')"
                                 class="text-xs text-rose-500 hover:text-rose-700 dark:text-rose-400 hover:underline">
-                            ✕ Đóng
+                            ✕ {{ t('common.close') }}
                         </button>
                     </div>
                     <p class="mt-1 text-xs text-rose-700 dark:text-rose-300">
-                        Ollama phản hồi lỗi nguyên bản sau:
+                        {{ t('image_to_prompt.ollama_error_desc') }}
                     </p>
                     <div id="single-error-text" class="mt-2.5 p-3.5 rounded-xl bg-white/90 dark:bg-[#0c1220] border border-rose-300 dark:border-rose-900 font-mono text-xs sm:text-sm text-rose-800 dark:text-rose-200 whitespace-pre-wrap select-all font-semibold"></div>
                 </div>
@@ -375,12 +375,12 @@
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                     <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
-                    <span>Kết quả Prompt tạo ra:</span>
+                    <span>{{ t('image_to_prompt.single_result_title') }}</span>
                 </span>
                 <button type="button" id="copy-single-prompt-btn"
                         class="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition">
                     <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                    <span>Copy Prompt</span>
+                    <span>{{ t('image_to_prompt.copy_prompt') }}</span>
                 </button>
             </div>
             <pre id="single-result-text" class="p-4 rounded-xl bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-mono whitespace-pre-wrap leading-relaxed select-all"></pre>
@@ -389,13 +389,47 @@
 
 </div>
 
+<!-- JSON translations for JS execution -->
+<script id="i18n-translations" type="application/json">
+{{ {
+    "checking_ollama": t('image_to_prompt.checking_ollama'),
+    "ollama_online": t('image_to_prompt.ollama_online'),
+    "ollama_offline": t('image_to_prompt.ollama_offline'),
+    "not_downloaded": t('image_to_prompt.not_downloaded'),
+    "copy": t('common.copy'),
+    "copied": t('common.copied'),
+    "scanning_folder": t('image_to_prompt.scanning_folder'),
+    "scan_empty": t('image_to_prompt.scan_empty'),
+    "scan_found": t('image_to_prompt.scan_found'),
+    "scan_error": t('image_to_prompt.scan_error'),
+    "enter_folder_alert": t('image_to_prompt.enter_folder_alert'),
+    "enter_image_alert": t('image_to_prompt.enter_image_alert'),
+    "ollama_offline_confirm": t('image_to_prompt.ollama_offline_confirm'),
+    "status_processing": t('image_to_prompt.status_processing'),
+    "status_saved": t('image_to_prompt.status_saved'),
+    "status_skipped": t('image_to_prompt.status_skipped'),
+    "status_error": t('image_to_prompt.status_error'),
+    "generated_prompt_label": t('image_to_prompt.generated_prompt_label'),
+    "error_from_ollama": t('image_to_prompt.error_from_ollama'),
+    "btn_start": t('image_to_prompt.btn_start'),
+    "btn_busy": t('image_to_prompt.btn_busy'),
+    "btn_analyze": t('image_to_prompt.btn_analyze'),
+    "btn_analyzing": t('image_to_prompt.btn_analyzing'),
+    "done_all": t('image_to_prompt.done_all'),
+    "done_with_errors": t('image_to_prompt.done_with_errors'),
+    "stream_aborted": t('image_to_prompt.stream_aborted')
+} | tojson }}
+</script>
+
 <script>
+    const I18N = JSON.parse(document.getElementById("i18n-translations").textContent);
+
     // Utility: Copy text to clipboard
     function copyCommand(text, btn) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text).then(() => {
                 const oldContent = btn.innerHTML;
-                btn.innerHTML = '<span class="text-emerald-500 font-bold">✓ Đã copy!</span>';
+                btn.innerHTML = `<span class="text-emerald-500 font-bold">✓ ${I18N.copied}</span>`;
                 setTimeout(() => { btn.innerHTML = oldContent; }, 1800);
             });
         }
@@ -421,7 +455,7 @@
 
         if (statusPill) {
             statusPill.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700";
-            statusPill.innerHTML = '<span class="w-2 h-2 rounded-full animate-subtle-pulse bg-slate-400"></span><span>Đang kiểm tra kết nối Ollama…</span>';
+            statusPill.innerHTML = `<span class="w-2 h-2 rounded-full animate-subtle-pulse bg-slate-400"></span><span>${I18N.checking_ollama}</span>`;
         }
 
         try {
@@ -435,7 +469,8 @@
 
                 if (statusPill) {
                     statusPill.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60";
-                    statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-subtle-pulse"></span><span>Ollama Online (${data.models.length} model)</span>`;
+                    const countText = I18N.ollama_online.replace('{count}', data.models.length);
+                    statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-subtle-pulse"></span><span>${countText}</span>`;
                 }
 
                 // Populate model dropdown
@@ -467,7 +502,6 @@
                         modelSelect.value = targetDefault;
                         selected = true;
                     } else {
-                        // Find any vision or qwen model
                         const visionModel = data.models.find(m => m.toLowerCase().includes("qwen") || m.toLowerCase().includes("vision") || m.toLowerCase().includes("llava"));
                         if (visionModel) {
                             modelSelect.value = visionModel;
@@ -478,11 +512,10 @@
                         }
                     }
 
-                    // If neither targetDefault nor a match was found in list, show it as un-downloaded option
                     if (!selected && !data.models.includes(targetDefault)) {
                         const opt = document.createElement("option");
                         opt.value = targetDefault;
-                        opt.textContent = `${targetDefault} (Chưa tải về)`;
+                        opt.textContent = `${targetDefault} ${I18N.not_downloaded}`;
                         opt.selected = true;
                         modelSelect.appendChild(opt);
                     }
@@ -497,7 +530,7 @@
 
             if (statusPill) {
                 statusPill.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60";
-                statusPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>Ollama Chưa Bật (Offline)</span>';
+                statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>${I18N.ollama_offline}</span>`;
             }
         }
 
@@ -627,7 +660,6 @@
         const progressPercent = document.getElementById("batch-progress-percent");
         const finalStatus = document.getElementById("batch-final-status");
         const fileList = document.getElementById("batch-file-list");
-        const resultsStats = document.getElementById("batch-results-stats");
         const batchErrorBanner = document.getElementById("batch-error-banner");
         const batchErrorMessage = document.getElementById("batch-error-message");
 
@@ -638,14 +670,14 @@
         scanBtn.addEventListener("click", async () => {
             const folder = folderInput.value.trim();
             if (!folder) {
-                alert("Vui lòng nhập đường dẫn thư mục cần kiểm tra.");
+                alert(I18N.enter_folder_alert);
                 folderInput.focus();
                 return;
             }
 
             scanBtn.disabled = true;
             scanNote.className = "p-3.5 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 text-xs sm:text-sm";
-            scanNote.innerHTML = '<div class="flex items-center gap-2"><svg class="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg><span>Đang quét thư mục...</span></div>';
+            scanNote.innerHTML = `<div class="flex items-center gap-2"><svg class="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg><span>${I18N.scanning_folder}</span></div>`;
             scanNote.classList.remove("hidden");
 
             try {
@@ -657,19 +689,19 @@
                 const data = await res.json();
 
                 if (!res.ok) {
-                    throw new Error(data.detail || "Không thể quét thư mục");
+                    throw new Error(data.detail || I18N.scan_error.replace('{error}', ''));
                 }
 
                 if (data.count === 0) {
                     scanNote.className = "p-3.5 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-xs sm:text-sm";
-                    scanNote.innerHTML = `⚠️ Thư mục hợp lệ nhưng không tìm thấy file ảnh hợp lệ (.jpg, .jpeg, .png, .webp, .bmp).`;
+                    scanNote.innerHTML = I18N.scan_empty;
                 } else {
                     scanNote.className = "p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs sm:text-sm";
-                    scanNote.innerHTML = `✓ Tìm thấy <strong>${data.count}</strong> file ảnh. (Đã có <strong>${data.existing_txt_count}</strong> file .txt tương ứng).`;
+                    scanNote.innerHTML = I18N.scan_found.replace('{count}', data.count).replace('{existing}', data.existing_txt_count);
                 }
             } catch (err) {
                 scanNote.className = "p-3.5 rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 text-xs sm:text-sm";
-                scanNote.innerHTML = `❌ Lỗi: ${err.message}`;
+                scanNote.innerHTML = I18N.scan_error.replace('{error}', err.message);
             } finally {
                 scanBtn.disabled = false;
             }
@@ -680,7 +712,7 @@
             scanBtn.disabled = isBusy;
             spinner.classList.toggle("hidden", !isBusy);
             startIcon.classList.toggle("hidden", isBusy);
-            startLabel.textContent = isBusy ? "Đang xử lý ảnh..." : "Bắt đầu dịch ngược ảnh → Prompt";
+            startLabel.textContent = isBusy ? I18N.btn_busy : I18N.btn_start;
         }
 
         function createOrUpdateRow(file, status, textPath, promptOrError) {
@@ -696,13 +728,13 @@
 
             let statusBadge = '';
             if (status === 'processing') {
-                statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"><span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span>Đang xử lý</span>';
+                statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"><span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span>${I18N.status_processing}</span>`;
             } else if (status === 'ok') {
-                statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">✓ Đã lưu .txt</span>';
+                statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">${I18N.status_saved}</span>`;
             } else if (status === 'skipped') {
-                statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">Đã bỏ qua (đã có .txt)</span>';
+                statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">${I18N.status_skipped}</span>`;
             } else {
-                statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">✕ Lỗi</span>';
+                statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">${I18N.status_error}</span>`;
             }
 
             let contentHtml = `
@@ -721,8 +753,8 @@
                 contentHtml += `
                     <div class="mt-2.5 p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                         <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-                            <span>Prompt tạo ra:</span>
-                            <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(promptOrError)}); this.textContent='✓ Đã copy'; setTimeout(() => this.textContent='Copy', 1500);" class="text-indigo-600 dark:text-indigo-400 hover:underline">Copy</button>
+                            <span>${I18N.generated_prompt_label}</span>
+                            <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(promptOrError)}); this.textContent='✓ ${I18N.copied}'; setTimeout(() => this.textContent='${I18N.copy}', 1500);" class="text-indigo-600 dark:text-indigo-400 hover:underline">${I18N.copy}</button>
                         </div>
                         <p class="font-mono text-xs text-slate-700 dark:text-slate-300 line-clamp-3 select-all">${promptOrError}</p>
                     </div>
@@ -732,9 +764,9 @@
                     <div class="mt-2.5 p-3 rounded-lg bg-rose-50/90 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-900/80">
                         <div class="flex items-center gap-1.5 text-[11px] font-bold text-rose-700 dark:text-rose-300 mb-1">
                             <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-500 shrink-0"></i>
-                            <span>Lỗi từ Ollama API:</span>
+                            <span>${I18N.error_from_ollama}</span>
                         </div>
-                        <pre class="font-mono text-xs text-rose-800 dark:text-rose-200 whitespace-pre-wrap select-all font-semibold leading-relaxed">${promptOrError || 'Lỗi không xác định'}</pre>
+                        <pre class="font-mono text-xs text-rose-800 dark:text-rose-200 whitespace-pre-wrap select-all font-semibold leading-relaxed">${promptOrError || 'Error'}</pre>
                     </div>
                 `;
             }
@@ -748,14 +780,14 @@
             e.preventDefault();
 
             if (!isOllamaOnline) {
-                if (!confirm("Cảnh báo: Dịch vụ Ollama chưa được bật. Quá trình dịch ngược sẽ thất bại.\n\nBạn có muốn tiếp tục thử không?")) {
+                if (!confirm(I18N.ollama_offline_confirm)) {
                     return;
                 }
             }
 
             const folder = folderInput.value.trim();
             if (!folder) {
-                alert("Vui lòng nhập đường dẫn thư mục.");
+                alert(I18N.enter_folder_alert);
                 folderInput.focus();
                 return;
             }
@@ -782,7 +814,6 @@
             setBusy(true);
 
             let finished = false;
-            let okCount = 0, skippedCount = 0, errorCount = 0;
 
             try {
                 const res = await fetch("/tools/image-to-prompt/process", {
@@ -791,7 +822,7 @@
                 });
 
                 if (!res.ok) {
-                    let detail = "Lỗi khởi chạy tiến trình";
+                    let detail = "Error starting process";
                     try { detail = (await res.json()).detail || detail; } catch (_) {}
                     throw new Error(detail);
                 }
@@ -804,17 +835,14 @@
                     } else if (event.type === "file_start") {
                         createOrUpdateRow(event.file, "processing", "", "");
                     } else if (event.type === "file_done") {
-                        okCount++;
                         createOrUpdateRow(event.file, "ok", event.txt_file, event.prompt);
                     } else if (event.type === "file_skipped") {
-                        skippedCount++;
                         createOrUpdateRow(event.file, "skipped", event.txt_file, event.prompt);
                     } else if (event.type === "file_error") {
-                        errorCount++;
                         createOrUpdateRow(event.file, "error", event.txt_file, event.error);
                         if (batchErrorBanner && batchErrorMessage) {
                             batchErrorBanner.classList.remove("hidden");
-                            batchErrorMessage.textContent = event.error || "Ollama trả về lỗi không xác định.";
+                            batchErrorMessage.textContent = event.error || "Ollama error";
                             if (window.lucide) window.lucide.createIcons();
                         }
                     }
@@ -834,7 +862,7 @@
 
                         if (event.failed === 0) {
                             finalStatus.className = "text-xs sm:text-sm font-semibold p-4 rounded-xl bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900";
-                            finalStatus.textContent = `✓ Hoàn thành tất cả! Đã tạo ${event.ok} file prompt .txt (Bỏ qua: ${event.skipped}, Lỗi: 0).`;
+                            finalStatus.textContent = I18N.done_all.replace('{ok}', event.ok).replace('{skipped}', event.skipped);
                         } else {
                             if (batchErrorBanner && batchErrorMessage && event.last_error) {
                                 batchErrorBanner.classList.remove("hidden");
@@ -842,7 +870,7 @@
                                 if (window.lucide) window.lucide.createIcons();
                             }
                             finalStatus.className = "text-xs sm:text-sm font-semibold p-4 rounded-xl bg-rose-50 text-rose-900 dark:bg-rose-950/70 dark:text-rose-200 border-2 border-rose-500 shadow-xs";
-                            finalStatus.innerHTML = `⚠️ Quá trình hoàn tất với <strong>${event.failed}</strong> file lỗi (Thành công: <strong>${event.ok}</strong>, Bỏ qua: <strong>${event.skipped}</strong>). Lỗi nguyên bản từ Ollama được báo đỏ bên trên.`;
+                            finalStatus.innerHTML = I18N.done_with_errors.replace('{failed}', event.failed).replace('{ok}', event.ok).replace('{skipped}', event.skipped);
                         }
                         break;
                     }
@@ -851,7 +879,7 @@
                 if (!finished) {
                     finalStatus.classList.remove("hidden");
                     finalStatus.className = "text-xs sm:text-sm font-semibold p-4 rounded-xl bg-rose-50 text-rose-900 dark:bg-rose-950/70 dark:text-rose-200 border-2 border-rose-500";
-                    finalStatus.textContent = "Kết thúc bất thường — luồng dữ liệu bị ngắt trước khi hoàn thành.";
+                    finalStatus.textContent = I18N.stream_aborted;
                 }
             } catch (err) {
                 if (batchErrorBanner && batchErrorMessage) {
@@ -862,7 +890,7 @@
                 }
                 finalStatus.classList.remove("hidden");
                 finalStatus.className = "text-xs sm:text-sm font-semibold p-4 rounded-xl bg-rose-50 text-rose-900 dark:bg-rose-950/70 dark:text-rose-200 border-2 border-rose-500 shadow-xs";
-                finalStatus.textContent = `Lỗi từ Ollama API: ${err.message || err}`;
+                finalStatus.textContent = `Error: ${err.message || err}`;
             } finally {
                 setBusy(false);
             }
@@ -909,7 +937,7 @@
             if (resultText.textContent) {
                 navigator.clipboard.writeText(resultText.textContent).then(() => {
                     const original = copyBtn.innerHTML;
-                    copyBtn.innerHTML = '<span class="text-emerald-500 font-bold">✓ Đã copy!</span>';
+                    copyBtn.innerHTML = `<span class="text-emerald-500 font-bold">✓ ${I18N.copied}</span>`;
                     setTimeout(() => { copyBtn.innerHTML = original; }, 1800);
                 });
             }
@@ -919,18 +947,18 @@
             e.preventDefault();
             const file = fileInput.files[0];
             if (!file) {
-                alert("Vui lòng chọn 1 ảnh để thử nghiệm.");
+                alert(I18N.enter_image_alert);
                 return;
             }
 
             if (!isOllamaOnline) {
-                if (!confirm("Cảnh báo: Dịch vụ Ollama chưa bật. Bạn có muốn tiếp tục không?")) return;
+                if (!confirm(I18N.ollama_offline_confirm)) return;
             }
 
             submitBtn.disabled = true;
             spinner.classList.remove("hidden");
             submitIcon.classList.add("hidden");
-            submitLabel.textContent = "Đang phân tích ảnh…";
+            submitLabel.textContent = I18N.btn_analyzing;
             resultBox.classList.add("hidden");
             if (singleErrorBox) singleErrorBox.classList.add("hidden");
 
@@ -948,7 +976,7 @@
                 });
                 const data = await res.json();
                 if (!res.ok) {
-                    const errMsg = data.detail || data.error || (typeof data === "string" ? data : "Không thể phân tích ảnh");
+                    const errMsg = data.detail || data.error || (typeof data === "string" ? data : "Cannot analyze image");
                     throw new Error(errMsg);
                 }
 
@@ -962,13 +990,13 @@
                     singleErrorBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
                     if (window.lucide) window.lucide.createIcons();
                 } else {
-                    alert("Lỗi: " + (err.message || err));
+                    alert("Error: " + (err.message || err));
                 }
             } finally {
                 submitBtn.disabled = false;
                 spinner.classList.add("hidden");
                 submitIcon.classList.remove("hidden");
-                submitLabel.textContent = "Dịch ngược ảnh này";
+                submitLabel.textContent = I18N.btn_analyze;
             }
         });
     })();

@@ -105,10 +105,31 @@ def test_settings_screen_i18n():
     assert "Max Timeout (seconds)" in resp_en.text
 
 
+def test_image_to_prompt_screen_i18n():
+    client = TestClient(app)
+
+    # 1. Image to prompt in Vietnamese
+    resp_vi = client.get("/tools/image-to-prompt?lang=vi")
+    assert resp_vi.status_code == 200
+    assert "Dịch hàng loạt thư mục" in resp_vi.text
+    assert "Thử nghiệm 1 ảnh" in resp_vi.text
+    assert "Cấu hình dịch ngược ảnh trong thư mục" in resp_vi.text
+    assert "Bắt đầu dịch ngược ảnh → Prompt" in resp_vi.text
+
+    # 2. Image to prompt in English
+    resp_en = client.get("/tools/image-to-prompt?lang=en")
+    assert resp_en.status_code == 200
+    assert "Batch Folder Processing" in resp_en.text
+    assert "Single Image Test" in resp_en.text
+    assert "Batch Folder Reverse-Prompt Configuration" in resp_en.text
+    assert "Start Reverse Prompting Image → Prompt" in resp_en.text
+
+
 if __name__ == "__main__":
     test_i18n_basic_translations()
     test_i18n_fallback_and_formatting()
     test_supported_locales()
     test_web_language_detection_and_switch()
     test_settings_screen_i18n()
+    test_image_to_prompt_screen_i18n()
     print("All i18n tests passed successfully!")
