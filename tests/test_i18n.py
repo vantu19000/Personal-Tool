@@ -189,6 +189,26 @@ def test_image_compressor_screen_i18n():
     assert "Browse folder…" in resp_en.text
 
 
+def test_slufy_screen_i18n():
+    client = TestClient(app)
+
+    # 1. Slufy in Vietnamese
+    resp_vi = client.get("/tools/slufy?lang=vi")
+    assert resp_vi.status_code == 200
+    assert "Slufy" in resp_vi.text
+    assert "Văn bản cần tạo slug" in resp_vi.text
+    assert "Kết quả Slug" in resp_vi.text
+    assert "Slug được tự động tạo ngay khi bạn gõ phím" in resp_vi.text
+
+    # 2. Slufy in English
+    resp_en = client.get("/tools/slufy?lang=en")
+    assert resp_en.status_code == 200
+    assert "Slufy" in resp_en.text
+    assert "Text to slugify" in resp_en.text
+    assert "Slug Result" in resp_en.text
+    assert "Slug is generated automatically in real time as you type" in resp_en.text
+
+
 if __name__ == "__main__":
     test_i18n_basic_translations()
     test_i18n_fallback_and_formatting()
@@ -199,4 +219,5 @@ if __name__ == "__main__":
     test_srt_translator_screen_i18n()
     test_pdf_to_md_screen_i18n()
     test_image_compressor_screen_i18n()
+    test_slufy_screen_i18n()
     print("All i18n tests passed successfully!")

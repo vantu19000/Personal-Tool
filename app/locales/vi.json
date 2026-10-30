@@ -512,5 +512,20 @@
     "alert_open_folder_fail": "Không thể mở thư mục.",
     "alert_open_folder_error": "Lỗi khi mở thư mục: {error}",
     "alert_server_error": "Lỗi kết nối máy chủ: {error}"
+  },
+  "slufy": {
+    "page_title": "Slufy",
+    "header_title": "Slufy",
+    "badge": "✦ Media & SEO",
+    "header_desc": "Chuyển chuỗi văn bản (bao gồm tiếng Việt có dấu) thành slug URL-friendly chuẩn SEO tự động.",
+    "input_label": "Văn bản cần tạo slug",
+    "input_placeholder": "Nhập văn bản ở đây, ví dụ: Chào mừng đến với Personal Multi-Tool!",
+    "live_hint": "⚡ Slug được tự động tạo ngay khi bạn gõ phím — không cần bấm nút gửi.",
+    "result_title": "Kết quả Slug",
+    "copy_tooltip": "Copy slug",
+    "copied_notice": "✓ Đã copy vào clipboard!",
+    "unknown_error": "Lỗi không xác định.",
+    "connection_error": "Lỗi kết nối: {error}",
+    "copy_error": "Không thể copy: {error}"
   }
 }

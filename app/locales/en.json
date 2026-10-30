@@ -512,5 +512,20 @@
     "alert_open_folder_fail": "Cannot open folder.",
     "alert_open_folder_error": "Error opening folder: {error}",
     "alert_server_error": "Server connection error: {error}"
+  },
+  "slufy": {
+    "page_title": "Slufy",
+    "header_title": "Slufy",
+    "badge": "✦ Media & SEO",
+    "header_desc": "Automatically convert text (including Vietnamese with diacritics) into SEO-friendly, URL-safe slugs.",
+    "input_label": "Text to slugify",
+    "input_placeholder": "Enter text here, e.g.: Welcome to Personal Multi-Tool!",
+    "live_hint": "⚡ Slug is generated automatically in real time as you type — no submit button needed.",
+    "result_title": "Slug Result",
+    "copy_tooltip": "Copy slug",
+    "copied_notice": "✓ Copied to clipboard!",
+    "unknown_error": "Unknown error.",
+    "connection_error": "Connection error: {error}",
+    "copy_error": "Cannot copy: {error}"
   }
 }
