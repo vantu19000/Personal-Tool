@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Nén Ảnh · {{ settings.APP_NAME }}{% endblock %}
-{% block page_title %}Nén Ảnh{% endblock %}
+{% block title %}{{ t('image_compressor.page_title') }} · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}{{ t('image_compressor.page_title') }}{% endblock %}
 
 {% block content %}
 <div class="w-full space-y-6">
@@ -14,13 +14,13 @@
                 </div>
                 <div>
                     <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <span>Nén Ảnh Tối Ưu</span>
+                        <span>{{ t('image_compressor.header_title') }}</span>
                         <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
-                            ✦ Media
+                            {{ t('image_compressor.badge') }}
                         </span>
                     </h1>
                     <p class="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                        Nén ảnh JPEG, PNG, WebP nhanh chóng. Hỗ trợ tải nhiều file hoặc nén hàng loạt trực tiếp trong thư mục kèm tự động sao lưu.
+                        {{ t('image_compressor.header_desc') }}
                     </p>
                 </div>
             </div>
@@ -41,13 +41,13 @@
             <div>
                 <label class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <i data-lucide="sliders" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
-                    <span>Tỷ lệ chất lượng nén ảnh</span>
+                    <span>{{ t('image_compressor.quality_label') }}</span>
                     <span class="text-[11px] font-normal text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-200/50 dark:border-emerald-800/50">
-                        Áp dụng cho cả 2 tab
+                        {{ t('image_compressor.quality_badge_both_tabs') }}
                     </span>
                 </label>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Chọn mức gợi ý hoặc tự do chọn/nhập bất kỳ số nguyên nào từ <strong>1% đến 100%</strong> (Mặc định: <strong>{{ default_quality }}%</strong>).
+                    {{ t('image_compressor.quality_hint', default=default_quality) | safe }}
                 </p>
             </div>
 
@@ -57,18 +57,18 @@
                 <div class="relative">
                     <select id="quality-preset-select"
                             class="appearance-none bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-semibold rounded-xl pl-3.5 pr-8 py-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition">
-                        <option value="95" {% if default_quality == 95 %}selected{% endif %}>95% · Giữ nét tối đa</option>
-                        <option value="90" {% if default_quality == 90 %}selected{% endif %}>90% · Chất lượng cao</option>
-                        <option value="85" {% if default_quality == 85 %}selected{% endif %}>85% · Khá tốt</option>
-                        <option value="75" {% if default_quality == 75 %}selected{% endif %}>75% · Cân bằng</option>
-                        <option value="60" {% if default_quality == 60 %}selected{% endif %}>60% · Trung bình</option>
-                        <option value="50" {% if default_quality == 50 %}selected{% endif %}>50% · Nén nhiều</option>
-                        <option value="40" {% if default_quality == 40 %}selected{% endif %}>40% · Nén mạnh</option>
-                        <option value="30" {% if default_quality == 30 %}selected{% endif %}>30% · Nén rất mạnh</option>
-                        <option value="20" {% if default_quality == 20 %}selected{% endif %}>20% · Mặc định (Tối ưu)</option>
-                        <option value="10" {% if default_quality == 10 %}selected{% endif %}>10% · Siêu nén (Dung lượng nhỏ nhất)</option>
+                        <option value="95" {% if default_quality == 95 %}selected{% endif %}>{{ t('image_compressor.presets.p95') }}</option>
+                        <option value="90" {% if default_quality == 90 %}selected{% endif %}>{{ t('image_compressor.presets.p90') }}</option>
+                        <option value="85" {% if default_quality == 85 %}selected{% endif %}>{{ t('image_compressor.presets.p85') }}</option>
+                        <option value="75" {% if default_quality == 75 %}selected{% endif %}>{{ t('image_compressor.presets.p75') }}</option>
+                        <option value="60" {% if default_quality == 60 %}selected{% endif %}>{{ t('image_compressor.presets.p60') }}</option>
+                        <option value="50" {% if default_quality == 50 %}selected{% endif %}>{{ t('image_compressor.presets.p50') }}</option>
+                        <option value="40" {% if default_quality == 40 %}selected{% endif %}>{{ t('image_compressor.presets.p40') }}</option>
+                        <option value="30" {% if default_quality == 30 %}selected{% endif %}>{{ t('image_compressor.presets.p30') }}</option>
+                        <option value="20" {% if default_quality == 20 %}selected{% endif %}>{{ t('image_compressor.presets.p20') }}</option>
+                        <option value="10" {% if default_quality == 10 %}selected{% endif %}>{{ t('image_compressor.presets.p10') }}</option>
                         <option value="custom" id="preset-custom-opt" {% if default_quality not in [10, 20, 30, 40, 50, 60, 75, 85, 90, 95] %}selected{% endif %}>
-                            {% if default_quality not in [10, 20, 30, 40, 50, 60, 75, 85, 90, 95] %}Tùy chỉnh ({{ default_quality }}%){% else %}Tùy chỉnh khác...{% endif %}
+                            {% if default_quality not in [10, 20, 30, 40, 50, 60, 75, 85, 90, 95] %}{{ t('image_compressor.presets.custom_val', val=default_quality) }}{% else %}{{ t('image_compressor.presets.custom_other') }}{% endif %}
                         </option>
                     </select>
                     <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
@@ -94,30 +94,30 @@
 
             <!-- Quick Pill Buttons with Dynamic Active Highlight -->
             <div class="flex flex-wrap items-center gap-2 pt-1" id="preset-pill-container">
-                <span class="text-[11px] font-medium text-slate-400 select-none mr-1">Chọn nhanh:</span>
+                <span class="text-[11px] font-medium text-slate-400 select-none mr-1">{{ t('image_compressor.preset_quick_pick') }}</span>
                 <button type="button" data-val="10" onclick="setSharedQuality(10)" class="preset-btn px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                    10% (Siêu nén)
+                    {{ t('image_compressor.pills.p10') }}
                 </button>
                 <button type="button" data-val="20" onclick="setSharedQuality(20)" class="preset-btn px-2.5 py-1 text-xs rounded-lg font-semibold border border-emerald-400 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 shadow-2xs transition">
-                    20% (Mặc định)
+                    {{ t('image_compressor.pills.p20') }}
                 </button>
                 <button type="button" data-val="30" onclick="setSharedQuality(30)" class="preset-btn px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                    30% (Nén rất mạnh)
+                    {{ t('image_compressor.pills.p30') }}
                 </button>
                 <button type="button" data-val="40" onclick="setSharedQuality(40)" class="preset-btn px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                    40% (Nén mạnh)
+                    {{ t('image_compressor.pills.p40') }}
                 </button>
                 <button type="button" data-val="60" onclick="setSharedQuality(60)" class="preset-btn px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                    60% (Trung bình)
+                    {{ t('image_compressor.pills.p60') }}
                 </button>
                 <button type="button" data-val="75" onclick="setSharedQuality(75)" class="preset-btn px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                    75% (Cân bằng)
+                    {{ t('image_compressor.pills.p75') }}
                 </button>
                 <button type="button" data-val="85" onclick="setSharedQuality(85)" class="preset-btn px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                    85% (Chất lượng cao)
+                    {{ t('image_compressor.pills.p85') }}
                 </button>
                 <button type="button" data-val="95" onclick="setSharedQuality(95)" class="preset-btn px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                    95% (Giữ nét tối đa)
+                    {{ t('image_compressor.pills.p95') }}
                 </button>
             </div>
         </div>
@@ -130,13 +130,13 @@
             <button type="button" id="tab-btn-upload" onclick="switchTab('upload')"
                     class="flex-1 flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition shadow-xs bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400">
                 <i data-lucide="upload-cloud" class="w-4 h-4"></i>
-                <span>Tab 1: Tải lên nhiều file</span>
+                <span>{{ t('image_compressor.tab_upload') }}</span>
                 <span id="tab-upload-badge" class="hidden px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300">0</span>
             </button>
             <button type="button" id="tab-btn-folder" onclick="switchTab('folder')"
                     class="flex-1 flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
                 <i data-lucide="folder-cog" class="w-4 h-4"></i>
-                <span>Tab 2: Nén theo thư mục</span>
+                <span>{{ t('image_compressor.tab_folder') }}</span>
             </button>
         </div>
 
@@ -154,10 +154,10 @@
                     </div>
                     <div>
                         <p class="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-200">
-                            Kéo thả nhiều ảnh vào đây, hoặc <span class="text-emerald-600 dark:text-emerald-400 underline">bấm để chọn</span>
+                            {{ t('image_compressor.drop_prompt') | safe }}
                         </p>
                         <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                            Hỗ trợ JPG, PNG, WebP, BMP, TIFF... Không giới hạn số lượng ảnh tải lên cùng lúc.
+                            {{ t('image_compressor.drop_hint') }}
                         </p>
                     </div>
                 </div>
@@ -166,13 +166,13 @@
                 <div id="selected-files-container" class="hidden space-y-4">
                     <div class="flex items-center justify-between">
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                            <span>Danh sách ảnh đã chọn</span>
+                            <span>{{ t('image_compressor.selected_list_title') }}</span>
                             <span id="selected-count-badge" class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">0 ảnh</span>
                             <span id="selected-total-size" class="text-xs font-normal text-slate-400">(0 MB)</span>
                         </h3>
                         <button type="button" onclick="clearSelectedFiles()" class="text-xs text-rose-500 hover:text-rose-600 flex items-center gap-1 font-medium">
                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                            <span>Xóa danh sách</span>
+                            <span>{{ t('image_compressor.clear_list') }}</span>
                         </button>
                     </div>
 
@@ -184,20 +184,20 @@
                             </div>
                             <div>
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">Dung lượng ước tính sau nén:</span>
+                                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">{{ t('image_compressor.est_title') }}</span>
                                     <span id="est-total-new-size" class="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">~0 MB</span>
                                     <span id="est-total-saved-badge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300/40">
                                         Giảm ~0%
                                     </span>
                                 </div>
-                                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                    Dự kiến giảm được: <span id="est-total-saved-bytes" class="font-semibold text-emerald-600 dark:text-emerald-400 font-mono">~0 MB</span> (từ gốc <span id="est-total-orig-size" class="font-mono">0 MB</span>, ở mức <span id="est-quality-label" class="font-bold text-emerald-600 font-mono">20%</span>).
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5" id="est-saved-desc-container">
+                                    <span id="est-desc-text"></span>
                                 </p>
                             </div>
                         </div>
                         <div class="text-[11px] text-slate-400 italic shrink-0 self-end sm:self-center flex items-center gap-1.5">
                             <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-500"></i>
-                            <span>Tự động tính nhanh theo mức %</span>
+                            <span>{{ t('image_compressor.est_calc_hint') }}</span>
                         </div>
                     </div>
 
@@ -211,7 +211,7 @@
                         <button type="button" id="btn-compress-upload" onclick="startUploadCompression()"
                                 class="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition">
                             <i data-lucide="sparkles" class="w-4 h-4"></i>
-                            <span id="btn-compress-text">Bắt đầu nén ảnh</span>
+                            <span id="btn-compress-text">{{ t('image_compressor.btn_start_compress') }}</span>
                         </button>
                     </div>
                 </div>
@@ -224,7 +224,7 @@
                     <div class="space-y-1">
                         <div class="flex items-center gap-2">
                             <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600 dark:text-emerald-400"></i>
-                            <h3 class="text-base font-bold text-slate-900 dark:text-white">Nén hoàn tất thành công!</h3>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">{{ t('image_compressor.result_success_title') }}</h3>
                         </div>
                         <p id="upload-summary-text" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
                             Đã nén 0 ảnh: giảm từ 0 MB xuống 0 MB (-0%).
@@ -235,7 +235,7 @@
                         <a id="btn-download-all-zip" href="#" download
                            class="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/30 flex items-center gap-2 transition">
                             <i data-lucide="archive" class="w-4 h-4"></i>
-                            <span>Tải xuống tất cả (.ZIP)</span>
+                            <span>{{ t('image_compressor.btn_download_all_zip') }}</span>
                         </a>
                     </div>
                 </div>
@@ -245,12 +245,12 @@
                     <table class="w-full text-left text-xs sm:text-sm border-collapse">
                         <thead class="bg-slate-50 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold uppercase text-[11px]">
                             <tr>
-                                <th class="py-3 px-4 w-14">Xem trước</th>
-                                <th class="py-3 px-4">Tên tệp</th>
-                                <th class="py-3 px-4">Dung lượng gốc</th>
-                                <th class="py-3 px-4">Sau khi nén</th>
-                                <th class="py-3 px-4">Tiết kiệm</th>
-                                <th class="py-3 px-4 text-right">Tải về</th>
+                                <th class="py-3 px-4 w-14">{{ t('image_compressor.table_preview') }}</th>
+                                <th class="py-3 px-4">{{ t('image_compressor.table_filename') }}</th>
+                                <th class="py-3 px-4">{{ t('image_compressor.table_orig_size') }}</th>
+                                <th class="py-3 px-4">{{ t('image_compressor.table_new_size') }}</th>
+                                <th class="py-3 px-4">{{ t('image_compressor.table_savings') }}</th>
+                                <th class="py-3 px-4 text-right">{{ t('image_compressor.table_action') }}</th>
                             </tr>
                         </thead>
                         <tbody id="upload-results-tbody" class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -270,13 +270,13 @@
                 <div class="space-y-4">
                     <div>
                         <label for="folder-path-input" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                            Đường dẫn thư mục chứa ảnh trên máy tính
+                            {{ t('image_compressor.folder_label') }}
                         </label>
                         <div class="flex items-center gap-2">
                             <div class="relative flex-1">
                                 <i data-lucide="folder" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
                                 <input type="text" id="folder-path-input"
-                                       placeholder="Ví dụ: D:\HinhAnh\SanPham hoặc C:\Users\vantu\Pictures"
+                                       placeholder="{{ t('image_compressor.folder_placeholder') }}"
                                        class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-xs sm:text-sm font-mono text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition" />
                             </div>
 
@@ -284,7 +284,7 @@
                             <button type="button" id="btn-browse-folder" onclick="browseFolderDialog()"
                                     class="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-2 shrink-0">
                                 <i data-lucide="folder-search" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
-                                <span>Chọn thư mục…</span>
+                                <span>{{ t('image_compressor.btn_browse_folder') }}</span>
                             </button>
                         </div>
                     </div>
@@ -294,7 +294,7 @@
                         <label class="flex items-center gap-2 cursor-pointer select-none">
                             <input type="checkbox" id="folder-recursive-check" checked
                                    class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-emerald-600 focus:ring-emerald-500" />
-                            <span class="text-xs sm:text-sm text-slate-700 dark:text-slate-300">Quét cả các thư mục con bên trong (Recursive)</span>
+                            <span class="text-xs sm:text-sm text-slate-700 dark:text-slate-300">{{ t('image_compressor.recursive_check') }}</span>
                         </label>
                     </div>
 
@@ -302,10 +302,9 @@
                     <div class="rounded-xl p-4 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/50 flex items-start gap-3 text-xs sm:text-sm text-amber-900 dark:text-amber-200">
                         <i data-lucide="shield-check" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5"></i>
                         <div class="space-y-1">
-                            <p class="font-semibold">Cơ chế an toàn tự động sao lưu ảnh gốc:</p>
+                            <p class="font-semibold">{{ t('image_compressor.safety_note_title') }}</p>
                             <p class="text-xs text-amber-800 dark:text-amber-300">
-                                Trước khi nén, toàn bộ ảnh gốc sẽ được chuyển an toàn vào thư mục <code class="font-mono font-bold bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded">&lt;thư_mục&gt;/backup</code>.
-                                Ảnh sau khi nén sẽ thế đúng vị trí ban đầu của file gốc.
+                                {{ t('image_compressor.safety_note_desc') | safe }}
                             </p>
                         </div>
                     </div>
@@ -315,13 +314,13 @@
                         <button type="button" id="btn-scan-folder" onclick="scanFolderImages()"
                                 class="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 transition flex items-center gap-2">
                             <i data-lucide="search" class="w-4 h-4"></i>
-                            <span>Kiểm tra thư mục</span>
+                            <span>{{ t('image_compressor.btn_scan_folder') }}</span>
                         </button>
 
                         <button type="button" id="btn-compress-folder" onclick="startFolderCompression()"
                                 class="px-6 py-2.5 rounded-xl text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md shadow-emerald-600/20 text-xs sm:text-sm font-semibold transition flex items-center gap-2">
                             <i data-lucide="play" class="w-4 h-4 fill-white"></i>
-                            <span>Bắt đầu nén & Sao lưu</span>
+                            <span id="btn-compress-folder-text">{{ t('image_compressor.btn_compress_folder') }}</span>
                         </button>
                     </div>
                 </div>
@@ -341,7 +340,7 @@
                     <div id="scan-result-estimation" class="mt-2 pt-2 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between text-xs text-slate-600 dark:text-slate-300">
                         <span class="flex items-center gap-1.5">
                             <i data-lucide="calculator" class="w-3.5 h-3.5 text-emerald-600"></i>
-                            <span>Dự kiến sau nén: <strong id="scan-est-size" class="text-emerald-600 dark:text-emerald-400 font-mono">~0 MB</strong></span>
+                            <span>{{ t('image_compressor.scan_est_title') }} <strong id="scan-est-size" class="text-emerald-600 dark:text-emerald-400 font-mono">~0 MB</strong></span>
                         </span>
                         <span id="scan-est-saved" class="font-semibold text-emerald-600 dark:text-emerald-400 font-mono">Giảm ~0% (~0 MB)</span>
                     </div>
@@ -353,19 +352,19 @@
                 <!-- Summary Stats -->
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                     <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
-                        <p class="text-[11px] font-semibold text-slate-400 uppercase">Ảnh đã nén</p>
+                        <p class="text-[11px] font-semibold text-slate-400 uppercase">{{ t('image_compressor.stat_compressed') }}</p>
                         <p id="folder-stat-count" class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-1">0</p>
                     </div>
                     <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
-                        <p class="text-[11px] font-semibold text-slate-400 uppercase">Dung lượng gốc</p>
+                        <p class="text-[11px] font-semibold text-slate-400 uppercase">{{ t('image_compressor.stat_orig') }}</p>
                         <p id="folder-stat-orig" class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-1">0 MB</p>
                     </div>
                     <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
-                        <p class="text-[11px] font-semibold text-slate-400 uppercase">Sau khi nén</p>
+                        <p class="text-[11px] font-semibold text-slate-400 uppercase">{{ t('image_compressor.stat_new') }}</p>
                         <p id="folder-stat-new" class="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">0 MB</p>
                     </div>
                     <div class="p-4 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60">
-                        <p class="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 uppercase">Tiết kiệm</p>
+                        <p class="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 uppercase">{{ t('image_compressor.stat_savings') }}</p>
                         <p id="folder-stat-saved" class="text-xl sm:text-2xl font-bold text-emerald-700 dark:text-emerald-300 mt-1">-0%</p>
                     </div>
                 </div>
@@ -373,14 +372,14 @@
                 <!-- Backup Folder Action Bar -->
                 <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="min-w-0">
-                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Ảnh gốc đã được chuyển vào:</p>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">{{ t('image_compressor.backup_dest_label') }}</p>
                         <p id="folder-backup-path-text" class="text-xs sm:text-sm font-mono font-medium text-slate-800 dark:text-slate-200 truncate mt-0.5">...</p>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
                         <button type="button" onclick="openBackupFolder()"
                                 class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center gap-1.5">
                             <i data-lucide="folder-open" class="w-3.5 h-3.5 text-emerald-600"></i>
-                            <span>Mở thư mục sao lưu</span>
+                            <span>{{ t('image_compressor.btn_open_backup') }}</span>
                         </button>
                     </div>
                 </div>
@@ -390,12 +389,12 @@
                     <table class="w-full text-left text-xs sm:text-sm border-collapse">
                         <thead class="bg-slate-50 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold uppercase text-[11px]">
                             <tr>
-                                <th class="py-3 px-4">Tên tệp</th>
-                                <th class="py-3 px-4">Gốc</th>
-                                <th class="py-3 px-4">Sau nén</th>
-                                <th class="py-3 px-4">Tiết kiệm</th>
-                                <th class="py-3 px-4">Sao lưu tại</th>
-                                <th class="py-3 px-4">Trạng thái</th>
+                                <th class="py-3 px-4">{{ t('image_compressor.table_col_name') }}</th>
+                                <th class="py-3 px-4">{{ t('image_compressor.table_col_orig') }}</th>
+                                <th class="py-3 px-4">{{ t('image_compressor.table_col_new') }}</th>
+                                <th class="py-3 px-4">{{ t('image_compressor.table_col_savings') }}</th>
+                                <th class="py-3 px-4">{{ t('image_compressor.table_col_backup') }}</th>
+                                <th class="py-3 px-4">{{ t('image_compressor.table_col_status') }}</th>
                             </tr>
                         </thead>
                         <tbody id="folder-results-tbody" class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -410,7 +409,52 @@
 {% endblock %}
 
 {% block scripts %}
+<script type="application/json" id="i18n-translations">
+{
+    "pills": {
+        "p10": {{ t('image_compressor.pills.p10') | tojson }},
+        "p20": {{ t('image_compressor.pills.p20') | tojson }},
+        "p30": {{ t('image_compressor.pills.p30') | tojson }},
+        "p40": {{ t('image_compressor.pills.p40') | tojson }},
+        "p60": {{ t('image_compressor.pills.p60') | tojson }},
+        "p75": {{ t('image_compressor.pills.p75') | tojson }},
+        "p85": {{ t('image_compressor.pills.p85') | tojson }},
+        "p95": {{ t('image_compressor.pills.p95') | tojson }}
+    },
+    "custom_other": {{ t('image_compressor.presets.custom_other') | tojson }},
+    "custom_val": {{ t('image_compressor.presets.custom_val', val='__VAL__') | tojson }},
+    "reduced_pct": {{ t('image_compressor.reduced_pct', pct='__PCT__') | tojson }},
+    "est_saved_pattern": {{ t('image_compressor.est_saved_pattern', saved='__SAVED__', orig='__ORIG__', quality='__QUALITY__') | tojson }},
+    "images_count": {{ t('image_compressor.images_count', count='__COUNT__') | tojson }},
+    "orig_label": {{ t('image_compressor.orig_label') | tojson }},
+    "est_label": {{ t('image_compressor.est_label') | tojson }},
+    "btn_start_compress": {{ t('image_compressor.btn_start_compress') | tojson }},
+    "btn_compressing": {{ t('image_compressor.btn_compressing') | tojson }},
+    "btn_compress_folder": {{ t('image_compressor.btn_compress_folder') | tojson }},
+    "btn_compressing_folder": {{ t('image_compressor.btn_compressing_folder') | tojson }},
+    "result_summary": {{ t('image_compressor.result_summary', count='__COUNT__', orig='__ORIG__', new='__NEW__', pct='__PCT__') | tojson }},
+    "btn_download": {{ t('image_compressor.btn_download') | tojson }},
+    "scan_found_title": {{ t('image_compressor.scan_found_title', count='__COUNT__') | tojson }},
+    "scan_total_size": {{ t('image_compressor.scan_total_size', size='__SIZE__') | tojson }},
+    "scan_backup_dest": {{ t('image_compressor.scan_backup_dest', dest='__DEST__') | tojson }},
+    "scan_est_saved": {{ t('image_compressor.scan_est_saved', pct='__PCT__', saved='__SAVED__') | tojson }},
+    "status_replaced": {{ t('image_compressor.status_replaced') | tojson }},
+    "status_error": {{ t('image_compressor.status_error') | tojson }},
+    "alert_enter_folder": {{ t('image_compressor.alert_enter_folder') | tojson }},
+    "confirm_start_folder": {{ t('image_compressor.confirm_start_folder', folder='__FOLDER__') | tojson }},
+    "alert_scan_fail": {{ t('image_compressor.alert_scan_fail') | tojson }},
+    "alert_scan_error": {{ t('image_compressor.alert_scan_error', error='__ERR__') | tojson }},
+    "alert_compress_folder_fail": {{ t('image_compressor.alert_compress_folder_fail') | tojson }},
+    "alert_compress_files_fail": {{ t('image_compressor.alert_compress_files_fail') | tojson }},
+    "alert_open_folder_fail": {{ t('image_compressor.alert_open_folder_fail') | tojson }},
+    "alert_open_folder_error": {{ t('image_compressor.alert_open_folder_error', error='__ERR__') | tojson }},
+    "alert_server_error": {{ t('image_compressor.alert_server_error', error='__ERR__') | tojson }}
+}
+</script>
+
 <script>
+const I18N = JSON.parse(document.getElementById("i18n-translations").textContent);
+
 // Global State
 let sharedQuality = {{ default_quality }};
 let uploadedFiles = [];
@@ -427,10 +471,10 @@ function updatePresetUI(val) {
     const presetValues = ["10", "20", "30", "40", "50", "60", "75", "85", "90", "95"];
     if (presetValues.includes(String(val))) {
         presetSelect.value = String(val);
-        customOpt.textContent = "Tùy chỉnh khác...";
+        customOpt.textContent = I18N.custom_other;
     } else {
         presetSelect.value = "custom";
-        customOpt.textContent = `Tùy chỉnh (${val}%)`;
+        customOpt.textContent = I18N.custom_val.replace("__VAL__", val);
     }
 
     presetButtons.forEach((btn) => {
@@ -473,7 +517,7 @@ function updateFolderScanEstimation() {
     const estSizeEl = document.getElementById("scan-est-size");
     const estSavedEl = document.getElementById("scan-est-saved");
     if (estSizeEl) estSizeEl.textContent = `~${formatBytes(estNew)}`;
-    if (estSavedEl) estSavedEl.textContent = `Giảm ~${estSavedPct}% (~${formatBytes(estSaved)})`;
+    if (estSavedEl) estSavedEl.textContent = I18N.scan_est_saved.replace("__PCT__", estSavedPct).replace("__SAVED__", formatBytes(estSaved));
 }
 
 function updateEstimations() {
@@ -494,15 +538,19 @@ function updateEstimations() {
 
     const estNewEl = document.getElementById("est-total-new-size");
     const estBadgeEl = document.getElementById("est-total-saved-badge");
-    const estSavedBytesEl = document.getElementById("est-total-saved-bytes");
     const estOrigEl = document.getElementById("est-total-orig-size");
     const estQualityEl = document.getElementById("est-quality-label");
 
     if (estNewEl) estNewEl.textContent = `~${formatBytes(totalEstNew)}`;
-    if (estBadgeEl) estBadgeEl.textContent = `Giảm ~${totalSavedPct}%`;
-    if (estSavedBytesEl) estSavedBytesEl.textContent = `~${formatBytes(totalSavedBytes)}`;
-    if (estOrigEl) estOrigEl.textContent = formatBytes(totalOrig);
-    if (estQualityEl) estQualityEl.textContent = `${sharedQuality}%`;
+    if (estBadgeEl) estBadgeEl.textContent = I18N.reduced_pct.replace("__PCT__", totalSavedPct);
+
+    const estDescEl = document.getElementById("est-desc-text");
+    if (estDescEl) {
+        estDescEl.textContent = I18N.est_saved_pattern
+            .replace("__SAVED__", `~${formatBytes(totalSavedBytes)}`)
+            .replace("__ORIG__", formatBytes(totalOrig))
+            .replace("__QUALITY__", `${sharedQuality}%`);
+    }
 
     // Also update individual file cards
     const cardEstEls = document.querySelectorAll(".file-card-est");
@@ -659,7 +707,7 @@ function renderSelectedFiles() {
     filesContainer.classList.remove("hidden");
     tabBadge.classList.remove("hidden");
     tabBadge.textContent = uploadedFiles.length;
-    countBadge.textContent = `${uploadedFiles.length} ảnh`;
+    countBadge.textContent = I18N.images_count.replace("__COUNT__", uploadedFiles.length);
 
     const totalBytes = uploadedFiles.reduce((acc, f) => acc + f.size, 0);
     totalSizeText.textContent = `(${formatBytes(totalBytes)})`;
@@ -683,11 +731,11 @@ function renderSelectedFiles() {
             <p class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 truncate" title="${file.name}">${file.name}</p>
             <div class="mt-1 space-y-0.5 text-[10px]">
                 <div class="flex items-center justify-between text-slate-400 font-mono">
-                    <span>Gốc:</span>
+                    <span>${I18N.orig_label}</span>
                     <span>${formatBytes(file.size)}</span>
                 </div>
                 <div class="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-semibold font-mono">
-                    <span>Dự kiến:</span>
+                    <span>${I18N.est_label}</span>
                     <span class="file-card-est" data-orig-size="${file.size}" data-fname="${file.name}">~${formatBytes(est)} (-${savedPct}%)</span>
                 </div>
             </div>
@@ -718,7 +766,7 @@ async function startUploadCompression() {
     const btn = document.getElementById("btn-compress-upload");
     const btnText = document.getElementById("btn-compress-text");
     btn.disabled = true;
-    btnText.textContent = "Đang nén ảnh...";
+    btnText.textContent = I18N.btn_compressing;
 
     const formData = new FormData();
     formData.append("quality", sharedQuality);
@@ -736,13 +784,13 @@ async function startUploadCompression() {
         if (data.success) {
             renderUploadResults(data);
         } else {
-            alert(data.error || "Có lỗi xảy ra khi nén ảnh.");
+            alert(data.error || I18N.alert_compress_files_fail);
         }
     } catch (err) {
-        alert("Lỗi kết nối máy chủ: " + err.message);
+        alert(I18N.alert_server_error.replace("__ERR__", err.message));
     } finally {
         btn.disabled = false;
-        btnText.textContent = "Bắt đầu nén ảnh";
+        btnText.textContent = I18N.btn_start_compress;
     }
 }
 
@@ -751,7 +799,11 @@ function renderUploadResults(data) {
     resultsSec.classList.remove("hidden");
 
     document.getElementById("upload-summary-text").textContent =
-        `Đã nén ${data.total_files} ảnh: giảm từ ${data.total_orig_human} xuống ${data.total_comp_human} (-${data.total_saved_pct}%).`;
+        I18N.result_summary
+            .replace("__COUNT__", data.total_files)
+            .replace("__ORIG__", data.total_orig_human)
+            .replace("__NEW__", data.total_comp_human)
+            .replace("__PCT__", data.total_saved_pct);
 
     const zipBtn = document.getElementById("btn-download-all-zip");
     zipBtn.href = `/tools/image-compressor/download-zip/${data.batch_id}`;
@@ -775,14 +827,14 @@ function renderUploadResults(data) {
             <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-400">${file.orig_size_human}</td>
             <td class="py-3 px-4 font-mono font-semibold text-slate-900 dark:text-slate-100">${file.comp_size_human}</td>
             <td class="py-3 px-4">
-                ${isSuccess ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">-${file.saved_pct}%</span>` : `<span class="text-xs text-rose-500 font-medium">Lỗi</span>`}
+                ${isSuccess ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">-${file.saved_pct}%</span>` : `<span class="text-xs text-rose-500 font-medium">${I18N.status_error}</span>`}
             </td>
             <td class="py-3 px-4 text-right">
                 ${isSuccess ? `
                 <a href="/tools/image-compressor/download/${data.batch_id}/${file.idx}" download="${file.filename}"
                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-300 transition">
                     <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                    <span>Tải về</span>
+                    <span>${I18N.btn_download}</span>
                 </a>` : ''}
             </td>
         `;
@@ -819,7 +871,7 @@ async function scanFolderImages() {
     const input = document.getElementById("folder-path-input");
     const folder = input.value.trim();
     if (!folder) {
-        alert("Vui lòng nhập hoặc chọn đường dẫn thư mục.");
+        alert(I18N.alert_enter_folder);
         return;
     }
 
@@ -836,16 +888,16 @@ async function scanFolderImages() {
 
         if (data.success) {
             scanBox.classList.remove("hidden");
-            document.getElementById("scan-result-title").textContent = `Tìm thấy ${data.count} ảnh phù hợp`;
-            document.getElementById("scan-result-size").textContent = `Tổng dung lượng: ${data.total_size_human}`;
-            document.getElementById("scan-backup-dest").textContent = `Thư mục sao lưu dự kiến: ${data.backup_dir}`;
+            document.getElementById("scan-result-title").textContent = I18N.scan_found_title.replace("__COUNT__", data.count);
+            document.getElementById("scan-result-size").textContent = I18N.scan_total_size.replace("__SIZE__", data.total_size_human);
+            document.getElementById("scan-backup-dest").textContent = I18N.scan_backup_dest.replace("__DEST__", data.backup_dir);
             lastScannedTotalSize = data.total_size || 0;
             updateFolderScanEstimation();
         } else {
-            alert(data.error || "Không thể quét thư mục.");
+            alert(data.error || I18N.alert_scan_fail);
         }
     } catch (err) {
-        alert("Lỗi khi kiểm tra thư mục: " + err.message);
+        alert(I18N.alert_scan_error.replace("__ERR__", err.message));
     }
     if (window.lucide) lucide.createIcons();
 }
@@ -854,17 +906,17 @@ async function startFolderCompression() {
     const input = document.getElementById("folder-path-input");
     const folder = input.value.trim();
     if (!folder) {
-        alert("Vui lòng nhập hoặc chọn đường dẫn thư mục.");
+        alert(I18N.alert_enter_folder);
         return;
     }
 
-    if (!confirm(`Xác nhận bắt đầu nén ảnh trong thư mục:\n${folder}\n\nTất cả ảnh gốc sẽ được sao lưu an toàn vào thư mục 'backup'. Tiếp tục?`)) {
+    if (!confirm(I18N.confirm_start_folder.replace("__FOLDER__", folder))) {
         return;
     }
 
     const btn = document.getElementById("btn-compress-folder");
     btn.disabled = true;
-    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Đang nén ảnh & sao lưu...</span>`;
+    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>${I18N.btn_compressing_folder}</span>`;
     if (window.lucide) lucide.createIcons();
 
     const recursive = document.getElementById("folder-recursive-check").checked;
@@ -884,13 +936,13 @@ async function startFolderCompression() {
         if (resp.success) {
             renderFolderResults(resp.data);
         } else {
-            alert(resp.error || "Có lỗi xảy ra khi nén thư mục.");
+            alert(resp.error || I18N.alert_compress_folder_fail);
         }
     } catch (err) {
-        alert("Lỗi kết nối máy chủ: " + err.message);
+        alert(I18N.alert_server_error.replace("__ERR__", err.message));
     } finally {
         btn.disabled = false;
-        btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-white"></i><span>Bắt đầu nén & Sao lưu</span>`;
+        btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-white"></i><span>${I18N.btn_compress_folder}</span>`;
         if (window.lucide) lucide.createIcons();
     }
 }
@@ -922,13 +974,13 @@ function renderFolderResults(summary) {
             <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-400">${item.orig_size_human}</td>
             <td class="py-3 px-4 font-mono font-semibold text-slate-900 dark:text-slate-100">${item.new_size_human}</td>
             <td class="py-3 px-4">
-                ${isSuccess ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">-${item.saved_pct}%</span>` : `<span class="text-xs text-rose-500 font-medium">Lỗi</span>`}
+                ${isSuccess ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">-${item.saved_pct}%</span>` : `<span class="text-xs text-rose-500 font-medium">${I18N.status_error}</span>`}
             </td>
             <td class="py-3 px-4 font-mono text-xs text-slate-500 dark:text-slate-400 truncate max-w-xs" title="${item.backup_path}">
                 ${item.backup_path || "—"}
             </td>
             <td class="py-3 px-4">
-                ${isSuccess ? `<span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><i data-lucide="check" class="w-3.5 h-3.5"></i> Đã thay thế</span>` : `<span class="text-xs text-rose-500 truncate" title="${item.error}">${item.error || 'Lỗi'}</span>`}
+                ${isSuccess ? `<span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><i data-lucide="check" class="w-3.5 h-3.5"></i> ${I18N.status_replaced}</span>` : `<span class="text-xs text-rose-500 truncate" title="${item.error}">${item.error || I18N.status_error}</span>`}
             </td>
         `;
         tbody.appendChild(tr);
@@ -948,10 +1000,10 @@ async function openBackupFolder() {
         });
         const data = await res.json();
         if (!data.success) {
-            alert(data.error || "Không thể mở thư mục.");
+            alert(data.error || I18N.alert_open_folder_fail);
         }
     } catch (err) {
-        alert("Lỗi khi mở thư mục: " + err.message);
+        alert(I18N.alert_open_folder_error.replace("__ERR__", err.message));
     }
 }
 </script>

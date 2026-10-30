@@ -165,6 +165,30 @@ def test_pdf_to_md_screen_i18n():
     assert "Convert to Markdown" in resp_en.text
 
 
+def test_image_compressor_screen_i18n():
+    client = TestClient(app)
+
+    # 1. Image Compressor in Vietnamese
+    resp_vi = client.get("/tools/image-compressor?lang=vi")
+    assert resp_vi.status_code == 200
+    assert "Nén Ảnh Tối Ưu" in resp_vi.text
+    assert "Tỷ lệ chất lượng nén ảnh" in resp_vi.text
+    assert "Tab 1: Tải lên nhiều file" in resp_vi.text
+    assert "Tab 2: Nén theo thư mục" in resp_vi.text
+    assert "Bắt đầu nén ảnh" in resp_vi.text
+    assert "Chọn thư mục…" in resp_vi.text
+
+    # 2. Image Compressor in English
+    resp_en = client.get("/tools/image-compressor?lang=en")
+    assert resp_en.status_code == 200
+    assert "Smart Image Compressor" in resp_en.text
+    assert "Compression Quality Ratio" in resp_en.text
+    assert "Tab 1: Upload Multiple Files" in resp_en.text
+    assert "Tab 2: Batch Folder Compression" in resp_en.text
+    assert "Start Compression" in resp_en.text
+    assert "Browse folder…" in resp_en.text
+
+
 if __name__ == "__main__":
     test_i18n_basic_translations()
     test_i18n_fallback_and_formatting()
@@ -174,4 +198,5 @@ if __name__ == "__main__":
     test_image_to_prompt_screen_i18n()
     test_srt_translator_screen_i18n()
     test_pdf_to_md_screen_i18n()
+    test_image_compressor_screen_i18n()
     print("All i18n tests passed successfully!")
