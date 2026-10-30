@@ -1,4 +1,4 @@
-"""Tests for internationalization (i18n) module and routing."""
+"""Tests for internationalization (i18n) module, routing, and settings screen."""
 from fastapi.testclient import TestClient
 
 from app.core.i18n import (
@@ -6,6 +6,7 @@ from app.core.i18n import (
     get_current_locale,
     get_supported_locales,
     is_locale_supported,
+    load_translations,
     set_current_locale,
     t,
 )
@@ -13,17 +14,23 @@ from main import app
 
 
 def test_i18n_basic_translations():
+    load_translations()
+
     # Test Vietnamese (default)
     set_current_locale("vi")
     assert get_current_locale() == "vi"
     assert t("sidebar.dashboard") == "Tổng quan"
     assert t("topbar.search_placeholder") == "Tìm kiếm công cụ, ví dụ: pdf, srt, hash..."
+    assert t("settings.title") == "Cấu hình hệ thống"
+    assert t("settings.blocks.system.fields.home_title.label") == "Tiêu đề trang chủ"
 
     # Test English
     set_current_locale("en")
     assert get_current_locale() == "en"
     assert t("sidebar.dashboard") == "Dashboard"
     assert t("topbar.search_placeholder") == "Search tools, e.g., pdf, srt, hash..."
+    assert t("settings.title") == "System Settings"
+    assert t("settings.blocks.system.fields.home_title.label") == "Homepage Title"
 
     # Reset back to default
     set_current_locale("vi")
@@ -78,9 +85,30 @@ def test_web_language_detection_and_switch():
     assert "app_lang=vi" in switch_resp.headers.get("set-cookie", "")
 
 
+def test_settings_screen_i18n():
+    client = TestClient(app)
+
+    # 1. Settings in Vietnamese
+    resp_vi = client.get("/settings?lang=vi")
+    assert resp_vi.status_code == 200
+    assert "Cấu hình hệ thống" in resp_vi.text
+    assert "Tiêu đề trang chủ" in resp_vi.text
+    assert "Lưu tất cả thay đổi" in resp_vi.text
+    assert "Thời gian chờ tối đa (giây)" in resp_vi.text
+
+    # 2. Settings in English
+    resp_en = client.get("/settings?lang=en")
+    assert resp_en.status_code == 200
+    assert "System Settings" in resp_en.text
+    assert "Homepage Title" in resp_en.text
+    assert "Save All Changes" in resp_en.text
+    assert "Max Timeout (seconds)" in resp_en.text
+
+
 if __name__ == "__main__":
     test_i18n_basic_translations()
     test_i18n_fallback_and_formatting()
     test_supported_locales()
     test_web_language_detection_and_switch()
+    test_settings_screen_i18n()
     print("All i18n tests passed successfully!")

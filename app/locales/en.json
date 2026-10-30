@@ -128,6 +128,111 @@
     "save_error": "Failed to save configuration: {error}",
     "save_btn": "Save All Changes",
     "language_setting": "Interface Language",
-    "language_setting_desc": "Choose the default display language for the application."
+    "language_setting_desc": "Choose the default display language for the application.",
+    "blocks": {
+      "system": {
+        "title": "System",
+        "desc": "General application settings (homepage customization).",
+        "fields": {
+          "home_title": {
+            "label": "Homepage Title",
+            "placeholder": "Title displayed at the top of the homepage"
+          },
+          "home_description": {
+            "label": "Homepage Description",
+            "placeholder": "Brief description on the homepage"
+          }
+        }
+      },
+      "image_to_prompt": {
+        "title": "Image to Prompt",
+        "desc": "Configuration for reverse engineering images to AI prompts via Ollama Vision.",
+        "fields": {
+          "default_model": {
+            "label": "Default Ollama Model",
+            "placeholder": "qween3.8",
+            "help_text": "Vision model name on Ollama (e.g. qween3.8, qwen2.5-vl, llava)."
+          },
+          "default_language": {
+            "label": "Default Prompt Language",
+            "placeholder": "en",
+            "help_text": "Language code for generated prompts (e.g., en for English, vi for Vietnamese)."
+          },
+          "timeout_seconds": {
+            "label": "Max Timeout (seconds)",
+            "placeholder": "1200",
+            "help_text": "Timeout for Ollama to process each image (default: 1200s = 20 mins)."
+          },
+          "system_prompt": {
+            "label": "Prompt Extraction Instructions (System Prompt)",
+            "placeholder": "Prompt sent to Ollama...",
+            "help_text": "Instructions for the AI model. Use {output_language} to automatically insert target language."
+          }
+        }
+      },
+      "srt_translator": {
+        "title": "SRT Translator",
+        "desc": "Configuration for subtitle .srt file translator.",
+        "fields": {
+          "system_prompt": {
+            "label": "Translation System Prompt",
+            "placeholder": "{target_language}",
+            "help_text": "Prompt sent to Ollama. Use {target_language} to automatically insert target language."
+          }
+        }
+      },
+      "pdf_to_md": {
+        "title": "PDF to Markdown",
+        "desc": "Configuration for converting PDF to Markdown (supports text, figures, and OCR).",
+        "fields": {
+          "pages_per_file": {
+            "label": "Pages per Markdown file",
+            "placeholder": "10",
+            "help_text": "Each .md file will contain up to this many pages (1 to 500). Longer PDFs will split into multiple files/zip."
+          },
+          "extract_images": {
+            "label": "Extract illustrations (true / false)",
+            "placeholder": "true",
+            "help_text": "Extract figures, charts, and drawings and embed them into markdown."
+          },
+          "image_embed_mode": {
+            "label": "Image saving mode (folder / base64)",
+            "placeholder": "folder",
+            "help_text": "folder: zip archive containing images/ folder; base64: embed directly as base64 in .md file."
+          },
+          "ocr_mode": {
+            "label": "OCR mode for scanned pages (auto / gemini / ollama / off)",
+            "placeholder": "auto",
+            "help_text": "auto: automatic fallback; gemini: use Google Gemini; ollama: use local vision model; off: disable OCR."
+          },
+          "gemini_api_key": {
+            "label": "Gemini API Key (Optional for AI OCR)",
+            "placeholder": "AIzaSy...",
+            "help_text": "Free Gemini API key from Google AI Studio for high-accuracy OCR on scanned pages."
+          },
+          "ollama_model": {
+            "label": "Ollama Vision Model Name",
+            "placeholder": "llama3.2-vision",
+            "help_text": "Multimodal model on Ollama (e.g. llama3.2-vision, llava, minicpm-v)."
+          }
+        }
+      },
+      "image_compressor": {
+        "title": "Image Compressor",
+        "desc": "Default settings for Image Compressor (quality percentage and backup folder).",
+        "fields": {
+          "default_quality": {
+            "label": "Default compression quality % (1 - 100)",
+            "placeholder": "20",
+            "help_text": "Integer from 1 to 100. Default is 20% (high compression, maximum space savings)."
+          },
+          "backup_folder_name": {
+            "label": "Original image backup folder name",
+            "placeholder": "backup",
+            "help_text": "Subfolder name automatically created to store original images during folder batch compression (default: backup)."
+          }
+        }
+      }
+    }
   }
 }

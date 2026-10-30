@@ -43,35 +43,39 @@
                 <div class="border-b border-slate-100 dark:border-slate-800/80 pb-4 mb-5">
                     <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <i data-lucide="settings" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
-                        <span>{{ block.title }}</span>
+                        <span>{{ t('settings.blocks.' ~ block.id ~ '.title', default=block.title) }}</span>
                     </h2>
-                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ block.description }}</p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ t('settings.blocks.' ~ block.id ~ '.desc', default=block.description) }}</p>
                 </div>
 
                 <div class="space-y-4">
                     {% for f in block.fields %}
                     <div>
                         <label for="{{ block.id }}_{{ f.key }}"
-                               class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{{ f.label }}</label>
+                               class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            {{ t('settings.blocks.' ~ block.id ~ '.fields.' ~ f.key ~ '.label', default=f.label) }}
+                        </label>
 
                         {% set current = (data.get(block.id, {}) or {}).get(f.key, "") %}
+                        {% set field_placeholder = t('settings.blocks.' ~ block.id ~ '.fields.' ~ f.key ~ '.placeholder', default=f.placeholder) %}
+                        {% set field_help = t('settings.blocks.' ~ block.id ~ '.fields.' ~ f.key ~ '.help_text', default=f.help_text) %}
 
                         {% if f.kind == "textarea" %}
                         <textarea id="{{ block.id }}_{{ f.key }}" name="{{ block.id }}.{{ f.key }}"
-                                  rows="6" placeholder="{{ f.placeholder }}"
+                                  rows="6" placeholder="{{ field_placeholder }}"
                                   class="w-full rounded-xl border border-slate-200 dark:border-slate-700/80 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">{{ current }}</textarea>
                         {% elif f.kind == "number" %}
                         <input type="number" id="{{ block.id }}_{{ f.key }}" name="{{ block.id }}.{{ f.key }}"
-                               value="{{ current }}" placeholder="{{ f.placeholder }}"
+                               value="{{ current }}" placeholder="{{ field_placeholder }}"
                                class="w-full rounded-xl border border-slate-200 dark:border-slate-700/80 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                         {% else %}
                         <input type="text" id="{{ block.id }}_{{ f.key }}" name="{{ block.id }}.{{ f.key }}"
-                               value="{{ current }}" placeholder="{{ f.placeholder }}"
+                               value="{{ current }}" placeholder="{{ field_placeholder }}"
                                class="w-full rounded-xl border border-slate-200 dark:border-slate-700/80 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                         {% endif %}
 
-                        {% if f.help_text %}
-                        <p class="mt-1 text-[11px] text-slate-400">{{ f.help_text }}</p>
+                        {% if field_help %}
+                        <p class="mt-1 text-[11px] text-slate-400">{{ field_help }}</p>
                         {% endif %}
                     </div>
                     {% endfor %}
