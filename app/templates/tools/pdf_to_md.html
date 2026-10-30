@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}PDF to Markdown · {{ settings.APP_NAME }}{% endblock %}
-{% block page_title %}PDF to Markdown{% endblock %}
+{% block title %}{{ t('pdf_to_md.page_title') }} · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}{{ t('pdf_to_md.page_title') }}{% endblock %}
 
 {% block content %}
 <div class="w-full space-y-6">
@@ -13,13 +13,13 @@
             </div>
             <div>
                 <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>PDF to Markdown</span>
+                    <span>{{ t('pdf_to_md.page_title') }}</span>
                     <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300">
-                        Tài liệu & Hình ảnh
+                        {{ t('pdf_to_md.badge') }}
                     </span>
                 </h1>
                 <p class="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                    Chuyển PDF sang Markdown: giữ nguyên cấu trúc dòng chảy văn bản, trích xuất biểu đồ / hình ảnh minh họa, và tự động xử lý trang scan (hỗ trợ OCR bằng AI).
+                    {{ t('pdf_to_md.description')|safe }}
                 </p>
             </div>
         </div>
@@ -31,14 +31,16 @@
         <div>
             <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <i data-lucide="file-up" class="w-4 h-4 text-rose-500"></i>
-                <span>Chuyển đổi từng file PDF</span>
+                <span>{{ t('pdf_to_md.single_title') }}</span>
             </h2>
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Chọn tệp PDF từ máy tính để bắt đầu trích xuất Markdown.</p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ t('pdf_to_md.single_desc') }}</p>
         </div>
 
         <!-- File picker -->
         <div>
-            <label for="pdf-file" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">File PDF</label>
+            <label for="pdf-file" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                {{ t('pdf_to_md.file_label') }}
+            </label>
             <input type="file" id="pdf-file" name="file" accept=".pdf,application/pdf" required
                    class="block w-full text-xs sm:text-sm text-slate-600 dark:text-slate-300
                           file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0
@@ -46,7 +48,7 @@
                           dark:file:bg-rose-950/60 dark:file:text-rose-300
                           hover:file:bg-rose-100 dark:hover:file:bg-rose-900/60
                           file:cursor-pointer cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 p-2">
-            <p class="mt-1.5 text-[11px] text-slate-400">Tối đa 200 MB mỗi file.</p>
+            <p class="mt-1.5 text-[11px] text-slate-400">{{ t('pdf_to_md.file_hint') }}</p>
         </div>
 
         <!-- Option Grid -->
@@ -54,26 +56,26 @@
             <!-- Chunking settings -->
             <div>
                 <label for="pages-per-file" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Số trang mỗi file Markdown
+                    {{ t('pdf_to_md.pages_per_file_label') }}
                 </label>
                 <input type="number" id="pages-per-file" name="pages_per_file" min="1" max="500" value="{{ pages_per_file }}"
                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition">
-                <p class="mt-1 text-[11px] text-slate-400">PDF dài hơn số trang này sẽ được tách nhiều file và đóng gói zip.</p>
+                <p class="mt-1 text-[11px] text-slate-400">{{ t('pdf_to_md.pages_per_file_hint') }}</p>
             </div>
 
             <!-- OCR Settings -->
             <div>
                 <label for="ocr-mode" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Xử lý trang Scan / Không có text
+                    {{ t('pdf_to_md.ocr_mode_label') }}
                 </label>
                 <select id="ocr-mode" name="ocr_mode"
                         class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition">
-                    <option value="auto" {% if cfg.ocr_mode == 'auto' %}selected{% endif %}>Tự động (Xuất ảnh trang scan an toàn)</option>
-                    <option value="gemini" {% if cfg.ocr_mode == 'gemini' %}selected{% endif %}>AI OCR qua Google Gemini (Chính xác cao)</option>
-                    <option value="ollama" {% if cfg.ocr_mode == 'ollama' %}selected{% endif %}>AI OCR qua Ollama Vision (Local)</option>
-                    <option value="off" {% if cfg.ocr_mode == 'off' %}selected{% endif %}>Tắt OCR</option>
+                    <option value="auto" {% if cfg.ocr_mode == 'auto' %}selected{% endif %}>{{ t('pdf_to_md.ocr_options.auto') }}</option>
+                    <option value="gemini" {% if cfg.ocr_mode == 'gemini' %}selected{% endif %}>{{ t('pdf_to_md.ocr_options.gemini') }}</option>
+                    <option value="ollama" {% if cfg.ocr_mode == 'ollama' %}selected{% endif %}>{{ t('pdf_to_md.ocr_options.ollama') }}</option>
+                    <option value="off" {% if cfg.ocr_mode == 'off' %}selected{% endif %}>{{ t('pdf_to_md.ocr_options.off') }}</option>
                 </select>
-                <p class="mt-1 text-[11px] text-slate-400">Chọn phương thức xử lý khi gặp trang scan không có text layer.</p>
+                <p class="mt-1 text-[11px] text-slate-400">{{ t('pdf_to_md.ocr_mode_hint') }}</p>
             </div>
         </div>
 
@@ -81,26 +83,26 @@
         <div id="gemini-params" class="hidden rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200/60 dark:border-purple-800/40 p-4 space-y-2">
             <div class="flex items-center gap-2 text-xs font-semibold text-purple-700 dark:text-purple-300">
                 <i data-lucide="sparkles" class="w-4 h-4"></i>
-                <span>Cấu hình Gemini Vision OCR</span>
+                <span>{{ t('pdf_to_md.gemini_title') }}</span>
             </div>
             <input type="password" id="gemini-api-key" name="gemini_api_key" value="{{ cfg.gemini_api_key }}"
-                   placeholder="Nhập Gemini API Key (AIzaSy...)"
+                   placeholder="{{ t('pdf_to_md.gemini_placeholder') }}"
                    class="w-full rounded-xl border border-purple-200 dark:border-purple-800 px-3.5 py-2 text-xs sm:text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
             <p class="text-[11px] text-purple-600/80 dark:text-purple-400">
-                API Key miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-semibold">Google AI Studio</a>. Sẽ được tự động lưu trên trình duyệt của bạn.
+                {{ t('pdf_to_md.gemini_hint')|safe }}
             </p>
         </div>
 
         <div id="ollama-params" class="hidden rounded-xl bg-sky-50/50 dark:bg-sky-950/20 border border-sky-200/60 dark:border-sky-800/40 p-4 space-y-2">
             <div class="flex items-center gap-2 text-xs font-semibold text-sky-700 dark:text-sky-300">
                 <i data-lucide="cpu" class="w-4 h-4"></i>
-                <span>Cấu hình Ollama Vision</span>
+                <span>{{ t('pdf_to_md.ollama_title') }}</span>
             </div>
             <input type="text" id="ollama-model" name="ollama_model" value="{{ cfg.ollama_model or 'llama3.2-vision' }}"
                    placeholder="llama3.2-vision"
                    class="w-full rounded-xl border border-sky-200 dark:border-sky-800 px-3.5 py-2 text-xs sm:text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500">
             <p class="text-[11px] text-sky-600/80 dark:text-sky-400">
-                Yêu cầu Ollama đang chạy trên máy và đã kéo model vision (ví dụ: <code>ollama pull llama3.2-vision</code>).
+                {{ t('pdf_to_md.ollama_hint')|safe }}
             </p>
         </div>
 
@@ -112,28 +114,28 @@
                            {% if cfg.extract_images %}checked{% endif %}
                            class="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-slate-300 dark:border-slate-700">
                     <span class="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
-                        Trích xuất hình ảnh minh họa (Biểu đồ, sơ đồ, ảnh chụp trong PDF)
+                        {{ t('pdf_to_md.extract_images_label') }}
                     </span>
                 </label>
                 <span class="text-[11px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 font-semibold">
-                    Tự động định vị
+                    {{ t('pdf_to_md.auto_positioning') }}
                 </span>
             </div>
 
             <!-- Image format options -->
             <div id="image-format-box" class="pt-2 pl-6 border-t border-slate-200/60 dark:border-slate-800/60 flex flex-wrap items-center gap-5 text-xs text-slate-600 dark:text-slate-300">
-                <span class="font-medium">Định dạng lưu ảnh:</span>
+                <span class="font-medium">{{ t('pdf_to_md.image_format_label') }}</span>
                 <label class="inline-flex items-center gap-2 cursor-pointer">
                     <input type="radio" name="image_embed_mode" value="folder"
                            {% if cfg.image_embed_mode != 'base64' %}checked{% endif %}
                            class="text-rose-600 focus:ring-rose-500">
-                    <span>Thư mục <code>images/</code> (nén zip kèm .md — Khuyên dùng)</span>
+                    <span>{{ t('pdf_to_md.image_format_folder')|safe }}</span>
                 </label>
                 <label class="inline-flex items-center gap-2 cursor-pointer">
                     <input type="radio" name="image_embed_mode" value="base64"
                            {% if cfg.image_embed_mode == 'base64' %}checked{% endif %}
                            class="text-rose-600 focus:ring-rose-500">
-                    <span>Nhúng trực tiếp Base64 vào file .md (1 file duy nhất)</span>
+                    <span>{{ t('pdf_to_md.image_format_base64') }}</span>
                 </label>
             </div>
         </div>
@@ -149,7 +151,7 @@
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                 </svg>
                 <i data-lucide="file-text" class="w-4 h-4"></i>
-                <span id="convert-btn-label">Chuyển đổi sang Markdown</span>
+                <span id="convert-btn-label">{{ t('pdf_to_md.btn_convert') }}</span>
             </button>
         </div>
     </form>
@@ -159,22 +161,26 @@
         <div>
             <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <i data-lucide="folder-cog" class="w-4 h-4 text-rose-500"></i>
-                <span>Chuyển đổi theo thư mục (hàng loạt)</span>
+                <span>{{ t('pdf_to_md.batch_title') }}</span>
             </h2>
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Quét toàn bộ file <code>.pdf</code> trong thư mục nguồn và tự động xuất ra thư mục đích kèm thư mục ảnh <code>images/</code>.
+                {{ t('pdf_to_md.batch_desc')|safe }}
             </p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-                <label for="source-folder" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Thư mục nguồn</label>
+                <label for="source-folder" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    {{ t('pdf_to_md.source_folder_label') }}
+                </label>
                 <input type="text" id="source-folder" name="source_folder"
                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition"
                        placeholder="D:\data\pdfs">
             </div>
             <div>
-                <label for="output-folder" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Thư mục đích</label>
+                <label for="output-folder" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    {{ t('pdf_to_md.output_folder_label') }}
+                </label>
                 <input type="text" id="output-folder" name="output_folder"
                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition"
                        placeholder="D:\data\markdown">
@@ -190,7 +196,7 @@
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                 </svg>
                 <i data-lucide="play" class="w-4 h-4"></i>
-                <span id="folder-btn-label">Bắt đầu quét & chuyển đổi</span>
+                <span id="folder-btn-label">{{ t('pdf_to_md.btn_start_batch') }}</span>
             </button>
         </div>
 
@@ -200,10 +206,10 @@
                 <table class="min-w-full text-xs sm:text-sm">
                     <thead>
                     <tr class="text-left text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
-                        <th class="py-2.5 px-4 font-semibold">Tên file</th>
-                        <th class="py-2.5 px-4 font-semibold">Số file MD</th>
-                        <th class="py-2.5 px-4 font-semibold">Ảnh trích xuất</th>
-                        <th class="py-2.5 px-4 font-semibold">Trạng thái</th>
+                        <th class="py-2.5 px-4 font-semibold">{{ t('pdf_to_md.table_filename') }}</th>
+                        <th class="py-2.5 px-4 font-semibold">{{ t('pdf_to_md.table_files_count') }}</th>
+                        <th class="py-2.5 px-4 font-semibold">{{ t('pdf_to_md.table_images_count') }}</th>
+                        <th class="py-2.5 px-4 font-semibold">{{ t('pdf_to_md.table_status') }}</th>
                     </tr>
                     </thead>
                     <tbody id="folder-results-body" class="divide-y divide-slate-100 dark:divide-slate-800/80"></tbody>
@@ -215,8 +221,29 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- JSON translations for JS execution -->
+<script id="i18n-translations" type="application/json">
+{{ {
+    "btn_convert": t('pdf_to_md.btn_convert'),
+    "btn_converting": t('pdf_to_md.btn_converting'),
+    "btn_start_batch": t('pdf_to_md.btn_start_batch'),
+    "btn_busy_batch": t('pdf_to_md.btn_busy_batch'),
+    "alert_enter_folders": t('pdf_to_md.alert_enter_folders'),
+    "convert_failed": t('pdf_to_md.convert_failed'),
+    "convert_success": t('pdf_to_md.convert_success'),
+    "connection_error": t('pdf_to_md.connection_error'),
+    "batch_success": t('pdf_to_md.batch_success'),
+    "batch_partial": t('pdf_to_md.batch_partial'),
+    "batch_failed": t('pdf_to_md.batch_failed'),
+    "status_success": t('pdf_to_md.status_success'),
+    "status_error": t('pdf_to_md.status_error')
+} | tojson }}
+</script>
+
 <script>
 (function () {
+    const I18N = JSON.parse(document.getElementById("i18n-translations").textContent);
+
     const ocrSelect = document.getElementById("ocr-mode");
     const geminiParams = document.getElementById("gemini-params");
     const ollamaParams = document.getElementById("ollama-params");
@@ -268,7 +295,7 @@
     function setBusy(v) {
         btn.disabled = v;
         spinner.classList.toggle("hidden", !v);
-        document.getElementById("convert-btn-label").textContent = v ? "Đang chuyển đổi…" : "Chuyển đổi sang Markdown";
+        document.getElementById("convert-btn-label").textContent = v ? I18N.btn_converting : I18N.btn_convert;
     }
 
     function showStatus(msg, isError = false) {
@@ -302,7 +329,7 @@
             });
 
             if (!res.ok) {
-                let errMsg = "Chuyển đổi thất bại (Mã lỗi: " + res.status + ")";
+                let errMsg = I18N.convert_failed.replace('{status}', res.status);
                 try {
                     const errJson = await res.json();
                     if (errJson && errJson.detail) errMsg = errJson.detail;
@@ -310,7 +337,7 @@
                     const txt = await res.text();
                     if (txt) errMsg = txt;
                 }
-                showStatus("Lỗi: " + errMsg, true);
+                showStatus(errMsg, true);
                 return;
             }
 
@@ -342,9 +369,9 @@
             a.remove();
             setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 1000);
 
-            showStatus("✓ Chuyển đổi thành công! Tệp " + filename + " đã được tải về.", false);
+            showStatus(I18N.convert_success.replace('{filename}', filename), false);
         } catch (err) {
-            showStatus("Lỗi kết nối: " + (err && err.message ? err.message : err), true);
+            showStatus(I18N.connection_error.replace('{error}', (err && err.message ? err.message : err)), true);
         } finally {
             setBusy(false);
         }
@@ -365,7 +392,7 @@
     function setFBusy(v) {
         fbtn.disabled = v;
         fspinner.classList.toggle("hidden", !v);
-        document.getElementById("folder-btn-label").textContent = v ? "Đang xử lý…" : "Bắt đầu quét & chuyển đổi";
+        document.getElementById("folder-btn-label").textContent = v ? I18N.btn_busy_batch : I18N.btn_start_batch;
     }
 
     function esc(s) {
@@ -381,7 +408,7 @@
         if (!source || !output) {
             fstatus.hidden = false;
             fstatus.className = "text-xs sm:text-sm text-rose-500 font-semibold";
-            fstatus.textContent = "Vui lòng nhập cả thư mục nguồn và thư mục đích.";
+            fstatus.textContent = I18N.alert_enter_folders;
             return;
         }
 
@@ -420,7 +447,7 @@
                     files: out.files,
                     images: out.images || 0,
                     bad: false,
-                    note: out.output_path || "Thành công"
+                    note: out.output_path || I18N.status_success
                 });
             }
             for (const err of (data.errors || [])) {
@@ -429,7 +456,7 @@
                     files: "-",
                     images: "-",
                     bad: true,
-                    note: err.error || "Lỗi"
+                    note: err.error || I18N.status_error
                 });
             }
             rows.sort((a, b) => a.file.localeCompare(b.file));
@@ -448,19 +475,19 @@
             fstatus.hidden = false;
             if (failed === 0 && ok > 0) {
                 fstatus.className = "text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-400";
-                fstatus.textContent = "✓ Thành công! Đã chuyển " + ok + "/" + total + " file PDF vào " + (data.output_folder || output) + ".";
+                fstatus.textContent = I18N.batch_success.replace('{ok}', ok).replace('{total}', total).replace('{folder}', (data.output_folder || output));
             } else if (ok > 0) {
                 fstatus.className = "text-xs sm:text-sm font-semibold text-amber-500";
-                fstatus.textContent = "Đã chuyển " + ok + " file, có " + failed + " file lỗi. Xem chi tiết ở bảng bên dưới.";
+                fstatus.textContent = I18N.batch_partial.replace('{ok}', ok).replace('{failed}', failed);
             } else {
                 fstatus.className = "text-xs sm:text-sm font-semibold text-rose-500";
                 fstatus.textContent = (data.errors && data.errors[0] && data.errors[0].error) ||
-                    (res.status + " — Không thể chuyển đổi. Kiểm tra lại đường dẫn thư mục.");
+                    (res.status + " — " + I18N.batch_failed);
             }
         } catch (err) {
             fstatus.hidden = false;
             fstatus.className = "text-xs sm:text-sm font-semibold text-rose-500";
-            fstatus.textContent = "Lỗi: " + (err && err.message ? err.message : err);
+            fstatus.textContent = "Error: " + (err && err.message ? err.message : err);
         } finally {
             setFBusy(false);
         }

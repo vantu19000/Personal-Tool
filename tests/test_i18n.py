@@ -125,6 +125,46 @@ def test_image_to_prompt_screen_i18n():
     assert "Start Reverse Prompting Image → Prompt" in resp_en.text
 
 
+def test_srt_translator_screen_i18n():
+    client = TestClient(app)
+
+    # 1. SRT Translator in Vietnamese
+    resp_vi = client.get("/tools/srt-translator?lang=vi")
+    assert resp_vi.status_code == 200
+    assert "Dịch từng file phụ đề" in resp_vi.text
+    assert "Dịch hàng loạt (toàn bộ thư mục)" in resp_vi.text
+    assert "Thư mục nguồn (chứa file .srt)" in resp_vi.text
+    assert "Dịch phụ đề ↓" in resp_vi.text
+
+    # 2. SRT Translator in English
+    resp_en = client.get("/tools/srt-translator?lang=en")
+    assert resp_en.status_code == 200
+    assert "Single Subtitle File Translation" in resp_en.text
+    assert "Batch Translation (Entire Folder)" in resp_en.text
+    assert "Source Folder (containing .srt files)" in resp_en.text
+    assert "Translate Subtitles ↓" in resp_en.text
+
+
+def test_pdf_to_md_screen_i18n():
+    client = TestClient(app)
+
+    # 1. PDF to Markdown in Vietnamese
+    resp_vi = client.get("/tools/pdf-to-md?lang=vi")
+    assert resp_vi.status_code == 200
+    assert "Chuyển đổi từng file PDF" in resp_vi.text
+    assert "Chuyển đổi theo thư mục (hàng loạt)" in resp_vi.text
+    assert "Số trang mỗi file Markdown" in resp_vi.text
+    assert "Chuyển đổi sang Markdown" in resp_vi.text
+
+    # 2. PDF to Markdown in English
+    resp_en = client.get("/tools/pdf-to-md?lang=en")
+    assert resp_en.status_code == 200
+    assert "Single PDF Conversion" in resp_en.text
+    assert "Batch Folder Conversion" in resp_en.text
+    assert "Pages per Markdown file" in resp_en.text
+    assert "Convert to Markdown" in resp_en.text
+
+
 if __name__ == "__main__":
     test_i18n_basic_translations()
     test_i18n_fallback_and_formatting()
@@ -132,4 +172,6 @@ if __name__ == "__main__":
     test_web_language_detection_and_switch()
     test_settings_screen_i18n()
     test_image_to_prompt_screen_i18n()
+    test_srt_translator_screen_i18n()
+    test_pdf_to_md_screen_i18n()
     print("All i18n tests passed successfully!")
