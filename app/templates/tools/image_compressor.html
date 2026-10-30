@@ -1,0 +1,953 @@
+{% extends "base.html" %}
+
+{% block title %}Nén Ảnh · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}Nén Ảnh{% endblock %}
+
+{% block content %}
+<div class="w-full space-y-6">
+    <!-- Tool Header -->
+    <section class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-xs">
+                    <i data-lucide="minimize-2" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>Nén Ảnh Tối Ưu</span>
+                        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                            ✦ Media
+                        </span>
+                    </h1>
+                    <p class="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                        Nén ảnh JPEG, PNG, WebP nhanh chóng. Hỗ trợ tải nhiều file hoặc nén hàng loạt trực tiếp trong thư mục kèm tự động sao lưu.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Format Badges -->
+            <div class="flex flex-wrap gap-1.5 self-start sm:self-center">
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">JPG</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">PNG</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">WEBP</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">BMP</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Shared Quality / Compression Config (Applies to both tabs) -->
+    <section class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 sm:p-6 shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div>
+                <label class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                    <span>Tỷ lệ chất lượng nén ảnh</span>
+                    <span class="text-[11px] font-normal text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-200/50 dark:border-emerald-800/50">
+                        Áp dụng cho cả 2 tab
+                    </span>
+                </label>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Chọn mức gợi ý hoặc tự do chọn/nhập bất kỳ số nguyên nào từ <strong>1% đến 100%</strong> (Mặc định: <strong>20%</strong>).
+                </p>
+            </div>
+
+            <!-- Controls: Select Option Dropdown + Number Input -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Select Dropdown for Default Presets -->
+                <div class="relative">
+                    <select id="quality-preset-select"
+                            class="appearance-none bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-semibold rounded-xl pl-3.5 pr-8 py-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition">
+                        <option value="95">95% · Giữ nét tối đa</option>
+                        <option value="90">90% · Chất lượng cao</option>
+                        <option value="85">85% · Khá tốt</option>
+                        <option value="75">75% · Cân bằng</option>
+                        <option value="60">60% · Trung bình</option>
+                        <option value="50">50% · Nén nhiều</option>
+                        <option value="40">40% · Nén mạnh</option>
+                        <option value="30">30% · Nén rất mạnh</option>
+                        <option value="20" selected>20% · Mặc định (Tối ưu)</option>
+                        <option value="10">10% · Siêu nén (Dung lượng nhỏ nhất)</option>
+                        <option value="custom" id="preset-custom-opt">Tùy chỉnh khác...</option>
+                    </select>
+                    <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                </div>
+
+                <!-- Direct Number Input -->
+                <div class="flex items-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 px-3 py-1.5 focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500 transition">
+                    <input type="number" id="shared-quality-input" min="1" max="100" step="1" value="20"
+                           class="w-14 text-center text-sm font-bold bg-transparent text-slate-900 dark:text-white focus:outline-none" />
+                    <span class="text-xs font-semibold text-slate-400 select-none">%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 space-y-3">
+            <!-- Range Slider -->
+            <div class="flex items-center gap-4">
+                <span class="text-xs font-mono text-slate-400 select-none w-6 text-right">1%</span>
+                <input type="range" id="shared-quality-slider" min="1" max="100" step="1" value="20"
+                       class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-600 dark:accent-emerald-500" />
+                <span class="text-xs font-mono text-slate-400 select-none w-8">100%</span>
+            </div>
+
+            <!-- Quick Pill Buttons with Dynamic Active Highlight -->
+            <div class="flex flex-wrap items-center gap-2 pt-1" id="preset-pill-container">
+                <span class="text-[11px] font-medium text-slate-400 select-none mr-1">Chọn nhanh:</span>
+                <button type="button" data-val="10" onclick="setSharedQuality(10)" class="preset-btn px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    10% (Siêu nén)
+                </button>
+                <button type="button" data-val="20" onclick="setSharedQuality(20)" class="preset-btn px-2.5 py-1 text-xs rounded-lg font-semibold border border-emerald-400 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 shadow-2xs transition">
+                    20% (Mặc định)
+                </button>
+                <button type="button" data-val="30" onclick="setSharedQuality(30)" class="preset-btn px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    30% (Nén rất mạnh)
+                </button>
+                <button type="button" data-val="40" onclick="setSharedQuality(40)" class="preset-btn px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    40% (Nén mạnh)
+                </button>
+                <button type="button" data-val="60" onclick="setSharedQuality(60)" class="preset-btn px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    60% (Trung bình)
+                </button>
+                <button type="button" data-val="75" onclick="setSharedQuality(75)" class="preset-btn px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    75% (Cân bằng)
+                </button>
+                <button type="button" data-val="85" onclick="setSharedQuality(85)" class="preset-btn px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    85% (Chất lượng cao)
+                </button>
+                <button type="button" data-val="95" onclick="setSharedQuality(95)" class="preset-btn px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    95% (Giữ nét tối đa)
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Tabs -->
+    <div class="space-y-4">
+        <!-- Tab Navigation Buttons -->
+        <div class="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-200/60 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 select-none">
+            <button type="button" id="tab-btn-upload" onclick="switchTab('upload')"
+                    class="flex-1 flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition shadow-xs bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400">
+                <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                <span>Tab 1: Tải lên nhiều file</span>
+                <span id="tab-upload-badge" class="hidden px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300">0</span>
+            </button>
+            <button type="button" id="tab-btn-folder" onclick="switchTab('folder')"
+                    class="flex-1 flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                <i data-lucide="folder-cog" class="w-4 h-4"></i>
+                <span>Tab 2: Nén theo thư mục</span>
+            </button>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 1: UPLOAD NHIỀU FILE                   -->
+        <!-- ========================================== -->
+        <div id="tab-pane-upload" class="space-y-6">
+            <!-- Upload Box & File Drag Area -->
+            <section class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-5">
+                <div id="drop-zone"
+                     class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-2xl p-8 text-center cursor-pointer bg-slate-50/50 dark:bg-slate-900/40 transition flex flex-col items-center justify-center gap-3">
+                    <input type="file" id="file-input" multiple accept="image/*" class="hidden" />
+                    <div class="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs">
+                        <i data-lucide="image-plus" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-200">
+                            Kéo thả nhiều ảnh vào đây, hoặc <span class="text-emerald-600 dark:text-emerald-400 underline">bấm để chọn</span>
+                        </p>
+                        <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                            Hỗ trợ JPG, PNG, WebP, BMP, TIFF... Không giới hạn số lượng ảnh tải lên cùng lúc.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Selected Files List & Controls -->
+                <div id="selected-files-container" class="hidden space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                            <span>Danh sách ảnh đã chọn</span>
+                            <span id="selected-count-badge" class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">0 ảnh</span>
+                            <span id="selected-total-size" class="text-xs font-normal text-slate-400">(0 MB)</span>
+                        </h3>
+                        <button type="button" onclick="clearSelectedFiles()" class="text-xs text-rose-500 hover:text-rose-600 flex items-center gap-1 font-medium">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            <span>Xóa danh sách</span>
+                        </button>
+                    </div>
+
+                    <!-- Quick Estimation Banner (Dung lượng sau tối ưu & mức giảm dự kiến) -->
+                    <div id="quick-estimation-card" class="rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-slate-500/5 border border-emerald-500/25 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0 shadow-2xs">
+                                <i data-lucide="calculator" class="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400"></i>
+                            </div>
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">Dung lượng ước tính sau nén:</span>
+                                    <span id="est-total-new-size" class="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">~0 MB</span>
+                                    <span id="est-total-saved-badge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300/40">
+                                        Giảm ~0%
+                                    </span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                    Dự kiến giảm được: <span id="est-total-saved-bytes" class="font-semibold text-emerald-600 dark:text-emerald-400 font-mono">~0 MB</span> (từ gốc <span id="est-total-orig-size" class="font-mono">0 MB</span>, ở mức <span id="est-quality-label" class="font-bold text-emerald-600 font-mono">20%</span>).
+                                </p>
+                            </div>
+                        </div>
+                        <div class="text-[11px] text-slate-400 italic shrink-0 self-end sm:self-center flex items-center gap-1.5">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-500"></i>
+                            <span>Tự động tính nhanh theo mức %</span>
+                        </div>
+                    </div>
+
+                    <!-- Thumbnails Preview Grid -->
+                    <div id="selected-files-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-80 overflow-y-auto p-1">
+                        <!-- Dynamic items -->
+                    </div>
+
+                    <!-- Action Button -->
+                    <div class="pt-2 flex flex-col sm:flex-row items-center justify-end gap-3">
+                        <button type="button" id="btn-compress-upload" onclick="startUploadCompression()"
+                                class="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                            <span id="btn-compress-text">Bắt đầu nén ảnh</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Upload Results Section -->
+            <section id="upload-results-section" class="hidden rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-5">
+                <!-- Summary Card -->
+                <div class="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-slate-500/5 border border-emerald-200/60 dark:border-emerald-800/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600 dark:text-emerald-400"></i>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">Nén hoàn tất thành công!</h3>
+                        </div>
+                        <p id="upload-summary-text" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                            Đã nén 0 ảnh: giảm từ 0 MB xuống 0 MB (-0%).
+                        </p>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <a id="btn-download-all-zip" href="#" download
+                           class="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/30 flex items-center gap-2 transition">
+                            <i data-lucide="archive" class="w-4 h-4"></i>
+                            <span>Tải xuống tất cả (.ZIP)</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Results List Table -->
+                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                    <table class="w-full text-left text-xs sm:text-sm border-collapse">
+                        <thead class="bg-slate-50 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold uppercase text-[11px]">
+                            <tr>
+                                <th class="py-3 px-4 w-14">Xem trước</th>
+                                <th class="py-3 px-4">Tên tệp</th>
+                                <th class="py-3 px-4">Dung lượng gốc</th>
+                                <th class="py-3 px-4">Sau khi nén</th>
+                                <th class="py-3 px-4">Tiết kiệm</th>
+                                <th class="py-3 px-4 text-right">Tải về</th>
+                            </tr>
+                        </thead>
+                        <tbody id="upload-results-tbody" class="divide-y divide-slate-100 dark:divide-slate-800">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: NÉN THEO THƯ MỤC CỤC BỘ            -->
+        <!-- ========================================== -->
+        <div id="tab-pane-folder" class="hidden space-y-6">
+            <section class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-6">
+                <!-- Folder Path Input Form -->
+                <div class="space-y-4">
+                    <div>
+                        <label for="folder-path-input" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            Đường dẫn thư mục chứa ảnh trên máy tính
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <div class="relative flex-1">
+                                <i data-lucide="folder" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                                <input type="text" id="folder-path-input"
+                                       placeholder="Ví dụ: D:\HinhAnh\SanPham hoặc C:\Users\vantu\Pictures"
+                                       class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-xs sm:text-sm font-mono text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition" />
+                            </div>
+
+                            <!-- Browse folder button -->
+                            <button type="button" id="btn-browse-folder" onclick="browseFolderDialog()"
+                                    class="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-2 shrink-0">
+                                <i data-lucide="folder-search" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                                <span>Chọn thư mục…</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Options -->
+                    <div class="flex flex-wrap items-center justify-between gap-4 pt-1">
+                        <label class="flex items-center gap-2 cursor-pointer select-none">
+                            <input type="checkbox" id="folder-recursive-check" checked
+                                   class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-emerald-600 focus:ring-emerald-500" />
+                            <span class="text-xs sm:text-sm text-slate-700 dark:text-slate-300">Quét cả các thư mục con bên trong (Recursive)</span>
+                        </label>
+                    </div>
+
+                    <!-- Workflow Clarification Note -->
+                    <div class="rounded-xl p-4 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/50 flex items-start gap-3 text-xs sm:text-sm text-amber-900 dark:text-amber-200">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5"></i>
+                        <div class="space-y-1">
+                            <p class="font-semibold">Cơ chế an toàn tự động sao lưu ảnh gốc:</p>
+                            <p class="text-xs text-amber-800 dark:text-amber-300">
+                                Trước khi nén, toàn bộ ảnh gốc sẽ được chuyển an toàn vào thư mục <code class="font-mono font-bold bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded">&lt;thư_mục&gt;/backup</code>.
+                                Ảnh sau khi nén sẽ thế đúng vị trí ban đầu của file gốc.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="flex items-center gap-3 pt-2">
+                        <button type="button" id="btn-scan-folder" onclick="scanFolderImages()"
+                                class="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 transition flex items-center gap-2">
+                            <i data-lucide="search" class="w-4 h-4"></i>
+                            <span>Kiểm tra thư mục</span>
+                        </button>
+
+                        <button type="button" id="btn-compress-folder" onclick="startFolderCompression()"
+                                class="px-6 py-2.5 rounded-xl text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md shadow-emerald-600/20 text-xs sm:text-sm font-semibold transition flex items-center gap-2">
+                            <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+                            <span>Bắt đầu nén & Sao lưu</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Scan Results Preview Box -->
+                <div id="folder-scan-box" class="hidden rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/50 dark:bg-slate-900/40 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <p class="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                            <i data-lucide="info" class="w-4 h-4 text-emerald-600"></i>
+                            <span id="scan-result-title">Tìm thấy 0 ảnh</span>
+                        </p>
+                        <span id="scan-result-size" class="text-xs font-mono text-slate-500">Tổng dung lượng: 0 MB</span>
+                    </div>
+                    <p id="scan-backup-dest" class="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                        Thư mục sao lưu dự kiến: ...
+                    </p>
+                    <div id="scan-result-estimation" class="mt-2 pt-2 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+                        <span class="flex items-center gap-1.5">
+                            <i data-lucide="calculator" class="w-3.5 h-3.5 text-emerald-600"></i>
+                            <span>Dự kiến sau nén: <strong id="scan-est-size" class="text-emerald-600 dark:text-emerald-400 font-mono">~0 MB</strong></span>
+                        </span>
+                        <span id="scan-est-saved" class="font-semibold text-emerald-600 dark:text-emerald-400 font-mono">Giảm ~0% (~0 MB)</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Folder Compression Results Section -->
+            <section id="folder-results-section" class="hidden rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-5">
+                <!-- Summary Stats -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                    <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
+                        <p class="text-[11px] font-semibold text-slate-400 uppercase">Ảnh đã nén</p>
+                        <p id="folder-stat-count" class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-1">0</p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
+                        <p class="text-[11px] font-semibold text-slate-400 uppercase">Dung lượng gốc</p>
+                        <p id="folder-stat-orig" class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-1">0 MB</p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
+                        <p class="text-[11px] font-semibold text-slate-400 uppercase">Sau khi nén</p>
+                        <p id="folder-stat-new" class="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">0 MB</p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60">
+                        <p class="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 uppercase">Tiết kiệm</p>
+                        <p id="folder-stat-saved" class="text-xl sm:text-2xl font-bold text-emerald-700 dark:text-emerald-300 mt-1">-0%</p>
+                    </div>
+                </div>
+
+                <!-- Backup Folder Action Bar -->
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Ảnh gốc đã được chuyển vào:</p>
+                        <p id="folder-backup-path-text" class="text-xs sm:text-sm font-mono font-medium text-slate-800 dark:text-slate-200 truncate mt-0.5">...</p>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button type="button" onclick="openBackupFolder()"
+                                class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center gap-1.5">
+                            <i data-lucide="folder-open" class="w-3.5 h-3.5 text-emerald-600"></i>
+                            <span>Mở thư mục sao lưu</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Detailed Table -->
+                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                    <table class="w-full text-left text-xs sm:text-sm border-collapse">
+                        <thead class="bg-slate-50 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold uppercase text-[11px]">
+                            <tr>
+                                <th class="py-3 px-4">Tên tệp</th>
+                                <th class="py-3 px-4">Gốc</th>
+                                <th class="py-3 px-4">Sau nén</th>
+                                <th class="py-3 px-4">Tiết kiệm</th>
+                                <th class="py-3 px-4">Sao lưu tại</th>
+                                <th class="py-3 px-4">Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="folder-results-tbody" class="divide-y divide-slate-100 dark:divide-slate-800">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Global State
+let sharedQuality = 20;
+let uploadedFiles = [];
+let currentBackupDir = "";
+
+// Initialize Quality Sync
+const qualitySlider = document.getElementById("shared-quality-slider");
+const qualityInput = document.getElementById("shared-quality-input");
+const presetSelect = document.getElementById("quality-preset-select");
+const customOpt = document.getElementById("preset-custom-opt");
+const presetButtons = document.querySelectorAll("#preset-pill-container .preset-btn");
+
+function updatePresetUI(val) {
+    const presetValues = ["10", "20", "30", "40", "50", "60", "75", "85", "90", "95"];
+    if (presetValues.includes(String(val))) {
+        presetSelect.value = String(val);
+        customOpt.textContent = "Tùy chỉnh khác...";
+    } else {
+        presetSelect.value = "custom";
+        customOpt.textContent = `Tùy chỉnh (${val}%)`;
+    }
+
+    presetButtons.forEach((btn) => {
+        const btnVal = parseInt(btn.getAttribute("data-val"), 10);
+        if (btnVal === val) {
+            btn.className = "preset-btn px-2.5 py-1 text-xs rounded-lg font-semibold border border-emerald-400 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 shadow-2xs transition";
+        } else {
+            btn.className = "preset-btn px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition";
+        }
+    });
+}
+
+function getCompressionRatio(quality, filename) {
+    const q = Math.max(1, Math.min(100, parseInt(quality, 10) || 20));
+    const isPng = /\.png$/i.test(filename || "");
+    if (isPng) {
+        if (q <= 15) return 0.16;
+        if (q <= 25) return 0.22;
+        if (q <= 35) return 0.28;
+        if (q <= 50) return 0.38;
+        if (q <= 70) return 0.52;
+        if (q <= 85) return 0.68;
+        return 0.85;
+    }
+    // JPEG / WebP / BMP / TIFF
+    // q=10 -> ~0.10, q=20 -> ~0.16, q=30 -> ~0.23, q=40 -> ~0.31, q=60 -> ~0.50, q=75 -> ~0.65, q=95 -> ~0.88
+    const ratio = 0.06 + 0.88 * Math.pow(q / 100, 1.35);
+    return Math.min(0.95, Math.max(0.08, ratio));
+}
+
+let lastScannedTotalSize = 0;
+
+function updateFolderScanEstimation() {
+    if (!lastScannedTotalSize || lastScannedTotalSize <= 0) return;
+    const ratio = getCompressionRatio(sharedQuality, "sample.jpg");
+    const estNew = Math.round(lastScannedTotalSize * ratio);
+    const estSaved = Math.max(0, lastScannedTotalSize - estNew);
+    const estSavedPct = Math.round((estSaved / lastScannedTotalSize) * 100);
+
+    const estSizeEl = document.getElementById("scan-est-size");
+    const estSavedEl = document.getElementById("scan-est-saved");
+    if (estSizeEl) estSizeEl.textContent = `~${formatBytes(estNew)}`;
+    if (estSavedEl) estSavedEl.textContent = `Giảm ~${estSavedPct}% (~${formatBytes(estSaved)})`;
+}
+
+function updateEstimations() {
+    if (!uploadedFiles || uploadedFiles.length === 0) return;
+
+    let totalOrig = 0;
+    let totalEstNew = 0;
+
+    uploadedFiles.forEach((file) => {
+        const ratio = getCompressionRatio(sharedQuality, file.name);
+        const estSize = Math.round(file.size * ratio);
+        totalOrig += file.size;
+        totalEstNew += estSize;
+    });
+
+    const totalSavedBytes = Math.max(0, totalOrig - totalEstNew);
+    const totalSavedPct = totalOrig > 0 ? Math.round((totalSavedBytes / totalOrig) * 100) : 0;
+
+    const estNewEl = document.getElementById("est-total-new-size");
+    const estBadgeEl = document.getElementById("est-total-saved-badge");
+    const estSavedBytesEl = document.getElementById("est-total-saved-bytes");
+    const estOrigEl = document.getElementById("est-total-orig-size");
+    const estQualityEl = document.getElementById("est-quality-label");
+
+    if (estNewEl) estNewEl.textContent = `~${formatBytes(totalEstNew)}`;
+    if (estBadgeEl) estBadgeEl.textContent = `Giảm ~${totalSavedPct}%`;
+    if (estSavedBytesEl) estSavedBytesEl.textContent = `~${formatBytes(totalSavedBytes)}`;
+    if (estOrigEl) estOrigEl.textContent = formatBytes(totalOrig);
+    if (estQualityEl) estQualityEl.textContent = `${sharedQuality}%`;
+
+    // Also update individual file cards
+    const cardEstEls = document.querySelectorAll(".file-card-est");
+    cardEstEls.forEach((el) => {
+        const origSize = parseInt(el.getAttribute("data-orig-size"), 10);
+        const fname = el.getAttribute("data-fname");
+        if (!isNaN(origSize)) {
+            const ratio = getCompressionRatio(sharedQuality, fname);
+            const est = Math.round(origSize * ratio);
+            const savedPct = Math.round((1 - ratio) * 100);
+            el.textContent = `~${formatBytes(est)} (-${savedPct}%)`;
+        }
+    });
+
+    updateFolderScanEstimation();
+}
+
+function setSharedQuality(val, source) {
+    val = parseInt(val, 10);
+    if (isNaN(val)) return;
+    val = Math.max(1, Math.min(100, val));
+    sharedQuality = val;
+
+    if (source !== "slider") qualitySlider.value = val;
+    if (source !== "input") qualityInput.value = val;
+
+    updatePresetUI(val);
+    updateEstimations();
+}
+
+presetSelect.addEventListener("change", (e) => {
+    if (e.target.value === "custom") {
+        qualityInput.focus();
+        qualityInput.select();
+    } else {
+        setSharedQuality(e.target.value, "select");
+    }
+});
+
+qualitySlider.addEventListener("input", (e) => {
+    setSharedQuality(e.target.value, "slider");
+});
+
+qualityInput.addEventListener("input", (e) => {
+    setSharedQuality(e.target.value, "input");
+});
+
+qualityInput.addEventListener("change", (e) => {
+    let val = parseInt(e.target.value, 10);
+    if (isNaN(val) || val < 1) val = 1;
+    if (val > 100) val = 100;
+    setSharedQuality(val);
+});
+
+qualityInput.addEventListener("blur", (e) => {
+    let val = parseInt(e.target.value, 10);
+    if (isNaN(val) || val < 1) val = 1;
+    if (val > 100) val = 100;
+    setSharedQuality(val);
+});
+
+// Tab Switching
+function switchTab(tab) {
+    const btnUpload = document.getElementById("tab-btn-upload");
+    const btnFolder = document.getElementById("tab-btn-folder");
+    const paneUpload = document.getElementById("tab-pane-upload");
+    const paneFolder = document.getElementById("tab-pane-folder");
+
+    if (tab === "upload") {
+        btnUpload.className = "flex-1 flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition shadow-xs bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400";
+        btnFolder.className = "flex-1 flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white";
+        paneUpload.classList.remove("hidden");
+        paneFolder.classList.add("hidden");
+    } else {
+        btnFolder.className = "flex-1 flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition shadow-xs bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400";
+        btnUpload.className = "flex-1 flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white";
+        paneFolder.classList.remove("hidden");
+        paneUpload.classList.add("hidden");
+    }
+    if (window.lucide) lucide.createIcons();
+}
+
+// ----------------------------------------------------
+// TAB 1: Upload Files
+// ----------------------------------------------------
+const dropZone = document.getElementById("drop-zone");
+const fileInput = document.getElementById("file-input");
+const filesContainer = document.getElementById("selected-files-container");
+const filesGrid = document.getElementById("selected-files-grid");
+const countBadge = document.getElementById("selected-count-badge");
+const tabBadge = document.getElementById("tab-upload-badge");
+const totalSizeText = document.getElementById("selected-total-size");
+
+dropZone.addEventListener("click", () => fileInput.click());
+
+dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.classList.add("border-emerald-500", "bg-emerald-50/40", "dark:bg-emerald-950/20");
+});
+
+dropZone.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("border-emerald-500", "bg-emerald-50/40", "dark:bg-emerald-950/20");
+});
+
+dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("border-emerald-500", "bg-emerald-50/40", "dark:bg-emerald-950/20");
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        addFiles(Array.from(e.dataTransfer.files));
+    }
+});
+
+fileInput.addEventListener("change", (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+        addFiles(Array.from(e.target.files));
+    }
+});
+
+function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+}
+
+function addFiles(newFiles) {
+    const validFiles = newFiles.filter(f => f.type.startsWith("image/") || /\.(jpe?g|png|webp|bmp|tiff?)$/i.test(f.name));
+    uploadedFiles = uploadedFiles.concat(validFiles);
+    renderSelectedFiles();
+}
+
+function removeFile(index) {
+    uploadedFiles.splice(index, 1);
+    renderSelectedFiles();
+}
+
+function clearSelectedFiles() {
+    uploadedFiles = [];
+    fileInput.value = "";
+    renderSelectedFiles();
+    document.getElementById("upload-results-section").classList.add("hidden");
+}
+
+function renderSelectedFiles() {
+    if (uploadedFiles.length === 0) {
+        filesContainer.classList.add("hidden");
+        tabBadge.classList.add("hidden");
+        return;
+    }
+
+    filesContainer.classList.remove("hidden");
+    tabBadge.classList.remove("hidden");
+    tabBadge.textContent = uploadedFiles.length;
+    countBadge.textContent = `${uploadedFiles.length} ảnh`;
+
+    const totalBytes = uploadedFiles.reduce((acc, f) => acc + f.size, 0);
+    totalSizeText.textContent = `(${formatBytes(totalBytes)})`;
+
+    filesGrid.innerHTML = "";
+    uploadedFiles.forEach((file, idx) => {
+        const item = document.createElement("div");
+        item.className = "relative group rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-2 flex flex-col items-center";
+
+        const thumb = document.createElement("img");
+        thumb.className = "w-full h-20 object-cover rounded-lg bg-slate-200 dark:bg-slate-800";
+        thumb.src = URL.createObjectURL(file);
+
+        const ratio = getCompressionRatio(sharedQuality, file.name);
+        const est = Math.round(file.size * ratio);
+        const savedPct = Math.round((1 - ratio) * 100);
+
+        const info = document.createElement("div");
+        info.className = "w-full mt-1.5 min-w-0";
+        info.innerHTML = `
+            <p class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 truncate" title="${file.name}">${file.name}</p>
+            <div class="mt-1 space-y-0.5 text-[10px]">
+                <div class="flex items-center justify-between text-slate-400 font-mono">
+                    <span>Gốc:</span>
+                    <span>${formatBytes(file.size)}</span>
+                </div>
+                <div class="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-semibold font-mono">
+                    <span>Dự kiến:</span>
+                    <span class="file-card-est" data-orig-size="${file.size}" data-fname="${file.name}">~${formatBytes(est)} (-${savedPct}%)</span>
+                </div>
+            </div>
+        `;
+
+        const rmBtn = document.createElement("button");
+        rmBtn.type = "button";
+        rmBtn.className = "absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-xs";
+        rmBtn.innerHTML = "×";
+        rmBtn.onclick = (e) => {
+            e.stopPropagation();
+            removeFile(idx);
+        };
+
+        item.appendChild(thumb);
+        item.appendChild(info);
+        item.appendChild(rmBtn);
+        filesGrid.appendChild(item);
+    });
+
+    updateEstimations();
+    if (window.lucide) lucide.createIcons();
+}
+
+async function startUploadCompression() {
+    if (uploadedFiles.length === 0) return;
+
+    const btn = document.getElementById("btn-compress-upload");
+    const btnText = document.getElementById("btn-compress-text");
+    btn.disabled = true;
+    btnText.textContent = "Đang nén ảnh...";
+
+    const formData = new FormData();
+    formData.append("quality", sharedQuality);
+    uploadedFiles.forEach((file, i) => {
+        formData.append(`file_${i}`, file);
+    });
+
+    try {
+        const res = await fetch("/tools/image-compressor/compress-files", {
+            method: "POST",
+            body: formData,
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            renderUploadResults(data);
+        } else {
+            alert(data.error || "Có lỗi xảy ra khi nén ảnh.");
+        }
+    } catch (err) {
+        alert("Lỗi kết nối máy chủ: " + err.message);
+    } finally {
+        btn.disabled = false;
+        btnText.textContent = "Bắt đầu nén ảnh";
+    }
+}
+
+function renderUploadResults(data) {
+    const resultsSec = document.getElementById("upload-results-section");
+    resultsSec.classList.remove("hidden");
+
+    document.getElementById("upload-summary-text").textContent =
+        `Đã nén ${data.total_files} ảnh: giảm từ ${data.total_orig_human} xuống ${data.total_comp_human} (-${data.total_saved_pct}%).`;
+
+    const zipBtn = document.getElementById("btn-download-all-zip");
+    zipBtn.href = `/tools/image-compressor/download-zip/${data.batch_id}`;
+
+    const tbody = document.getElementById("upload-results-tbody");
+    tbody.innerHTML = "";
+
+    data.files.forEach((file) => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition";
+
+        const isSuccess = file.status === "success";
+        tr.innerHTML = `
+            <td class="py-3 px-4">
+                ${file.thumbnail ? `<img src="${file.thumbnail}" class="w-10 h-10 object-cover rounded-lg border border-slate-200 dark:border-slate-700" />` : '<div class="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs text-slate-400">N/A</div>'}
+            </td>
+            <td class="py-3 px-4">
+                <p class="font-medium text-slate-900 dark:text-slate-100">${file.filename}</p>
+                <span class="text-[10px] font-mono text-slate-400">${file.format}</span>
+            </td>
+            <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-400">${file.orig_size_human}</td>
+            <td class="py-3 px-4 font-mono font-semibold text-slate-900 dark:text-slate-100">${file.comp_size_human}</td>
+            <td class="py-3 px-4">
+                ${isSuccess ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">-${file.saved_pct}%</span>` : `<span class="text-xs text-rose-500 font-medium">Lỗi</span>`}
+            </td>
+            <td class="py-3 px-4 text-right">
+                ${isSuccess ? `
+                <a href="/tools/image-compressor/download/${data.batch_id}/${file.idx}" download="${file.filename}"
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-300 transition">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                    <span>Tải về</span>
+                </a>` : ''}
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    if (window.lucide) lucide.createIcons();
+    resultsSec.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ----------------------------------------------------
+// TAB 2: Folder Compression
+// ----------------------------------------------------
+async function browseFolderDialog() {
+    const btn = document.getElementById("btn-browse-folder");
+    const input = document.getElementById("folder-path-input");
+    btn.disabled = true;
+
+    try {
+        const res = await fetch("/tools/image-compressor/browse-folder", { method: "POST" });
+        const data = await res.json();
+        if (data.folder) {
+            input.value = data.folder;
+            scanFolderImages();
+        }
+    } catch (err) {
+        console.error("Browse folder error:", err);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function scanFolderImages() {
+    const input = document.getElementById("folder-path-input");
+    const folder = input.value.trim();
+    if (!folder) {
+        alert("Vui lòng nhập hoặc chọn đường dẫn thư mục.");
+        return;
+    }
+
+    const recursive = document.getElementById("folder-recursive-check").checked;
+    const scanBox = document.getElementById("folder-scan-box");
+
+    try {
+        const res = await fetch("/tools/image-compressor/scan-folder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ folder_path: folder, recursive: recursive }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            scanBox.classList.remove("hidden");
+            document.getElementById("scan-result-title").textContent = `Tìm thấy ${data.count} ảnh phù hợp`;
+            document.getElementById("scan-result-size").textContent = `Tổng dung lượng: ${data.total_size_human}`;
+            document.getElementById("scan-backup-dest").textContent = `Thư mục sao lưu dự kiến: ${data.backup_dir}`;
+            lastScannedTotalSize = data.total_size || 0;
+            updateFolderScanEstimation();
+        } else {
+            alert(data.error || "Không thể quét thư mục.");
+        }
+    } catch (err) {
+        alert("Lỗi khi kiểm tra thư mục: " + err.message);
+    }
+    if (window.lucide) lucide.createIcons();
+}
+
+async function startFolderCompression() {
+    const input = document.getElementById("folder-path-input");
+    const folder = input.value.trim();
+    if (!folder) {
+        alert("Vui lòng nhập hoặc chọn đường dẫn thư mục.");
+        return;
+    }
+
+    if (!confirm(`Xác nhận bắt đầu nén ảnh trong thư mục:\n${folder}\n\nTất cả ảnh gốc sẽ được sao lưu an toàn vào thư mục 'backup'. Tiếp tục?`)) {
+        return;
+    }
+
+    const btn = document.getElementById("btn-compress-folder");
+    btn.disabled = true;
+    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Đang nén ảnh & sao lưu...</span>`;
+    if (window.lucide) lucide.createIcons();
+
+    const recursive = document.getElementById("folder-recursive-check").checked;
+
+    try {
+        const res = await fetch("/tools/image-compressor/compress-folder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                folder_path: folder,
+                quality: sharedQuality,
+                recursive: recursive,
+            }),
+        });
+        const resp = await res.json();
+
+        if (resp.success) {
+            renderFolderResults(resp.data);
+        } else {
+            alert(resp.error || "Có lỗi xảy ra khi nén thư mục.");
+        }
+    } catch (err) {
+        alert("Lỗi kết nối máy chủ: " + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-white"></i><span>Bắt đầu nén & Sao lưu</span>`;
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
+function renderFolderResults(summary) {
+    const sec = document.getElementById("folder-results-section");
+    sec.classList.remove("hidden");
+
+    currentBackupDir = summary.backup_dir;
+    document.getElementById("folder-backup-path-text").textContent = summary.backup_dir;
+
+    document.getElementById("folder-stat-count").textContent = `${summary.success_count} / ${summary.total_images}`;
+    document.getElementById("folder-stat-orig").textContent = summary.total_orig_size_human;
+    document.getElementById("folder-stat-new").textContent = summary.total_new_size_human;
+    document.getElementById("folder-stat-saved").textContent = `-${summary.total_saved_pct}% (${summary.total_saved_bytes_human})`;
+
+    const tbody = document.getElementById("folder-results-tbody");
+    tbody.innerHTML = "";
+
+    summary.results.forEach((item) => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition";
+
+        const isSuccess = item.status === "success";
+        tr.innerHTML = `
+            <td class="py-3 px-4 font-medium text-slate-900 dark:text-slate-100">
+                <p class="truncate max-w-xs" title="${item.rel_path}">${item.rel_path}</p>
+            </td>
+            <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-400">${item.orig_size_human}</td>
+            <td class="py-3 px-4 font-mono font-semibold text-slate-900 dark:text-slate-100">${item.new_size_human}</td>
+            <td class="py-3 px-4">
+                ${isSuccess ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">-${item.saved_pct}%</span>` : `<span class="text-xs text-rose-500 font-medium">Lỗi</span>`}
+            </td>
+            <td class="py-3 px-4 font-mono text-xs text-slate-500 dark:text-slate-400 truncate max-w-xs" title="${item.backup_path}">
+                ${item.backup_path || "—"}
+            </td>
+            <td class="py-3 px-4">
+                ${isSuccess ? `<span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><i data-lucide="check" class="w-3.5 h-3.5"></i> Đã thay thế</span>` : `<span class="text-xs text-rose-500 truncate" title="${item.error}">${item.error || 'Lỗi'}</span>`}
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    if (window.lucide) lucide.createIcons();
+    sec.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function openBackupFolder() {
+    if (!currentBackupDir) return;
+    try {
+        const res = await fetch("/tools/image-compressor/open-folder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ folder_path: currentBackupDir }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+            alert(data.error || "Không thể mở thư mục.");
+        }
+    } catch (err) {
+        alert("Lỗi khi mở thư mục: " + err.message);
+    }
+}
+</script>
+{% endblock %}

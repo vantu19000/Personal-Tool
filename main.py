@@ -10,6 +10,7 @@ from app.core import settings_store
 from app.core.config import settings
 from app.core.templates import templates
 from app.settings import router as settings_router
+from app.tools.image_compressor import router as image_compressor_router
 from app.tools.image_to_prompt import router as image_to_prompt_router
 from app.tools.srt_translator import router as srt_translator_router
 from app.tools.slufy import router as slufy_router
@@ -30,6 +31,7 @@ def create_app() -> FastAPI:
     app.mount("/static", StaticFiles(directory=str(settings.STATIC_DIR)), name="static")
 
     # Register each tool's router under the shared /tools prefix.
+    app.include_router(image_compressor_router, prefix="/tools", tags=["image-compressor"])
     app.include_router(image_to_prompt_router, prefix="/tools", tags=["image-to-prompt"])
     app.include_router(srt_translator_router, prefix="/tools", tags=["srt-translator"])
 

@@ -20,3 +20,6 @@ python-multipart
 
 # --- PDF (trích text, dùng cho tool PDF → Markdown) ---
 PyMuPDF
+
+# --- Image processing & compression ---
+pillow

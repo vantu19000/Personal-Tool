@@ -6,6 +6,15 @@
 {% block content %}
 {# Define complete metadata fallback mapping to ensure icons, tags, and badges always render accurately #}
 {% set tool_meta = {
+    'image-compressor': {
+        'icon': 'minimize-2',
+        'badge': '✦ Nén ảnh',
+        'badge_color': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300',
+        'icon_bg': 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400',
+        'category': 'media',
+        'desc': 'Nén ảnh tối ưu dung lượng hàng loạt hoặc theo thư mục, tự động sao lưu ảnh gốc',
+        'tags': ['Image', 'Compress', 'Optimize', 'Backup']
+    },
     'image-to-prompt': {
         'icon': 'sparkles',
         'badge': '✦ Vision AI',
