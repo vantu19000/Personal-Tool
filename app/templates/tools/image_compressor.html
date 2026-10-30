@@ -47,7 +47,7 @@
                     </span>
                 </label>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Chọn mức gợi ý hoặc tự do chọn/nhập bất kỳ số nguyên nào từ <strong>1% đến 100%</strong> (Mặc định: <strong>20%</strong>).
+                    Chọn mức gợi ý hoặc tự do chọn/nhập bất kỳ số nguyên nào từ <strong>1% đến 100%</strong> (Mặc định: <strong>{{ default_quality }}%</strong>).
                 </p>
             </div>
 
@@ -57,24 +57,26 @@
                 <div class="relative">
                     <select id="quality-preset-select"
                             class="appearance-none bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-semibold rounded-xl pl-3.5 pr-8 py-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition">
-                        <option value="95">95% · Giữ nét tối đa</option>
-                        <option value="90">90% · Chất lượng cao</option>
-                        <option value="85">85% · Khá tốt</option>
-                        <option value="75">75% · Cân bằng</option>
-                        <option value="60">60% · Trung bình</option>
-                        <option value="50">50% · Nén nhiều</option>
-                        <option value="40">40% · Nén mạnh</option>
-                        <option value="30">30% · Nén rất mạnh</option>
-                        <option value="20" selected>20% · Mặc định (Tối ưu)</option>
-                        <option value="10">10% · Siêu nén (Dung lượng nhỏ nhất)</option>
-                        <option value="custom" id="preset-custom-opt">Tùy chỉnh khác...</option>
+                        <option value="95" {% if default_quality == 95 %}selected{% endif %}>95% · Giữ nét tối đa</option>
+                        <option value="90" {% if default_quality == 90 %}selected{% endif %}>90% · Chất lượng cao</option>
+                        <option value="85" {% if default_quality == 85 %}selected{% endif %}>85% · Khá tốt</option>
+                        <option value="75" {% if default_quality == 75 %}selected{% endif %}>75% · Cân bằng</option>
+                        <option value="60" {% if default_quality == 60 %}selected{% endif %}>60% · Trung bình</option>
+                        <option value="50" {% if default_quality == 50 %}selected{% endif %}>50% · Nén nhiều</option>
+                        <option value="40" {% if default_quality == 40 %}selected{% endif %}>40% · Nén mạnh</option>
+                        <option value="30" {% if default_quality == 30 %}selected{% endif %}>30% · Nén rất mạnh</option>
+                        <option value="20" {% if default_quality == 20 %}selected{% endif %}>20% · Mặc định (Tối ưu)</option>
+                        <option value="10" {% if default_quality == 10 %}selected{% endif %}>10% · Siêu nén (Dung lượng nhỏ nhất)</option>
+                        <option value="custom" id="preset-custom-opt" {% if default_quality not in [10, 20, 30, 40, 50, 60, 75, 85, 90, 95] %}selected{% endif %}>
+                            {% if default_quality not in [10, 20, 30, 40, 50, 60, 75, 85, 90, 95] %}Tùy chỉnh ({{ default_quality }}%){% else %}Tùy chỉnh khác...{% endif %}
+                        </option>
                     </select>
                     <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
                 </div>
 
                 <!-- Direct Number Input -->
                 <div class="flex items-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 px-3 py-1.5 focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500 transition">
-                    <input type="number" id="shared-quality-input" min="1" max="100" step="1" value="20"
+                    <input type="number" id="shared-quality-input" min="1" max="100" step="1" value="{{ default_quality }}"
                            class="w-14 text-center text-sm font-bold bg-transparent text-slate-900 dark:text-white focus:outline-none" />
                     <span class="text-xs font-semibold text-slate-400 select-none">%</span>
                 </div>
@@ -85,7 +87,7 @@
             <!-- Range Slider -->
             <div class="flex items-center gap-4">
                 <span class="text-xs font-mono text-slate-400 select-none w-6 text-right">1%</span>
-                <input type="range" id="shared-quality-slider" min="1" max="100" step="1" value="20"
+                <input type="range" id="shared-quality-slider" min="1" max="100" step="1" value="{{ default_quality }}"
                        class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-600 dark:accent-emerald-500" />
                 <span class="text-xs font-mono text-slate-400 select-none w-8">100%</span>
             </div>
@@ -410,7 +412,7 @@
 {% block scripts %}
 <script>
 // Global State
-let sharedQuality = 20;
+let sharedQuality = {{ default_quality }};
 let uploadedFiles = [];
 let currentBackupDir = "";
 
@@ -561,6 +563,9 @@ qualityInput.addEventListener("blur", (e) => {
     if (val > 100) val = 100;
     setSharedQuality(val);
 });
+
+// Run initial synchronization based on saved config
+setSharedQuality({{ default_quality }});
 
 // Tab Switching
 function switchTab(tab) {

@@ -1,0 +1,133 @@
+{
+  "meta": {
+    "name": "Tiếng Việt",
+    "code": "vi",
+    "flag": "🇻🇳"
+  },
+  "common": {
+    "save": "Lưu",
+    "save_changes": "Lưu tất cả thay đổi",
+    "cancel": "Hủy",
+    "close": "Đóng",
+    "copy": "Sao chép",
+    "copied": "Đã sao chép!",
+    "copy_all": "Sao chép tất cả",
+    "delete": "Xóa",
+    "reset": "Đặt lại",
+    "download": "Tải về",
+    "upload": "Tải lên",
+    "browse": "Chọn file",
+    "drop_file_here": "Kéo thả file vào đây hoặc nhấp để chọn",
+    "loading": "Đang xử lý...",
+    "success": "Thành công",
+    "error": "Lỗi",
+    "result": "Kết quả",
+    "status": "Trạng thái",
+    "back": "Quay lại",
+    "active": "Đang hoạt động",
+    "offline": "Offline",
+    "clear": "Xóa trắng",
+    "select": "Chọn",
+    "language": "Ngôn ngữ"
+  },
+  "topbar": {
+    "search_placeholder": "Tìm kiếm công cụ, ví dụ: pdf, srt, hash...",
+    "local_workspace": "Local Workspace",
+    "theme_toggle": "Chuyển chế độ Sáng / Tối",
+    "settings": "Cài đặt hệ thống",
+    "switch_language": "Chuyển đổi ngôn ngữ",
+    "select_language": "Chọn ngôn ngữ hiển thị"
+  },
+  "sidebar": {
+    "dashboard": "Tổng quan",
+    "tools": "Công cụ",
+    "settings": "Cấu hình chung",
+    "available_tools": "CÔNG CỤ SẴN CÓ",
+    "expand": "✦ MỞ RỘNG",
+    "add_module": "Thêm module…",
+    "local_first": "Local-First",
+    "offline_notice": "Đang chạy 100% offline"
+  },
+  "dashboard": {
+    "local_security_badge": "Chạy hoàn toàn local · Bảo mật 100%",
+    "hero_title_default": "Bộ công cụ mini chạy hoàn toàn trên máy của bạn",
+    "hero_desc_default": "Xử lý tài liệu, media, văn bản và nhiều tác vụ khác một cách nhanh chóng, không gửi dữ liệu lên server, đảm bảo riêng tư tuyệt đối.",
+    "explore_tools": "Khám phá công cụ",
+    "customize_system": "Tùy chỉnh hệ thống",
+    "feature_fast": "Nhanh chóng",
+    "feature_offline": "Hoàn toàn offline",
+    "feature_privacy": "Bảo mật dữ liệu",
+    "feature_extensible": "Mở rộng dễ dàng",
+    "stat_available_tools": "Công cụ sẵn có",
+    "stat_local_offline": "Chạy cục bộ (offline)",
+    "stat_zero_latency": "Không phụ thuộc server",
+    "stat_gemini_ai": "Tích hợp dịch SRT thông minh",
+    "all_tools_title": "Tất cả công cụ",
+    "all_tools_desc": "Chọn một công cụ bên dưới để bắt đầu công việc của bạn",
+    "view_grid": "Chế độ lưới",
+    "view_list": "Chế độ danh sách",
+    "mark_favorite": "Đánh dấu yêu thích",
+    "no_tools_found": "Không tìm thấy công cụ phù hợp",
+    "no_tools_hint": "Vui lòng thử tìm kiếm với từ khóa khác hoặc bấm đặt lại bộ lọc.",
+    "reset_filter": "Đặt lại tìm kiếm"
+  },
+  "categories": {
+    "all": "Tất cả",
+    "document": "Tài liệu",
+    "media": "Media",
+    "text": "Văn bản",
+    "ai": "AI",
+    "utility": "Tiện ích"
+  },
+  "tools": {
+    "image-compressor": {
+      "name": "Nén Ảnh",
+      "desc": "Nén ảnh tối ưu dung lượng hàng loạt hoặc theo thư mục, tự động sao lưu ảnh gốc",
+      "badge": "✦ Nén ảnh"
+    },
+    "image-to-prompt": {
+      "name": "Image to Prompt",
+      "desc": "Dịch ngược ảnh thành prompt tạo ảnh AI (Gemini, ChatGPT, DALL-E 3) qua Ollama",
+      "badge": "✦ Vision AI"
+    },
+    "srt-translator": {
+      "name": "SRT Translator",
+      "desc": "Dịch file SRT tự động bằng AI, hỗ trợ nhiều ngôn ngữ",
+      "badge": "✦ AI"
+    },
+    "pdf-to-md": {
+      "name": "PDF to Markdown",
+      "desc": "Chuyển đổi file PDF sang Markdown với độ chính xác cao",
+      "badge": "Tài liệu"
+    },
+    "slufy": {
+      "name": "Slufy",
+      "desc": "Chuyển đổi tiêu đề sang Slug URL chuẩn SEO & xử lý văn bản",
+      "badge": "✦ Media"
+    },
+    "guid-generator": {
+      "name": "GUID Generator",
+      "desc": "Tạo GUID, UUID với nhiều định dạng khác nhau",
+      "badge": "Tiện ích"
+    },
+    "hash-calculator": {
+      "name": "Hash Calculator",
+      "desc": "Tính hash cho file hoặc text (MD5, SHA1, SHA256, ...)",
+      "badge": "Văn bản"
+    },
+    "text-counter": {
+      "name": "Text Counter",
+      "desc": "Đếm ký tự, từ, dòng trong văn bản thời gian thực",
+      "badge": "Văn bản"
+    }
+  },
+  "settings": {
+    "title": "Cấu hình hệ thống",
+    "desc": "Tùy chỉnh các thông số hoạt động và thiết lập riêng cho từng module công cụ.",
+    "save_success": "Đã lưu các thay đổi cấu hình thành công!",
+    "save_error": "Không lưu được cấu hình: {error}",
+    "save_btn": "Lưu tất cả thay đổi",
+    "language_setting": "Ngôn ngữ giao diện",
+    "language_setting_desc": "Chọn ngôn ngữ hiển thị mặc định của ứng dụng."
+  }
+}

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi" class="h-full">
+<html lang="{{ current_lang }}" class="h-full">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -87,7 +87,7 @@
                     </div>
                     <input type="text"
                            id="tool-search-input"
-                           placeholder="Tìm kiếm công cụ, ví dụ: pdf, srt, hash..."
+                           placeholder="{{ t('topbar.search_placeholder') }}"
                            class="w-full pl-10 pr-16 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 transition" />
                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                         <span class="text-[10px] font-medium font-mono text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">Ctrl K</span>
@@ -95,16 +95,52 @@
                 </div>
             </div>
 
-            <!-- Right: Status Badge & Quick Controls -->
-            <div class="flex items-center gap-2.5 sm:gap-3 shrink-0">
+            <!-- Right: Status Badge, Language Switcher & Quick Controls -->
+            <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
                 <!-- Local Workspace Badge -->
                 <div class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-400 shadow-2xs">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-subtle-pulse"></span>
-                    <span>Local Workspace</span>
+                    <span>{{ t('topbar.local_workspace') }}</span>
+                </div>
+
+                <!-- Language Selector Dropdown -->
+                <div class="relative" id="lang-dropdown-wrapper">
+                    <button type="button" id="lang-dropdown-btn"
+                            title="{{ t('topbar.switch_language') }}"
+                            class="px-2.5 py-2 sm:px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-slate-700 transition shadow-2xs flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                        <span class="text-sm leading-none">{% if current_lang == 'en' %}🇺🇸{% else %}🇻🇳{% endif %}</span>
+                        <span class="uppercase font-bold tracking-wide">{{ current_lang }}</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+                    </button>
+
+                    <!-- Dropdown Menu -->
+                    <div id="lang-dropdown-menu"
+                         class="hidden absolute right-0 mt-2 w-36 rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 shadow-xl py-1.5 z-50 transition-all">
+                        <a href="/api/set-language/vi"
+                           class="flex items-center justify-between px-3.5 py-2 text-xs font-medium transition hover:bg-slate-50 dark:hover:bg-slate-800/70 {% if current_lang == 'vi' %}text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50/50 dark:bg-indigo-950/30{% else %}text-slate-700 dark:text-slate-300{% endif %}">
+                            <span class="flex items-center gap-2">
+                                <span class="text-sm">🇻🇳</span>
+                                <span>Tiếng Việt</span>
+                            </span>
+                            {% if current_lang == 'vi' %}
+                            <i data-lucide="check" class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400"></i>
+                            {% endif %}
+                        </a>
+                        <a href="/api/set-language/en"
+                           class="flex items-center justify-between px-3.5 py-2 text-xs font-medium transition hover:bg-slate-50 dark:hover:bg-slate-800/70 {% if current_lang == 'en' %}text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50/50 dark:bg-indigo-950/30{% else %}text-slate-700 dark:text-slate-300{% endif %}">
+                            <span class="flex items-center gap-2">
+                                <span class="text-sm">🇺🇸</span>
+                                <span>English</span>
+                            </span>
+                            {% if current_lang == 'en' %}
+                            <i data-lucide="check" class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400"></i>
+                            {% endif %}
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Theme Toggle Button in Topbar -->
-                <button type="button" id="topbar-theme-toggle" title="Chuyển chế độ Sáng / Tối"
+                <button type="button" id="topbar-theme-toggle" title="{{ t('topbar.theme_toggle') }}"
                         class="p-2 sm:p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-slate-700 transition shadow-2xs flex items-center justify-center cursor-pointer">
                     <span id="topbar-theme-icon" class="flex items-center justify-center">
                         <i data-lucide="moon" class="w-4 h-4 text-slate-600"></i>
@@ -112,7 +148,7 @@
                 </button>
 
                 <!-- Settings Button -->
-                <a href="/settings" title="Cài đặt hệ thống"
+                <a href="/settings" title="{{ t('topbar.settings') }}"
                    class="p-2 sm:p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 transition shadow-2xs">
                     <i data-lucide="settings" class="w-4 h-4"></i>
                 </a>
@@ -127,8 +163,10 @@
         </main>
     </div>
 
-    <!-- ===== Global Single Theme Controller ===== -->
+    <!-- ===== Global Single Theme Controller & Scripts ===== -->
     <script>
+        window.__APP_LANG__ = "{{ current_lang }}";
+
         function setAppTheme(theme) {
             var isDark = (theme === "dark");
             var html = document.documentElement;
@@ -169,7 +207,7 @@
             setAppTheme(currentIsDark ? "light" : "dark");
         }
 
-        // Attach click handlers when DOM is ready
+        // Attach handlers when DOM is ready
         document.addEventListener("DOMContentLoaded", function() {
             var saved = "light";
             try { saved = localStorage.getItem("app_theme") || "light"; } catch (e) {}
@@ -191,6 +229,22 @@
                     e.stopPropagation();
                     toggleAppTheme();
                 };
+            }
+
+            // Language dropdown toggle
+            var langBtn = document.getElementById("lang-dropdown-btn");
+            var langMenu = document.getElementById("lang-dropdown-menu");
+            if (langBtn && langMenu) {
+                langBtn.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    langMenu.classList.toggle("hidden");
+                });
+                document.addEventListener("click", function(e) {
+                    if (!langMenu.contains(e.target) && !langBtn.contains(e.target)) {
+                        langMenu.classList.add("hidden");
+                    }
+                });
             }
         });
     </script>

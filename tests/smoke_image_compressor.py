@@ -162,6 +162,15 @@ def test_api_endpoints():
         assert os.path.exists(os.path.join(temp_dir, "backup", "test.jpg"))
 
 
+def test_settings_block():
+    """Test that image_compressor configuration block exists in settings."""
+    client = TestClient(app)
+    resp = client.get("/settings")
+    assert resp.status_code == 200
+    assert "image_compressor" in resp.text
+    assert "default_quality" in resp.text
+
+
 if __name__ == "__main__":
     print("Running Image Compressor smoke tests...")
     test_compress_image_bytes()
@@ -170,4 +179,6 @@ if __name__ == "__main__":
     print("[PASS] compress_directory_workflow passed")
     test_api_endpoints()
     print("[PASS] test_api_endpoints passed")
+    test_settings_block()
+    print("[PASS] test_settings_block passed")
     print("All smoke tests passed successfully!")

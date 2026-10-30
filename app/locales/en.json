@@ -1,0 +1,133 @@
+{
+  "meta": {
+    "name": "English",
+    "code": "en",
+    "flag": "🇺🇸"
+  },
+  "common": {
+    "save": "Save",
+    "save_changes": "Save All Changes",
+    "cancel": "Cancel",
+    "close": "Close",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "copy_all": "Copy All",
+    "delete": "Delete",
+    "reset": "Reset",
+    "download": "Download",
+    "upload": "Upload",
+    "browse": "Browse files",
+    "drop_file_here": "Drag and drop files here, or click to browse",
+    "loading": "Processing...",
+    "success": "Success",
+    "error": "Error",
+    "result": "Result",
+    "status": "Status",
+    "back": "Back",
+    "active": "Active",
+    "offline": "Offline",
+    "clear": "Clear",
+    "select": "Select",
+    "language": "Language"
+  },
+  "topbar": {
+    "search_placeholder": "Search tools, e.g., pdf, srt, hash...",
+    "local_workspace": "Local Workspace",
+    "theme_toggle": "Toggle Dark / Light Mode",
+    "settings": "System Settings",
+    "switch_language": "Switch language",
+    "select_language": "Select display language"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "tools": "Tools",
+    "settings": "Settings",
+    "available_tools": "AVAILABLE TOOLS",
+    "expand": "✦ EXTENSIONS",
+    "add_module": "Add module…",
+    "local_first": "Local-First",
+    "offline_notice": "Running 100% offline"
+  },
+  "dashboard": {
+    "local_security_badge": "100% Local · Completely Private",
+    "hero_title_default": "Your all-in-one local offline toolbox",
+    "hero_desc_default": "Process documents, media, text, and much more right on your machine — no external servers, absolute privacy guaranteed.",
+    "explore_tools": "Explore Tools",
+    "customize_system": "System Settings",
+    "feature_fast": "Lightning Fast",
+    "feature_offline": "Fully Offline",
+    "feature_privacy": "Privacy First",
+    "feature_extensible": "Easily Extensible",
+    "stat_available_tools": "Available Tools",
+    "stat_local_offline": "Local Execution (Offline)",
+    "stat_zero_latency": "Zero Latency",
+    "stat_gemini_ai": "Smart AI Integration",
+    "all_tools_title": "All Tools",
+    "all_tools_desc": "Select a tool below to get started",
+    "view_grid": "Grid view",
+    "view_list": "List view",
+    "mark_favorite": "Add to favorites",
+    "no_tools_found": "No matching tools found",
+    "no_tools_hint": "Try searching with a different keyword or reset filters.",
+    "reset_filter": "Reset Search"
+  },
+  "categories": {
+    "all": "All",
+    "document": "Document",
+    "media": "Media",
+    "text": "Text",
+    "ai": "AI",
+    "utility": "Utility"
+  },
+  "tools": {
+    "image-compressor": {
+      "name": "Image Compressor",
+      "desc": "Optimize & batch compress images, preserve original backups automatically",
+      "badge": "✦ Compressor"
+    },
+    "image-to-prompt": {
+      "name": "Image to Prompt",
+      "desc": "Reverse engineer images into AI prompts (Gemini, ChatGPT, DALL-E 3) via Ollama",
+      "badge": "✦ Vision AI"
+    },
+    "srt-translator": {
+      "name": "SRT Translator",
+      "desc": "Translate subtitle SRT files automatically using AI, multi-language support",
+      "badge": "✦ AI"
+    },
+    "pdf-to-md": {
+      "name": "PDF to Markdown",
+      "desc": "Convert PDF documents to Markdown with high formatting accuracy",
+      "badge": "Document"
+    },
+    "slufy": {
+      "name": "Slufy",
+      "desc": "Convert titles to SEO-friendly URL slugs and clean up text",
+      "badge": "✦ Media"
+    },
+    "guid-generator": {
+      "name": "GUID Generator",
+      "desc": "Generate random GUIDs and UUIDs with customizable formats",
+      "badge": "Utility"
+    },
+    "hash-calculator": {
+      "name": "Hash Calculator",
+      "desc": "Compute file or text hashes (MD5, SHA1, SHA256, and more)",
+      "badge": "Text"
+    },
+    "text-counter": {
+      "name": "Text Counter",
+      "desc": "Count characters, words, and lines in real-time",
+      "badge": "Text"
+    }
+  },
+  "settings": {
+    "title": "System Settings",
+    "desc": "Customize operating parameters and individual configurations for each tool module.",
+    "save_success": "Configuration settings saved successfully!",
+    "save_error": "Failed to save configuration: {error}",
+    "save_btn": "Save All Changes",
+    "language_setting": "Interface Language",
+    "language_setting_desc": "Choose the default display language for the application."
+  }
+}

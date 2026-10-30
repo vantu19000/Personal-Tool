@@ -114,6 +114,13 @@ DEFAULT_IMAGE_TO_PROMPT = (
 )
 
 
+class ImageCompressorSettings(BaseModel):
+    """Image Compressor settings block."""
+
+    default_quality: int = Field(20, ge=1, le=100)
+    backup_folder_name: str = Field("backup", min_length=1, max_length=100)
+
+
 class SRTSettings(BaseModel):
     """SRT Translator settings block (the model's system prompt).
 
@@ -287,6 +294,32 @@ BLOCKS: Dict[str, BlockDef] = {
                 kind="text",
                 placeholder="llama3.2-vision",
                 help_text="Model multimodal trên Ollama (ví dụ llama3.2-vision, llava, minicpm-v).",
+            ),
+        ],
+    ),
+    "image_compressor": BlockDef(
+        id="image_compressor",
+        title="Nén Ảnh",
+        description="Cấu hình mặc định cho công cụ Nén Ảnh (tỷ lệ % chất lượng nén và thư mục sao lưu).",
+        model=ImageCompressorSettings,
+        default={
+            "default_quality": 20,
+            "backup_folder_name": "backup",
+        },
+        fields=[
+            FieldDef(
+                key="default_quality",
+                label="Tỷ lệ % nén ảnh mặc định (1 - 100)",
+                kind="number",
+                placeholder="20",
+                help_text="Số nguyên từ 1 đến 100. Mặc định là 20% (mức nén cao, tiết kiệm dung lượng tối đa).",
+            ),
+            FieldDef(
+                key="backup_folder_name",
+                label="Tên thư mục sao lưu ảnh gốc",
+                kind="text",
+                placeholder="backup",
+                help_text="Tên thư mục con tự động tạo để chứa ảnh gốc khi nén theo thư mục (mặc định: backup).",
             ),
         ],
     ),

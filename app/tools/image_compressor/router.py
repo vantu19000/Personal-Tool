@@ -21,6 +21,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
+from app.core import settings_store
 from app.core.templates import templates
 from app.tools.image_compressor import services
 
@@ -78,12 +79,18 @@ def _make_thumbnail_base64(image_bytes: bytes, max_size: int = 120) -> str:
 @router.get("/image-compressor", name="image-compressor")
 async def image_compressor_page(request: Request):
     """Render Image Compressor page."""
+    cfg = settings_store.get_block("image_compressor")
+    default_quality = int(cfg.get("default_quality") or 20)
+    default_quality = max(1, min(100, default_quality))
+    backup_folder_name = str(cfg.get("backup_folder_name") or "backup")
+
     return templates.TemplateResponse(
         request,
         "tools/image_compressor.html",
         {
             "active_tool": "image-compressor",
-            "default_quality": 20,
+            "default_quality": default_quality,
+            "backup_folder_name": backup_folder_name,
             "supported_extensions": sorted(list(services.SUPPORTED_EXTENSIONS)),
         },
     )
@@ -92,13 +99,16 @@ async def image_compressor_page(request: Request):
 @router.post("/image-compressor/compress-files", name="image-compressor-compress-files")
 async def compress_files(request: Request):
     """Compress multiple uploaded image files."""
+    cfg = settings_store.get_block("image_compressor")
+    fallback_quality = int(cfg.get("default_quality") or 20)
+
     form = await request.form()
-    raw_quality = form.get("quality") or 20
+    raw_quality = form.get("quality") or fallback_quality
     try:
         quality = int(raw_quality)
         quality = max(1, min(100, quality))
     except (ValueError, TypeError):
-        quality = 20
+        quality = fallback_quality
 
     files = _collect_upload_files(form)
     if not files:
@@ -262,9 +272,15 @@ async def scan_folder(payload: ScanFolderRequest):
         return {"success": False, "error": "Vui lòng nhập đường dẫn thư mục."}
 
     try:
-        images = services.scan_directory_images(folder, recursive=payload.recursive)
+        cfg = settings_store.get_block("image_compressor")
+        backup_name = str(cfg.get("backup_folder_name") or "backup")
+        images = services.scan_directory_images(
+            folder,
+            recursive=payload.recursive,
+            backup_folder_name=backup_name,
+        )
         total_size = sum(img["size"] for img in images)
-        backup_dir = os.path.join(folder, "backup")
+        backup_dir = os.path.join(folder, backup_name)
 
         return {
             "success": True,
@@ -293,10 +309,13 @@ async def compress_folder_endpoint(payload: CompressFolderRequest):
         return {"success": False, "error": "Vui lòng nhập đường dẫn thư mục."}
 
     try:
+        cfg = settings_store.get_block("image_compressor")
+        backup_name = str(cfg.get("backup_folder_name") or "backup")
         summary = services.compress_directory(
             folder_path=folder,
             quality=payload.quality,
             recursive=payload.recursive,
+            backup_folder_name=backup_name,
         )
         return {"success": True, "data": summary}
     except Exception as exc:
