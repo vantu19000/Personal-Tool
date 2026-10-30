@@ -209,6 +209,72 @@ def test_slufy_screen_i18n():
     assert "Slug is generated automatically in real time as you type" in resp_en.text
 
 
+def test_guid_generator_screen_i18n():
+    client = TestClient(app)
+
+    # 1. GUID Generator in Vietnamese
+    resp_vi = client.get("/tools/guid-generator?lang=vi")
+    assert resp_vi.status_code == 200
+    assert "GUID Generator" in resp_vi.text
+    assert "Số lượng chuỗi GUID" in resp_vi.text
+    assert "Tạo GUID" in resp_vi.text
+    assert "Sao chép tất cả" in resp_vi.text
+
+    # 2. GUID Generator in English
+    resp_en = client.get("/tools/guid-generator?lang=en")
+    assert resp_en.status_code == 200
+    assert "GUID Generator" in resp_en.text
+    assert "Quantity of GUID strings" in resp_en.text
+    assert "Generate GUID" in resp_en.text
+    assert "Copy All" in resp_en.text
+
+
+def test_hash_calculator_screen_i18n():
+    client = TestClient(app)
+
+    # 1. Hash Calculator in Vietnamese
+    resp_vi = client.get("/tools/hash-calculator?lang=vi")
+    assert resp_vi.status_code == 200
+    assert "Hash Calculator" in resp_vi.text
+    assert "Chuỗi văn bản" in resp_vi.text
+    assert "Thuật toán băm" in resp_vi.text
+    assert "Tính mã băm" in resp_vi.text
+    assert "Sao chép tất cả" in resp_vi.text
+
+    # 2. Hash Calculator in English
+    resp_en = client.get("/tools/hash-calculator?lang=en")
+    assert resp_en.status_code == 200
+    assert "Hash Calculator" in resp_en.text
+    assert "Text strings" in resp_en.text
+    assert "Hash Algorithms" in resp_en.text
+    assert "Compute Hashes" in resp_en.text
+    assert "Copy All" in resp_en.text
+
+
+def test_text_counter_screen_i18n():
+    client = TestClient(app)
+
+    # 1. Text Counter in Vietnamese
+    resp_vi = client.get("/tools/text-counter?lang=vi")
+    assert resp_vi.status_code == 200
+    assert "Text Counter" in resp_vi.text
+    assert "Số từ" in resp_vi.text
+    assert "Số câu" in resp_vi.text
+    assert "Số ký tự" in resp_vi.text
+    assert "Số đoạn văn" in resp_vi.text
+    assert "Xoá hết" in resp_vi.text
+
+    # 2. Text Counter in English
+    resp_en = client.get("/tools/text-counter?lang=en")
+    assert resp_en.status_code == 200
+    assert "Text Counter" in resp_en.text
+    assert "Words" in resp_en.text
+    assert "Sentences" in resp_en.text
+    assert "Characters" in resp_en.text
+    assert "Paragraphs" in resp_en.text
+    assert "Clear all" in resp_en.text
+
+
 if __name__ == "__main__":
     test_i18n_basic_translations()
     test_i18n_fallback_and_formatting()
@@ -220,4 +286,7 @@ if __name__ == "__main__":
     test_pdf_to_md_screen_i18n()
     test_image_compressor_screen_i18n()
     test_slufy_screen_i18n()
+    test_guid_generator_screen_i18n()
+    test_hash_calculator_screen_i18n()
+    test_text_counter_screen_i18n()
     print("All i18n tests passed successfully!")

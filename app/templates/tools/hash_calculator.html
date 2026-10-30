@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Hash Calculator · {{ settings.APP_NAME }}{% endblock %}
-{% block page_title %}Hash Calculator{% endblock %}
+{% block title %}{{ t('hash_calculator.page_title') }} · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}{{ t('hash_calculator.page_title') }}{% endblock %}
 
 {% block content %}
 <div class="w-full space-y-6">
@@ -13,13 +13,13 @@
             </div>
             <div>
                 <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>Hash Calculator</span>
+                    <span>{{ t('hash_calculator.header_title') }}</span>
                     <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300">
-                        Bảo mật
+                        {{ t('hash_calculator.badge') }}
                     </span>
                 </h1>
                 <p class="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                    Tính mã băm an toàn (MD5, SHA1, SHA256, ...) cho nhiều chuỗi văn bản và nhiều tệp tin cục bộ cùng lúc.
+                    {{ t('hash_calculator.header_desc') }}
                 </p>
             </div>
         </div>
@@ -30,28 +30,28 @@
         <!-- Strings -->
         <div>
             <label for="hash-text" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Chuỗi văn bản <span class="font-normal text-slate-400">(mỗi dòng là 1 chuỗi — bỏ trống nếu chỉ băm file)</span>
+                {{ t('hash_calculator.strings_label') }} <span class="font-normal text-slate-400">{{ t('hash_calculator.strings_hint_inline') }}</span>
             </label>
             <textarea id="hash-text" name="text" rows="4"
                       class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm font-mono bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition"
-                      placeholder="hello world&#10;Chào Việt Nam&#10;abc123"></textarea>
-            <p class="mt-1.5 text-[11px] text-slate-400">Tối đa {{ max_strings }} chuỗi mỗi lần tính toán.</p>
+                      placeholder="{{ t('hash_calculator.strings_placeholder') }}"></textarea>
+            <p class="mt-1.5 text-[11px] text-slate-400">{{ t('hash_calculator.strings_max_hint', max=max_strings) }}</p>
         </div>
 
         <!-- Files -->
         <div>
             <label for="hash-files" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                File <span class="font-normal text-slate-400">(chọn nhiều file — bỏ trống nếu chỉ băm chuỗi)</span>
+                {{ t('hash_calculator.files_label') }} <span class="font-normal text-slate-400">{{ t('hash_calculator.files_hint_inline') }}</span>
             </label>
             <input id="hash-files" name="files" type="file" multiple
                    class="block w-full text-xs sm:text-sm text-slate-600 dark:text-slate-300 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 dark:file:bg-teal-950/60 dark:file:text-teal-300 hover:file:bg-teal-100 dark:hover:file:bg-teal-900/60 file:cursor-pointer bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-2 cursor-pointer" />
             <p id="hash-files-list" class="mt-1.5 text-[11px] text-slate-400 hidden"></p>
-            <p class="mt-1.5 text-[11px] text-slate-400">Tối đa {{ max_files }} file, mỗi file ≤ 2 GiB.</p>
+            <p class="mt-1.5 text-[11px] text-slate-400">{{ t('hash_calculator.files_max_hint', max=max_files) }}</p>
         </div>
 
         <!-- Algorithms -->
         <div>
-            <span class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Thuật toán băm</span>
+            <span class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{{ t('hash_calculator.algos_title') }}</span>
             <div id="hash-algos" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
                 {% for alg in algorithms %}
                 <label class="flex items-center gap-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 px-3.5 py-2.5 cursor-pointer hover:border-teal-400 dark:hover:border-teal-500 transition has-[:checked]:border-teal-500 has-[:checked]:bg-teal-50/70 dark:has-[:checked]:bg-teal-950/40">
@@ -62,14 +62,14 @@
                 </label>
                 {% endfor %}
             </div>
-            <p class="mt-2 text-[11px] text-slate-400">Chọn một hoặc nhiều thuật toán băm để xem kết quả so sánh đồng thời.</p>
+            <p class="mt-2 text-[11px] text-slate-400">{{ t('hash_calculator.algos_hint') }}</p>
         </div>
 
         <div class="flex items-center justify-end pt-2 border-t border-slate-100 dark:border-slate-800/80">
             <button type="submit"
                     class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white text-xs sm:text-sm font-semibold shadow-md shadow-teal-500/20 transition disabled:opacity-60 disabled:cursor-not-allowed">
                 <i data-lucide="calculator" class="w-4 h-4"></i>
-                <span>Tính mã băm</span>
+                <span>{{ t('hash_calculator.btn_compute') }}</span>
             </button>
         </div>
     </form>
@@ -78,24 +78,41 @@
     <div id="hash-result" class="hidden rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                Kết quả <span id="hash-count" class="text-xs font-normal text-slate-500 dark:text-slate-400"></span>
+                {{ t('hash_calculator.result_title') }} <span id="hash-count" class="text-xs font-normal text-slate-500 dark:text-slate-400"></span>
             </h2>
             <button type="button" id="hash-copy-all"
                     class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
                 <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                <span>Copy tất cả</span>
+                <span>{{ t('common.copy_all') }}</span>
             </button>
         </div>
         <p id="hash-error" class="hidden text-xs sm:text-sm text-rose-500"></p>
         <div id="hash-entries" class="hidden mt-3 space-y-4"></div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script type="application/json" id="i18n-translations">
+{
+    "copy": {{ t('common.copy') | tojson }},
+    "copied": {{ t('common.copied') | tojson }},
+    "count_label": {{ t('hash_calculator.count_label', count='__COUNT__') | tojson }},
+    "string_prefix": {{ t('hash_calculator.string_prefix', val='__VAL__') | tojson }},
+    "alert_no_algos": {{ t('hash_calculator.alert_no_algos') | tojson }},
+    "alert_no_input": {{ t('hash_calculator.alert_no_input') | tojson }},
+    "unknown_error": {{ t('hash_calculator.unknown_error') | tojson }},
+    "connection_error": {{ t('hash_calculator.connection_error', error='__ERR__') | tojson }}
+}
+</script>
 
 <script>
+const I18N = JSON.parse(document.getElementById("i18n-translations").textContent);
+
 function copyText(text, button) {
     const done = () => {
         const original = button.innerHTML;
-        button.innerHTML = "<span class='text-emerald-500 font-bold'>✓ Đã copy!</span>";
+        button.innerHTML = `<span class='text-emerald-500 font-bold'>✓ ${I18N.copied}</span>`;
         setTimeout(() => { button.innerHTML = original; }, 1500);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -169,7 +186,7 @@ function buildEntryCard(title, subtitle, algorithms, hashes) {
 
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.innerHTML = "<span class='text-xs font-semibold'>Copy</span>";
+        btn.innerHTML = `<span class='text-xs font-semibold'>${I18N.copy}</span>`;
         btn.className = "shrink-0 inline-flex items-center px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition";
         btn.addEventListener("click", () => copyText(hashes[alg] || "", btn));
 
@@ -188,11 +205,11 @@ document.getElementById("hash-form").addEventListener("submit", async (e) => {
     const selectedAlgos = Array.from(document.querySelectorAll('#hash-algos input[name="algorithm"]:checked'))
         .map((el) => el.value);
     if (!selectedAlgos.length) {
-        alert("Vui lòng chọn ít nhất 1 thuật toán băm (hoặc bỏ trống để dùng md5).");
+        alert(I18N.alert_no_algos);
         return;
     }
     if (!text.trim() && !filesInput.files.length) {
-        alert("Vui lòng nhập ít nhất 1 chuỗi hoặc chọn 1 file.");
+        alert(I18N.alert_no_input);
         return;
     }
 
@@ -223,7 +240,7 @@ document.getElementById("hash-form").addEventListener("submit", async (e) => {
 
             for (const s of data.strings) {
                 total++;
-                entriesEl.appendChild(buildEntryCard("Chuỗi: " + s.value, "", data.algorithms, s.hashes));
+                entriesEl.appendChild(buildEntryCard(I18N.string_prefix.replace("__VAL__", s.value), "", data.algorithms, s.hashes));
                 copyAllLines.push(s.value + "  →  " + data.algorithms.map((a) => a + "=" + s.hashes[a]).join("  "));
             }
             for (const f of data.files) {
@@ -232,18 +249,18 @@ document.getElementById("hash-form").addEventListener("submit", async (e) => {
                 copyAllLines.push(f.name + "  →  " + data.algorithms.map((a) => a + "=" + f.hashes[a]).join("  "));
             }
 
-            countEl.textContent = "(" + total + " kết quả)";
+            countEl.textContent = I18N.count_label.replace("__COUNT__", total);
             document.getElementById("hash-copy-all").onclick = function () {
                 copyText(copyAllLines.join("\n"), this);
             };
             entriesEl.classList.remove("hidden");
             if (window.lucide) window.lucide.createIcons();
         } else {
-            errorEl.textContent = data.error || "Lỗi không xác định.";
+            errorEl.textContent = data.error || I18N.unknown_error;
             errorEl.classList.remove("hidden");
         }
     } catch (err) {
-        errorEl.textContent = "Lỗi kết nối: " + (err && err.message ? err.message : err);
+        errorEl.textContent = I18N.connection_error.replace("__ERR__", (err && err.message ? err.message : err));
         errorEl.classList.remove("hidden");
     }
 });

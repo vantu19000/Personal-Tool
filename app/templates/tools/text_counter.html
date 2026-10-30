@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Text Counter · {{ settings.APP_NAME }}{% endblock %}
-{% block page_title %}Text Counter{% endblock %}
+{% block title %}{{ t('text_counter.page_title') }} · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}{{ t('text_counter.page_title') }}{% endblock %}
 
 {% block content %}
 <div class="w-full space-y-6">
@@ -13,13 +13,13 @@
             </div>
             <div>
                 <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>Text Counter</span>
+                    <span>{{ t('text_counter.header_title') }}</span>
                     <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300">
-                        Văn bản
+                        {{ t('text_counter.badge') }}
                     </span>
                 </h1>
                 <p class="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                    Dán (paste) hoặc nhập văn bản bên dưới — hệ thống tự động tính số từ, số câu, số ký tự và số đoạn văn tức thì theo thời gian thực.
+                    {{ t('text_counter.header_desc') }}
                 </p>
             </div>
         </div>
@@ -28,23 +28,23 @@
     <!-- Stats Overview Cards -->
     <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs text-center">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Số từ</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ t('text_counter.stat_words') }}</p>
             <p id="tc-words" class="mt-1.5 text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 tabular-nums">0</p>
         </div>
         <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs text-center">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Số câu</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ t('text_counter.stat_sentences') }}</p>
             <p id="tc-sentences" class="mt-1.5 text-3xl font-extrabold text-violet-600 dark:text-violet-400 tabular-nums">0</p>
         </div>
         <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs text-center">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Số ký tự</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ t('text_counter.stat_chars') }}</p>
             <p id="tc-chars" class="mt-1.5 text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">0</p>
         </div>
         <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs text-center">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Ký tự (không dấu cách)</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ t('text_counter.stat_chars_nospace') }}</p>
             <p id="tc-chars-nospace" class="mt-1.5 text-3xl font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">0</p>
         </div>
         <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs text-center">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Số đoạn văn</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ t('text_counter.stat_blocks') }}</p>
             <p id="tc-blocks" class="mt-1.5 text-3xl font-extrabold text-sky-600 dark:text-sky-400 tabular-nums">0</p>
         </div>
     </section>
@@ -54,17 +54,17 @@
         <div>
             <div class="flex items-center justify-between mb-2">
                 <label for="tc-text" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Văn bản cần phân tích
+                    {{ t('text_counter.input_label') }}
                 </label>
                 <button type="button" id="tc-clear"
                         class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                    <span>Xoá hết</span>
+                    <span>{{ t('text_counter.btn_clear') }}</span>
                 </button>
             </div>
             <textarea id="tc-text" rows="12"
                       class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 text-xs sm:text-sm leading-relaxed bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition font-sans"
-                      placeholder="Dán hoặc gõ văn bản của bạn vào đây (Ctrl+V)…"
+                      placeholder="{{ t('text_counter.input_placeholder') }}"
                       spellcheck="false"></textarea>
         </div>
     </section>
@@ -74,6 +74,8 @@
 {% block scripts %}
 <script>
 (function () {
+    const currentLang = "{{ current_lang }}";
+    const localeCode = currentLang === "en" ? "en-US" : "vi-VN";
     const input = document.getElementById("tc-text");
     const els = {
         words: document.getElementById("tc-words"),
@@ -83,7 +85,7 @@
         blocks: document.getElementById("tc-blocks"),
     };
 
-    const fmt = (n) => n.toLocaleString("vi-VN");
+    const fmt = (n) => n.toLocaleString(localeCode);
 
     function countSentences(text) {
         const t = text.trim();

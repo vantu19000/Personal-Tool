@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}GUID Generator · {{ settings.APP_NAME }}{% endblock %}
-{% block page_title %}GUID Generator{% endblock %}
+{% block title %}{{ t('guid_generator.page_title') }} · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}{{ t('guid_generator.page_title') }}{% endblock %}
 
 {% block content %}
 <div class="w-full space-y-6">
@@ -13,13 +13,13 @@
             </div>
             <div>
                 <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>GUID Generator</span>
+                    <span>{{ t('guid_generator.header_title') }}</span>
                     <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
-                        Tiện ích
+                        {{ t('guid_generator.badge') }}
                     </span>
                 </h1>
                 <p class="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                    Tạo các chuỗi GUID (v4) ngẫu nhiên. Chọn số lượng cần tạo (tối đa {{ max_quantity }}, mặc định {{ default_quantity }}).
+                    {{ t('guid_generator.header_desc', max=max_quantity, default=default_quantity) }}
                 </p>
             </div>
         </div>
@@ -29,12 +29,12 @@
     <form id="guid-form" method="post" action="/tools/guid-generator/generate"
           class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-5">
         <div>
-            <label for="guid-quantity" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Số lượng chuỗi GUID</label>
+            <label for="guid-quantity" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{{ t('guid_generator.quantity_label') }}</label>
             <input id="guid-quantity" name="quantity" type="number"
                    min="1" max="{{ max_quantity }}" step="1" value="{{ default_quantity }}"
                    class="w-full max-w-xs rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
                    required />
-            <p class="mt-1.5 text-[11px] text-slate-400">Nhập số lượng từ 1 đến {{ max_quantity }} (mặc định {{ default_quantity }}).</p>
+            <p class="mt-1.5 text-[11px] text-slate-400">{{ t('guid_generator.quantity_hint', max=max_quantity, default=default_quantity) }}</p>
         </div>
 
         <div class="flex items-center justify-between pt-2">
@@ -42,7 +42,7 @@
                     class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-xs sm:text-sm font-semibold shadow-md shadow-amber-500/20 transition
                            disabled:opacity-60 disabled:cursor-not-allowed">
                 <i data-lucide="sparkles" class="w-4 h-4"></i>
-                <span>Tạo GUID</span>
+                <span>{{ t('guid_generator.btn_generate') }}</span>
             </button>
         </div>
     </form>
@@ -51,24 +51,39 @@
     <div id="guid-result" class="hidden rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                Kết quả <span id="guid-count" class="text-xs font-normal text-slate-500 dark:text-slate-400"></span>
+                {{ t('guid_generator.result_title') }} <span id="guid-count" class="text-xs font-normal text-slate-500 dark:text-slate-400"></span>
             </h2>
             <button type="button" id="guid-copy-all"
                     class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
                 <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                <span>Copy tất cả</span>
+                <span>{{ t('common.copy_all') }}</span>
             </button>
         </div>
         <p id="guid-error" class="hidden text-xs sm:text-sm text-rose-500"></p>
         <ul id="guid-list" class="hidden mt-3 space-y-2"></ul>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script type="application/json" id="i18n-translations">
+{
+    "copy": {{ t('common.copy') | tojson }},
+    "copied": {{ t('common.copied') | tojson }},
+    "count_label": {{ t('guid_generator.count_label', count='__COUNT__') | tojson }},
+    "alert_invalid_quantity": {{ t('guid_generator.alert_invalid_quantity', max=max_quantity) | tojson }},
+    "unknown_error": {{ t('guid_generator.unknown_error') | tojson }},
+    "connection_error": {{ t('guid_generator.connection_error', error='__ERR__') | tojson }}
+}
+</script>
 
 <script>
+const I18N = JSON.parse(document.getElementById("i18n-translations").textContent);
+
 function copyText(text, button) {
     const done = () => {
         const original = button.innerHTML;
-        button.innerHTML = "<span class='text-emerald-500 font-bold'>✓ Đã copy!</span>";
+        button.innerHTML = `<span class='text-emerald-500 font-bold'>✓ ${I18N.copied}</span>`;
         setTimeout(() => { button.innerHTML = original; }, 1500);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -92,7 +107,7 @@ document.getElementById("guid-form").addEventListener("submit", async (e) => {
     const input = document.getElementById("guid-quantity");
     const quantity = parseInt(input.value, 10);
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > {{ max_quantity }}) {
-        alert("Vui lòng nhập số lượng từ 1 đến {{ max_quantity }}.");
+        alert(I18N.alert_invalid_quantity);
         return;
     }
 
@@ -124,7 +139,7 @@ document.getElementById("guid-form").addEventListener("submit", async (e) => {
 
                 const btn = document.createElement("button");
                 btn.type = "button";
-                btn.innerHTML = "<span class='text-xs font-semibold'>Copy</span>";
+                btn.innerHTML = `<span class='text-xs font-semibold'>${I18N.copy}</span>`;
                 btn.className = "shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition";
                 btn.addEventListener("click", () => copyText(guid, btn));
 
@@ -132,18 +147,18 @@ document.getElementById("guid-form").addEventListener("submit", async (e) => {
                 li.appendChild(btn);
                 listEl.appendChild(li);
             });
-            countEl.textContent = "(" + data.count + " chuỗi)";
+            countEl.textContent = I18N.count_label.replace("__COUNT__", data.count);
             document.getElementById("guid-copy-all").onclick = function () {
                 copyText(data.guids.join("\n"), this);
             };
             listEl.classList.remove("hidden");
             if (window.lucide) window.lucide.createIcons();
         } else {
-            errorEl.textContent = data.error || "Lỗi không xác định.";
+            errorEl.textContent = data.error || I18N.unknown_error;
             errorEl.classList.remove("hidden");
         }
     } catch (err) {
-        errorEl.textContent = "Lỗi kết nối: " + (err && err.message ? err.message : err);
+        errorEl.textContent = I18N.connection_error.replace("__ERR__", (err && err.message ? err.message : err));
         errorEl.classList.remove("hidden");
     }
 });
