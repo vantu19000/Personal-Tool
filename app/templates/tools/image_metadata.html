@@ -1,0 +1,1099 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('image_metadata.page_title') }} · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}{{ t('image_metadata.page_title') }}{% endblock %}
+
+{% block head %}
+<!-- Leaflet CSS & JS for Interactive Map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+    /* Dark mode styling for Leaflet controls */
+    .dark .leaflet-bar a {
+        background-color: #1e293b;
+        color: #f1f5f9;
+        border-color: #334155;
+    }
+    .dark .leaflet-bar a:hover {
+        background-color: #334155;
+        color: #38bdf8;
+    }
+    .dark .leaflet-popup-content-wrapper, .dark .leaflet-popup-tip {
+        background: #0f172a;
+        color: #f8fafc;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    /* Star rating active state */
+    .star-btn.active {
+        color: #f59e0b;
+        fill: #f59e0b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-full space-y-6">
+
+    <!-- Tool Header -->
+    <section class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 shadow-xs">
+                    <i data-lucide="map-pin" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>{{ t('image_metadata.header_title') }}</span>
+                        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                            {{ t('image_metadata.badge') }}
+                        </span>
+                    </h1>
+                    <p class="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                        {{ t('image_metadata.header_desc') }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Format Badges -->
+            <div class="flex flex-wrap gap-1.5 self-start sm:self-center">
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">JPG</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">PNG</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">WEBP</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">TIFF</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mode Selector Tabs -->
+    <div class="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+        <button type="button" id="tab-btn-single" onclick="switchTab('single')"
+                class="px-4 py-2 text-sm font-semibold rounded-xl flex items-center gap-2 transition bg-blue-600 text-white shadow-xs">
+            <i data-lucide="image" class="w-4 h-4"></i>
+            <span>{{ t('image_metadata.tab_single') }}</span>
+        </button>
+        <button type="button" id="tab-btn-batch" onclick="switchTab('batch')"
+                class="px-4 py-2 text-sm font-medium rounded-xl flex items-center gap-2 transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <i data-lucide="layers" class="w-4 h-4"></i>
+            <span>{{ t('image_metadata.tab_batch') }}</span>
+        </button>
+    </div>
+
+    <!-- ==================== TAB 1: SINGLE IMAGE ==================== -->
+    <div id="section-single" class="space-y-6">
+
+        <!-- Upload Drop Zone (Shown when no image is loaded) -->
+        <div id="single-upload-container" class="rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0f172a] p-8 sm:p-12 text-center transition hover:border-blue-500 dark:hover:border-blue-400 group cursor-pointer shadow-xs">
+            <input type="file" id="single-file-input" accept="image/jpeg,image/png,image/webp,image/tiff" class="hidden" />
+            <div class="flex flex-col items-center justify-center space-y-3 pointer-events-none">
+                <div class="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
+                    <i data-lucide="upload-cloud" class="w-8 h-8"></i>
+                </div>
+                <div class="space-y-1">
+                    <p class="text-base font-bold text-slate-800 dark:text-slate-100">
+                        {{ t('image_metadata.upload_drop_single') }}
+                    </p>
+                    <p class="text-xs text-slate-400 dark:text-slate-500">
+                        {{ t('image_metadata.upload_hint') }}
+                    </p>
+                </div>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/50">
+                    <i data-lucide="folder-search" class="w-3.5 h-3.5"></i>
+                    {{ t('common.browse') }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Main Editor Workspace (Hidden until an image is loaded) -->
+        <div id="single-editor-workspace" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- LEFT COLUMN: Image preview, Specs, and Actions -->
+            <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-4">
+
+                <!-- Image Preview Card -->
+                <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                            {{ t('image_metadata.preview_heading') }}
+                        </span>
+                        <button type="button" onclick="triggerSingleFileInput()" class="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                            {{ t('image_metadata.change_image') }}
+                        </button>
+                    </div>
+
+                    <!-- Image Display Box -->
+                    <div class="relative rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center min-h-[220px] max-h-[380px]">
+                        <img id="preview-image" src="" alt="Preview" class="w-full h-full object-contain max-h-[380px] rounded-xl" />
+                    </div>
+
+                    <!-- File Specs Pill Grid -->
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+                            <p class="text-[10px] text-slate-400 font-medium">{{ t('image_metadata.dimensions') }}</p>
+                            <p id="spec-dimensions" class="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-0.5">-</p>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+                            <p class="text-[10px] text-slate-400 font-medium">{{ t('image_metadata.filesize') }}</p>
+                            <p id="spec-filesize" class="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-0.5">-</p>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+                            <p class="text-[10px] text-slate-400 font-medium">{{ t('image_metadata.format') }}</p>
+                            <p id="spec-format" class="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono uppercase mt-0.5">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions Card -->
+                <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs space-y-4">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                        {{ t('image_metadata.quick_actions') }}
+                    </h3>
+
+                    <!-- Custom Filename -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                            Tên file khi tải về
+                        </label>
+                        <input type="text" id="input-filename"
+                               class="w-full text-xs font-mono px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/80 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
+                    </div>
+
+                    <!-- Main Save & Download Button -->
+                    <button type="button" id="btn-save-single" onclick="saveSingleMetadata()"
+                            class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 transition cursor-pointer">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>{{ t('image_metadata.btn_save_download') }}</span>
+                    </button>
+
+                    <!-- Auxiliary Action Buttons -->
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button type="button" onclick="clearGpsForm()"
+                                class="py-2 px-3 text-xs font-semibold rounded-xl border border-amber-300 dark:border-amber-800/70 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="map-pin-off" class="w-3.5 h-3.5"></i>
+                            <span>{{ t('image_metadata.btn_strip_gps') }}</span>
+                        </button>
+                        <button type="button" onclick="stripAllExif()"
+                                class="py-2 px-3 text-xs font-semibold rounded-xl border border-rose-300 dark:border-rose-800/70 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-950/60 transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            <span>{{ t('image_metadata.btn_strip_all') }}</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: Metadata Form Cards -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 1. Basic Info & Text -->
+                <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 shadow-xs space-y-4">
+                    <h2 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <i data-lucide="file-text" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
+                        <span>{{ t('image_metadata.card_general') }}</span>
+                    </h2>
+
+                    <!-- Title -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                            {{ t('image_metadata.title_label') }}
+                        </label>
+                        <input type="text" id="meta-title" placeholder="{{ t('image_metadata.title_placeholder') }}"
+                               class="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition" />
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                            {{ t('image_metadata.desc_label') }}
+                        </label>
+                        <textarea id="meta-description" rows="3" placeholder="{{ t('image_metadata.desc_placeholder') }}"
+                                  class="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition resize-y"></textarea>
+                    </div>
+
+                    <!-- Author & Copyright -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.author_label') }}
+                            </label>
+                            <input type="text" id="meta-author" placeholder="{{ t('image_metadata.author_placeholder') }}"
+                                   class="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition" />
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.copyright_label') }}
+                            </label>
+                            <input type="text" id="meta-copyright" placeholder="{{ t('image_metadata.copyright_placeholder') }}"
+                                   class="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition" />
+                        </div>
+                    </div>
+
+                    <!-- Keywords -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                            {{ t('image_metadata.keywords_label') }}
+                        </label>
+                        <input type="text" id="meta-keywords" placeholder="{{ t('image_metadata.keywords_placeholder') }}"
+                               class="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition" />
+                        <p class="text-[11px] text-slate-400 mt-1">{{ t('image_metadata.keywords_hint') }}</p>
+                    </div>
+
+                    <!-- Star Rating & Software -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">
+                                {{ t('image_metadata.rating_label') }}
+                            </label>
+                            <div class="flex items-center gap-1" id="star-rating-container">
+                                {% for r in range(1, 6) %}
+                                <button type="button" data-star="{{ r }}" onclick="setRating({{ r }})"
+                                        class="star-btn p-1 text-slate-300 dark:text-slate-600 hover:text-amber-400 dark:hover:text-amber-400 transition cursor-pointer">
+                                    <i data-lucide="star" class="w-5 h-5"></i>
+                                </button>
+                                {% endfor %}
+                                <button type="button" onclick="setRating(0)" class="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 ml-2 font-medium">
+                                    (0 sao)
+                                </button>
+                            </div>
+                            <input type="hidden" id="meta-rating" value="0" />
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.software_label') }}
+                            </label>
+                            <input type="text" id="meta-software" placeholder="{{ t('image_metadata.software_placeholder') }}"
+                                   class="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Location & Interactive Map -->
+                <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 shadow-xs space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <h2 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="compass" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                            <span>{{ t('image_metadata.card_location') }}</span>
+                        </h2>
+                        <button type="button" onclick="clearGpsForm()" class="text-xs text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 font-medium">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                            {{ t('image_metadata.clear_gps_btn') }}
+                        </button>
+                    </div>
+
+                    <!-- Map Search & My Location Bar -->
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <div class="relative flex-1">
+                            <input type="text" id="map-search-input" placeholder="{{ t('image_metadata.map_search_placeholder') }}"
+                                   onkeydown="if(event.key === 'Enter'){ searchLocation(); event.preventDefault(); }"
+                                   class="w-full text-xs sm:text-sm pl-9 pr-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500" />
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="searchLocation()"
+                                    class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition flex items-center gap-1">
+                                <span>{{ t('image_metadata.btn_search_map') }}</span>
+                            </button>
+                            <button type="button" onclick="getCurrentLocation()"
+                                    class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60 transition flex items-center gap-1">
+                                <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+                                <span>{{ t('image_metadata.btn_my_location') }}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Leaflet Map Container -->
+                    <div class="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 z-10">
+                        <div id="leaflet-map" class="w-full h-[280px]"></div>
+                    </div>
+                    <p class="text-[11px] text-slate-400 flex items-center gap-1.5">
+                        <i data-lucide="info" class="w-3.5 h-3.5 shrink-0 text-blue-500"></i>
+                        <span>{{ t('image_metadata.map_hint') }}</span>
+                    </p>
+
+                    <!-- Coordinate inputs: Lat, Lon, Alt -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.lat_label') }}
+                            </label>
+                            <input type="number" id="meta-lat" step="any" placeholder="21.028511" oninput="onCoordInputChange()"
+                                   class="w-full text-xs font-mono px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.lon_label') }}
+                            </label>
+                            <input type="number" id="meta-lon" step="any" placeholder="105.854444" oninput="onCoordInputChange()"
+                                   class="w-full text-xs font-mono px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.alt_label') }}
+                            </label>
+                            <input type="number" id="meta-alt" step="any" placeholder="15"
+                                   class="w-full text-xs font-mono px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Date & Time -->
+                <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 shadow-xs space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <h2 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="calendar" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
+                            <span>{{ t('image_metadata.card_datetime') }}</span>
+                        </h2>
+                        <button type="button" onclick="setDateTimeNow()" class="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1">
+                            <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                            {{ t('image_metadata.btn_now') }}
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.date_taken_label') }}
+                            </label>
+                            <input type="datetime-local" id="meta-date-taken"
+                                   class="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30" />
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.date_digitized_label') }}
+                            </label>
+                            <input type="datetime-local" id="meta-date-digitized"
+                                   class="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30" />
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.date_modified_label') }}
+                            </label>
+                            <input type="datetime-local" id="meta-date-modified"
+                                   class="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Camera & Equipment -->
+                <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 shadow-xs space-y-4">
+                    <h2 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <i data-lucide="camera" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
+                        <span>{{ t('image_metadata.card_camera') }}</span>
+                    </h2>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.make_label') }}
+                            </label>
+                            <input type="text" id="meta-make" placeholder="{{ t('image_metadata.make_placeholder') }}"
+                                   class="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/30" />
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.model_label') }}
+                            </label>
+                            <input type="text" id="meta-model" placeholder="{{ t('image_metadata.model_placeholder') }}"
+                                   class="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/30" />
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.lens_label') }}
+                            </label>
+                            <input type="text" id="meta-lens" placeholder="{{ t('image_metadata.lens_placeholder') }}"
+                                   class="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/30" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.iso_label') }}
+                            </label>
+                            <input type="number" id="meta-iso" placeholder="100"
+                                   class="w-full text-xs px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/30" />
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.f_number_label') }}
+                            </label>
+                            <input type="number" step="0.1" id="meta-fnumber" placeholder="2.8"
+                                   class="w-full text-xs px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/30" />
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.focal_label') }}
+                            </label>
+                            <input type="number" step="0.1" id="meta-focal" placeholder="35"
+                                   class="w-full text-xs px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/30" />
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.exp_label') }}
+                            </label>
+                            <input type="text" id="meta-exptime" readonly placeholder="1/250"
+                                   class="w-full text-xs px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 select-none" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Raw EXIF Inspector -->
+                <details class="group rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs transition">
+                    <summary class="flex items-center justify-between cursor-pointer list-none select-none">
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                            <i data-lucide="code" class="w-4 h-4 text-slate-500"></i>
+                            <span>{{ t('image_metadata.card_raw_exif') }}</span>
+                            <span id="raw-exif-count" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">0 tags</span>
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 max-h-60 overflow-y-auto">
+                        <table class="w-full text-left text-xs font-mono">
+                            <tbody id="raw-exif-tbody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                <tr>
+                                    <td class="py-2 text-slate-400 italic">{{ t('image_metadata.no_raw_exif') }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TAB 2: BATCH IMAGES ==================== -->
+    <div id="section-batch" class="hidden space-y-6">
+
+        <!-- Batch Upload Zone -->
+        <div id="batch-upload-container" class="rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0f172a] p-8 sm:p-12 text-center transition hover:border-indigo-500 dark:hover:border-indigo-400 group cursor-pointer shadow-xs">
+            <input type="file" id="batch-file-input" multiple accept="image/jpeg,image/png,image/webp,image/tiff" class="hidden" />
+            <div class="flex flex-col items-center justify-center space-y-3 pointer-events-none">
+                <div class="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
+                    <i data-lucide="layers" class="w-8 h-8"></i>
+                </div>
+                <div class="space-y-1">
+                    <p class="text-base font-bold text-slate-800 dark:text-slate-100">
+                        {{ t('image_metadata.upload_drop_batch') }}
+                    </p>
+                    <p class="text-xs text-slate-400 dark:text-slate-500">
+                        {{ t('image_metadata.upload_hint') }}
+                    </p>
+                </div>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/50">
+                    <i data-lucide="files" class="w-3.5 h-3.5"></i>
+                    {{ t('common.browse') }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Batch Files Pill & Status -->
+        <div id="batch-selected-box" class="hidden rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
+                    <span id="batch-count-label" class="text-sm font-bold text-slate-900 dark:text-white">0 ảnh</span>
+                </div>
+                <button type="button" onclick="triggerBatchFileInput()" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+                    Chọn lại danh sách
+                </button>
+            </div>
+            <div id="batch-file-list" class="mt-3 flex flex-wrap gap-2 max-h-36 overflow-y-auto"></div>
+        </div>
+
+        <!-- Batch Metadata Form -->
+        <div id="batch-form-container" class="hidden rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 shadow-xs space-y-6">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3">
+                Bộ thông số Metadata áp dụng chung cho toàn bộ ảnh đã chọn
+            </h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        {{ t('image_metadata.title_label') }}
+                    </label>
+                    <input type="text" id="batch-title" placeholder="{{ t('image_metadata.title_placeholder') }}"
+                           class="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        {{ t('image_metadata.author_label') }}
+                    </label>
+                    <input type="text" id="batch-author" placeholder="{{ t('image_metadata.author_placeholder') }}"
+                           class="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                </div>
+            </div>
+
+            <div>
+                <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    {{ t('image_metadata.desc_label') }}
+                </label>
+                <textarea id="batch-description" rows="2" placeholder="{{ t('image_metadata.desc_placeholder') }}"
+                          class="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 resize-y"></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        {{ t('image_metadata.copyright_label') }}
+                    </label>
+                    <input type="text" id="batch-copyright" placeholder="{{ t('image_metadata.copyright_placeholder') }}"
+                           class="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        {{ t('image_metadata.keywords_label') }}
+                    </label>
+                    <input type="text" id="batch-keywords" placeholder="{{ t('image_metadata.keywords_placeholder') }}"
+                           class="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        {{ t('image_metadata.lat_label') }}
+                    </label>
+                    <input type="number" step="any" id="batch-lat" placeholder="21.028511"
+                           class="w-full text-xs font-mono px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        {{ t('image_metadata.lon_label') }}
+                    </label>
+                    <input type="number" step="any" id="batch-lon" placeholder="105.854444"
+                           class="w-full text-xs font-mono px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        {{ t('image_metadata.date_taken_label') }}
+                    </label>
+                    <input type="datetime-local" id="batch-date-taken"
+                           class="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                </div>
+            </div>
+
+            <!-- Batch Download Button -->
+            <button type="button" id="btn-save-batch" onclick="saveBatchMetadata()"
+                    class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-sm shadow-md shadow-indigo-600/30 flex items-center justify-center gap-2 transition cursor-pointer">
+                <i data-lucide="archive" class="w-4 h-4"></i>
+                <span>{{ t('image_metadata.btn_save_batch') }}</span>
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Toast notification container -->
+<div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+<script>
+    // State management
+    let currentSingleFile = null;
+    let batchFiles = [];
+    let map = null;
+    let mapMarker = null;
+
+    // Initialize Leaflet Map
+    function initMap(lat = 21.028511, lon = 105.854444, zoom = 14) {
+        if (!map) {
+            map = L.map('leaflet-map').setView([lat, lon], zoom);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Map click listener to place marker
+            map.on('click', function(e) {
+                setMapCoordinates(e.latlng.lat, e.latlng.lng, true);
+            });
+        } else {
+            map.setView([lat, lon], zoom);
+        }
+
+        // Set or update marker
+        updateMarker(lat, lon);
+        setTimeout(() => { map.invalidateSize(); }, 300);
+    }
+
+    function updateMarker(lat, lon) {
+        if (!map) return;
+        if (mapMarker) {
+            mapMarker.setLatLng([lat, lon]);
+        } else {
+            mapMarker = L.marker([lat, lon], { draggable: true }).addTo(map);
+            mapMarker.on('dragend', function(e) {
+                const pos = e.target.getLatLng();
+                setMapCoordinates(pos.lat, pos.lng, false);
+            });
+        }
+        mapMarker.bindPopup(`<b>Tọa độ:</b><br>${lat.toFixed(6)}, ${lon.toFixed(6)}`).openPopup();
+    }
+
+    function setMapCoordinates(lat, lon, pan = false) {
+        const roundedLat = parseFloat(lat.toFixed(6));
+        const roundedLon = parseFloat(lon.toFixed(6));
+
+        document.getElementById('meta-lat').value = roundedLat;
+        document.getElementById('meta-lon').value = roundedLon;
+
+        updateMarker(roundedLat, roundedLon);
+        if (pan && map) {
+            map.panTo([roundedLat, roundedLon]);
+        }
+    }
+
+    function onCoordInputChange() {
+        const latVal = parseFloat(document.getElementById('meta-lat').value);
+        const lonVal = parseFloat(document.getElementById('meta-lon').value);
+        if (!isNaN(latVal) && !isNaN(lonVal) && map) {
+            updateMarker(latVal, lonVal);
+            map.panTo([latVal, lonVal]);
+        }
+    }
+
+    function clearGpsForm() {
+        document.getElementById('meta-lat').value = '';
+        document.getElementById('meta-lon').value = '';
+        document.getElementById('meta-alt').value = '';
+        if (mapMarker && map) {
+            map.removeLayer(mapMarker);
+            mapMarker = null;
+        }
+        showToast("{{ t('image_metadata.toast_gps_cleared') }}", "info");
+    }
+
+    // OpenStreetMap Nominatim Geocoding Search
+    async function searchLocation() {
+        const query = document.getElementById('map-search-input').value.trim();
+        if (!query) return;
+
+        try {
+            const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+            const data = await resp.json();
+            if (data && data.length > 0) {
+                const first = data[0];
+                const lat = parseFloat(first.lat);
+                const lon = parseFloat(first.lon);
+                setMapCoordinates(lat, lon, true);
+                if (map) map.setView([lat, lon], 15);
+                showToast(`Đã tìm thấy: ${first.display_name.split(',')[0]}`, 'success');
+            } else {
+                showToast("Không tìm thấy địa điểm phù hợp.", "warning");
+            }
+        } catch (e) {
+            showToast("Lỗi tìm kiếm bản đồ: " + e.message, "error");
+        }
+    }
+
+    // HTML5 Current Browser Geolocation
+    function getCurrentLocation() {
+        if (!navigator.geolocation) {
+            showToast("Trình duyệt không hỗ trợ Geolocation.", "warning");
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const alt = pos.coords.altitude;
+                setMapCoordinates(lat, lon, true);
+                if (alt) document.getElementById('meta-alt').value = Math.round(alt);
+                if (map) map.setView([lat, lon], 16);
+                showToast("Đã lấy vị trí hiện tại của bạn!", "success");
+            },
+            (err) => {
+                showToast("Không thể lấy vị trí: " + err.message, "warning");
+            }
+        );
+    }
+
+    // Star rating handler
+    function setRating(val) {
+        document.getElementById('meta-rating').value = val;
+        const starBtns = document.querySelectorAll('.star-btn');
+        starBtns.forEach(btn => {
+            const starNum = parseInt(btn.getAttribute('data-star'));
+            if (starNum <= val) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+
+    // Quick Date helper
+    function setDateTimeNow() {
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const formatted = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        document.getElementById('meta-date-taken').value = formatted;
+        document.getElementById('meta-date-digitized').value = formatted;
+        document.getElementById('meta-date-modified').value = formatted;
+    }
+
+    // Tab switcher
+    function switchTab(mode) {
+        const singleBtn = document.getElementById('tab-btn-single');
+        const batchBtn = document.getElementById('tab-btn-batch');
+        const singleSec = document.getElementById('section-single');
+        const batchSec = document.getElementById('section-batch');
+
+        if (mode === 'single') {
+            singleBtn.className = "px-4 py-2 text-sm font-semibold rounded-xl flex items-center gap-2 transition bg-blue-600 text-white shadow-xs";
+            batchBtn.className = "px-4 py-2 text-sm font-medium rounded-xl flex items-center gap-2 transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800";
+            singleSec.classList.remove('hidden');
+            batchSec.classList.add('hidden');
+            if (map) setTimeout(() => map.invalidateSize(), 200);
+        } else {
+            batchBtn.className = "px-4 py-2 text-sm font-semibold rounded-xl flex items-center gap-2 transition bg-indigo-600 text-white shadow-xs";
+            singleBtn.className = "px-4 py-2 text-sm font-medium rounded-xl flex items-center gap-2 transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800";
+            batchSec.classList.remove('hidden');
+            singleSec.classList.add('hidden');
+        }
+    }
+
+    // Drag and Drop & Single File Upload Setup
+    function triggerSingleFileInput() {
+        document.getElementById('single-file-input').click();
+    }
+
+    const singleContainer = document.getElementById('single-upload-container');
+    const singleFileInput = document.getElementById('single-file-input');
+
+    singleContainer.addEventListener('click', triggerSingleFileInput);
+    singleContainer.addEventListener('dragover', (e) => { e.preventDefault(); singleContainer.classList.add('border-blue-500', 'bg-blue-50/20'); });
+    singleContainer.addEventListener('dragleave', (e) => { e.preventDefault(); singleContainer.classList.remove('border-blue-500', 'bg-blue-50/20'); });
+    singleContainer.addEventListener('drop', (e) => {
+        e.preventDefault();
+        singleContainer.classList.remove('border-blue-500', 'bg-blue-50/20');
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleSingleFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    singleFileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            handleSingleFile(e.target.files[0]);
+        }
+    });
+
+    async function handleSingleFile(file) {
+        currentSingleFile = file;
+        document.getElementById('input-filename').value = file.name;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        showToast("{{ t('image_metadata.status_reading') }}", "info");
+
+        try {
+            const resp = await fetch('/tools/image-metadata/read', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!resp.ok) {
+                const err = await resp.json();
+                throw new Error(err.detail || "Không thể đọc metadata.");
+            }
+
+            const res = await resp.json();
+            const data = res.data;
+
+            // Populate preview and specs
+            document.getElementById('preview-image').src = data.thumbnail_data_url;
+            document.getElementById('spec-dimensions').textContent = `${data.width} × ${data.height}`;
+            document.getElementById('spec-filesize').textContent = (data.file_size / (1024 * 1024)).toFixed(2) + ' MB';
+            document.getElementById('spec-format').textContent = data.format;
+
+            // Populate Form Fields
+            document.getElementById('meta-title').value = data.title || '';
+            document.getElementById('meta-description').value = data.description || '';
+            document.getElementById('meta-author').value = data.author || '';
+            document.getElementById('meta-copyright').value = data.copyright || '';
+            document.getElementById('meta-keywords').value = data.keywords || '';
+            document.getElementById('meta-software').value = data.software || '';
+            setRating(data.rating || 0);
+
+            document.getElementById('meta-date-taken').value = data.date_taken || '';
+            document.getElementById('meta-date-digitized').value = data.date_digitized || '';
+            document.getElementById('meta-date-modified').value = data.date_modified || '';
+
+            document.getElementById('meta-make').value = data.camera_make || '';
+            document.getElementById('meta-model').value = data.camera_model || '';
+            document.getElementById('meta-lens').value = data.lens_model || '';
+            document.getElementById('meta-iso').value = data.iso || '';
+            document.getElementById('meta-fnumber').value = data.f_number || '';
+            document.getElementById('meta-focal').value = data.focal_length || '';
+            document.getElementById('meta-exptime').value = data.exposure_time || '';
+
+            // GPS & Map
+            if (data.has_gps && data.latitude !== null && data.longitude !== null) {
+                document.getElementById('meta-lat').value = data.latitude;
+                document.getElementById('meta-lon').value = data.longitude;
+                document.getElementById('meta-alt').value = data.altitude !== null ? data.altitude : '';
+                initMap(data.latitude, data.longitude, 15);
+            } else {
+                document.getElementById('meta-lat').value = '';
+                document.getElementById('meta-lon').value = '';
+                document.getElementById('meta-alt').value = '';
+                initMap(21.028511, 105.854444, 12);
+                if (mapMarker && map) {
+                    map.removeLayer(mapMarker);
+                    mapMarker = null;
+                }
+            }
+
+            // Raw tags table
+            const tbody = document.getElementById('raw-exif-tbody');
+            tbody.innerHTML = '';
+            const rawKeys = Object.keys(data.raw_tags || {});
+            document.getElementById('raw-exif-count').textContent = `${rawKeys.length} tags`;
+
+            if (rawKeys.length > 0) {
+                rawKeys.forEach(k => {
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-slate-50 dark:hover:bg-slate-900/40 transition";
+                    row.innerHTML = `
+                        <td class="py-1.5 pr-2 font-semibold text-slate-700 dark:text-slate-300 w-1/3 truncate">${k}</td>
+                        <td class="py-1.5 text-slate-500 dark:text-slate-400 break-all">${data.raw_tags[k]}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                tbody.innerHTML = `<tr><td class="py-2 text-slate-400 italic">{{ t('image_metadata.no_raw_exif') }}</td></tr>`;
+            }
+
+            // Reveal workspace
+            singleContainer.classList.add('hidden');
+            document.getElementById('single-editor-workspace').classList.remove('hidden');
+
+            lucide.createIcons();
+            if (map) setTimeout(() => map.invalidateSize(), 300);
+
+            showToast("Đã tải ảnh và đọc metadata thành công!", "success");
+
+        } catch (e) {
+            showToast(e.message, "error");
+        }
+    }
+
+    // Save Single Metadata
+    async function saveSingleMetadata(clearGpsFlag = false, clearAllFlag = false) {
+        if (!currentSingleFile) {
+            showToast("{{ t('image_metadata.alert_no_file') }}", "warning");
+            return;
+        }
+
+        const btn = document.getElementById('btn-save-single');
+        const origText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>{{ t('image_metadata.status_saving') }}</span>`;
+        lucide.createIcons();
+
+        try {
+            const formData = new FormData();
+            formData.append('file', currentSingleFile);
+            formData.append('title', document.getElementById('meta-title').value);
+            formData.append('description', document.getElementById('meta-description').value);
+            formData.append('author', document.getElementById('meta-author').value);
+            formData.append('copyright', document.getElementById('meta-copyright').value);
+            formData.append('keywords', document.getElementById('meta-keywords').value);
+            formData.append('rating', document.getElementById('meta-rating').value);
+            formData.append('software', document.getElementById('meta-software').value);
+
+            formData.append('date_taken', document.getElementById('meta-date-taken').value);
+            formData.append('date_digitized', document.getElementById('meta-date-digitized').value);
+            formData.append('date_modified', document.getElementById('meta-date-modified').value);
+
+            formData.append('latitude', document.getElementById('meta-lat').value);
+            formData.append('longitude', document.getElementById('meta-lon').value);
+            formData.append('altitude', document.getElementById('meta-alt').value);
+
+            formData.append('camera_make', document.getElementById('meta-make').value);
+            formData.append('camera_model', document.getElementById('meta-model').value);
+            formData.append('lens_model', document.getElementById('meta-lens').value);
+            formData.append('iso', document.getElementById('meta-iso').value);
+            formData.append('f_number', document.getElementById('meta-fnumber').value);
+            formData.append('focal_length', document.getElementById('meta-focal').value);
+
+            formData.append('clear_gps', clearGpsFlag ? 'true' : 'false');
+            formData.append('clear_all', clearAllFlag ? 'true' : 'false');
+            formData.append('custom_filename', document.getElementById('input-filename').value);
+
+            const resp = await fetch('/tools/image-metadata/save', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!resp.ok) {
+                const err = await resp.json();
+                throw new Error(err.detail || "Không thể lưu metadata.");
+            }
+
+            const blob = await resp.blob();
+            const filename = document.getElementById('input-filename').value.trim() || currentSingleFile.name;
+
+            // Trigger browser download
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(downloadUrl);
+            document.body.removeChild(a);
+
+            showToast("{{ t('image_metadata.toast_saved_success') }}", "success");
+
+        } catch (e) {
+            showToast("Lỗi: " + e.message, "error");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+            lucide.createIcons();
+        }
+    }
+
+    // 1-Click Strip All EXIF
+    async function stripAllExif() {
+        if (!confirm("Bạn có chắc chắn muốn xóa sạch toàn bộ metadata và EXIF của bức ảnh này không?")) {
+            return;
+        }
+        await saveSingleMetadata(false, true);
+    }
+
+    // ==================== BATCH MODE HANDLERS ====================
+    function triggerBatchFileInput() {
+        document.getElementById('batch-file-input').click();
+    }
+
+    const batchContainer = document.getElementById('batch-upload-container');
+    const batchFileInput = document.getElementById('batch-file-input');
+
+    batchContainer.addEventListener('click', triggerBatchFileInput);
+    batchContainer.addEventListener('dragover', (e) => { e.preventDefault(); batchContainer.classList.add('border-indigo-500', 'bg-indigo-50/20'); });
+    batchContainer.addEventListener('dragleave', (e) => { e.preventDefault(); batchContainer.classList.remove('border-indigo-500', 'bg-indigo-50/20'); });
+    batchContainer.addEventListener('drop', (e) => {
+        e.preventDefault();
+        batchContainer.classList.remove('border-indigo-500', 'bg-indigo-50/20');
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleBatchFiles(Array.from(e.dataTransfer.files));
+        }
+    });
+
+    batchFileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            handleBatchFiles(Array.from(e.target.files));
+        }
+    });
+
+    function handleBatchFiles(files) {
+        batchFiles = files;
+        const box = document.getElementById('batch-selected-box');
+        const formContainer = document.getElementById('batch-form-container');
+        const list = document.getElementById('batch-file-list');
+        const countLabel = document.getElementById('batch-count-label');
+
+        countLabel.textContent = `Đã chọn ${files.length} ảnh`;
+        list.innerHTML = '';
+
+        files.forEach(f => {
+            const pill = document.createElement('span');
+            pill.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700";
+            pill.innerHTML = `<i data-lucide="image" class="w-3 h-3 text-indigo-500"></i> ${f.name}`;
+            list.appendChild(pill);
+        });
+
+        box.classList.remove('hidden');
+        formContainer.classList.remove('hidden');
+        lucide.createIcons();
+    }
+
+    async function saveBatchMetadata() {
+        if (!batchFiles || batchFiles.length === 0) {
+            showToast("{{ t('image_metadata.alert_no_file') }}", "warning");
+            return;
+        }
+
+        const btn = document.getElementById('btn-save-batch');
+        const origText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>{{ t('image_metadata.status_saving') }}</span>`;
+        lucide.createIcons();
+
+        try {
+            const formData = new FormData();
+            batchFiles.forEach(f => formData.append('files', f));
+
+            formData.append('title', document.getElementById('batch-title').value);
+            formData.append('description', document.getElementById('batch-description').value);
+            formData.append('author', document.getElementById('batch-author').value);
+            formData.append('copyright', document.getElementById('batch-copyright').value);
+            formData.append('keywords', document.getElementById('batch-keywords').value);
+            formData.append('latitude', document.getElementById('batch-lat').value);
+            formData.append('longitude', document.getElementById('batch-lon').value);
+            formData.append('date_taken', document.getElementById('batch-date-taken').value);
+
+            const resp = await fetch('/tools/image-metadata/save-batch', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!resp.ok) {
+                const err = await resp.json();
+                throw new Error(err.detail || "Không thể xử lý hàng loạt.");
+            }
+
+            const blob = await resp.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = "metadata_edited_images.zip";
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(downloadUrl);
+            document.body.removeChild(a);
+
+            showToast("Đã xử lý hàng loạt và tải file ZIP thành công!", "success");
+
+        } catch (e) {
+            showToast("Lỗi hàng loạt: " + e.message, "error");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+            lucide.createIcons();
+        }
+    }
+
+    // Modern Toast Notification
+    function showToast(message, type = "info") {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold shadow-xl border flex items-center gap-2.5 transition-all transform duration-300 translate-y-4 opacity-0 pointer-events-auto ${
+            type === 'success' ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800' :
+            type === 'error' ? 'bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-200 border-rose-200 dark:border-rose-800' :
+            type === 'warning' ? 'bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800' :
+            'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-slate-700'
+        }`;
+
+        const iconName = type === 'success' ? 'check-circle' : type === 'error' ? 'alert-triangle' : type === 'warning' ? 'alert-circle' : 'info';
+        toast.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4 shrink-0"></i><span>${message}</span>`;
+        container.appendChild(toast);
+        lucide.createIcons();
+
+        requestAnimationFrame(() => {
+            toast.classList.remove('translate-y-4', 'opacity-0');
+        });
+
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-y-2');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+</script>
+{% endblock %}
