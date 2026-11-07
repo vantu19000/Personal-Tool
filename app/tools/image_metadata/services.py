@@ -1,6 +1,7 @@
 """Services for reading, editing, stripping, and writing Image Metadata (EXIF, GPS, XP tags)."""
 from __future__ import annotations
 
+import asyncio
 import base64
 from datetime import datetime
 import io
@@ -14,10 +15,12 @@ import zipfile
 import aiohttp
 from PIL import ExifTags, Image
 
+from app.core.config import get_ollama_base_url, get_ollama_timeout
 from app.core.logger import log_outgoing_api
 
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 DEFAULT_OLLAMA_MODEL = "llama3:latest"
+DEFAULT_OLLAMA_TIMEOUT = 600.0  # 10 phút cho các model lớn (27B+)
 
 DEFAULT_AI_METADATA_PROMPT = """Bạn là một chuyên gia biên tập dữ liệu ảnh (EXIF/Metadata) chuyên nghiệp.
 Dựa trên chủ đề hoặc yêu cầu của người dùng sau đây, hãy sáng tạo và trả về DUY NHẤT một đối tượng JSON (không kèm bất kỳ lời dẫn hay văn bản giải thích nào) theo cấu trúc sau:
@@ -79,7 +82,7 @@ def _decode_xp_tag(val: Any) -> str:
 
 
 def _decode_str_tag(val: Any) -> str:
-    """Safely decode standard EXIF string / bytes tags."""
+    """Safely decode standard EXIF string / bytes tags, recovering UTF-8 if read as latin-1."""
     if isinstance(val, bytes):
         for enc in ("utf-8", "latin-1", "ascii"):
             try:
@@ -88,7 +91,12 @@ def _decode_str_tag(val: Any) -> str:
                 continue
         return ""
     if isinstance(val, str):
-        return val.rstrip("\x00").strip()
+        cleaned = val.rstrip("\x00").strip()
+        # Recover original UTF-8 if Pillow decoded raw UTF-8 bytes using latin-1
+        try:
+            return cleaned.encode("latin-1").decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            return cleaned
     return str(val) if val is not None else ""
 
 
@@ -405,7 +413,7 @@ def update_metadata(
         # Title
         if title:
             exif[XP_TITLE_TAG] = title.encode("utf-16le")
-            exif[ExifTags.Base.ImageDescription] = title
+            exif[ExifTags.Base.ImageDescription] = title.encode("utf-8")
         else:
             exif.pop(XP_TITLE_TAG, None)
             if not description:
@@ -416,7 +424,7 @@ def update_metadata(
             exif[XP_SUBJECT_TAG] = description.encode("utf-16le")
             exif[XP_COMMENT_TAG] = description.encode("utf-16le")
             if not title:
-                exif[ExifTags.Base.ImageDescription] = description
+                exif[ExifTags.Base.ImageDescription] = description.encode("utf-8")
         else:
             exif.pop(XP_SUBJECT_TAG, None)
             exif.pop(XP_COMMENT_TAG, None)
@@ -424,14 +432,14 @@ def update_metadata(
         # Author / Artist
         if author:
             exif[XP_AUTHOR_TAG] = author.encode("utf-16le")
-            exif[ExifTags.Base.Artist] = author
+            exif[ExifTags.Base.Artist] = author.encode("utf-8")
         else:
             exif.pop(XP_AUTHOR_TAG, None)
             exif.pop(ExifTags.Base.Artist, None)
 
         # Copyright
         if copyright_val:
-            exif[ExifTags.Base.Copyright] = copyright_val
+            exif[ExifTags.Base.Copyright] = copyright_val.encode("utf-8")
         else:
             exif.pop(ExifTags.Base.Copyright, None)
 
@@ -443,18 +451,18 @@ def update_metadata(
 
         # Software
         if software:
-            exif[ExifTags.Base.Software] = software
+            exif[ExifTags.Base.Software] = software.encode("utf-8")
         else:
             exif.pop(ExifTags.Base.Software, None)
 
         # Camera Make & Model
         if camera_make:
-            exif[ExifTags.Base.Make] = camera_make
+            exif[ExifTags.Base.Make] = camera_make.encode("utf-8")
         else:
             exif.pop(ExifTags.Base.Make, None)
 
         if camera_model:
-            exif[ExifTags.Base.Model] = camera_model
+            exif[ExifTags.Base.Model] = camera_model.encode("utf-8")
         else:
             exif.pop(ExifTags.Base.Model, None)
 
@@ -487,7 +495,7 @@ def update_metadata(
 
         lens_model = meta.get("lens_model", "").strip()
         if lens_model:
-            exif_ifd[LENS_MODEL_TAG] = lens_model
+            exif_ifd[LENS_MODEL_TAG] = lens_model.encode("utf-8")
         else:
             exif_ifd.pop(LENS_MODEL_TAG, None)
 
@@ -667,9 +675,10 @@ def _normalize_ai_metadata(data: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-async def list_ollama_models(base_url: str = DEFAULT_OLLAMA_BASE_URL, timeout_seconds: float = 4.0) -> list[str]:
+async def list_ollama_models(base_url: str | None = None, timeout_seconds: float = 4.0) -> list[str]:
     """Return available Ollama models or default fallbacks if unreachable."""
-    url = base_url.rstrip("/") + "/api/tags"
+    effective_base = (base_url or get_ollama_base_url()).rstrip("/")
+    url = effective_base + "/api/tags"
     t0 = time.perf_counter()
     try:
         timeout = aiohttp.ClientTimeout(total=timeout_seconds)
@@ -714,11 +723,14 @@ async def generate_ai_metadata(
     model: str = DEFAULT_OLLAMA_MODEL,
     prompt_template: str = "",
     image_bytes: bytes | None = None,
-    base_url: str = DEFAULT_OLLAMA_BASE_URL,
-    timeout_seconds: float = 120.0,
+    base_url: str | None = None,
+    timeout_seconds: float | None = None,
 ) -> dict[str, Any]:
     """Send user topic + prompt template to Ollama, parse returned JSON and normalize."""
-    url = base_url.rstrip("/") + "/api/generate"
+    effective_base = (base_url or get_ollama_base_url()).rstrip("/")
+    effective_timeout = timeout_seconds if timeout_seconds is not None else get_ollama_timeout()
+    url = f"{effective_base}/api/generate"
+
     template = prompt_template.strip() or DEFAULT_AI_METADATA_PROMPT
     full_prompt = template.replace("{topic}", topic.strip())
 
@@ -739,10 +751,11 @@ async def generate_ai_metadata(
         "prompt_length": len(full_prompt),
         "has_image": bool(image_bytes),
         "image_size_bytes": len(image_bytes) if image_bytes else 0,
+        "timeout_seconds": effective_timeout,
     }
 
     t0 = time.perf_counter()
-    timeout = aiohttp.ClientTimeout(total=timeout_seconds)
+    timeout = aiohttp.ClientTimeout(total=effective_timeout, connect=30.0)
 
     try:
         async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -763,6 +776,35 @@ async def generate_ai_metadata(
                     raise RuntimeError(f"Ollama báo lỗi (HTTP {status}): {err_text}")
                 result = await resp.json()
                 raw_response = result.get("response", "")
+    except asyncio.TimeoutError:
+        duration_ms = (time.perf_counter() - t0) * 1000.0
+        mins = int(effective_timeout // 60)
+        err_msg = (
+            f"Quá thời gian chờ ({int(effective_timeout)}s ~ {mins} phút) khi xử lý mô hình '{model}'. "
+            f"Mô hình này có dung lượng lớn (27B+) hoặc đang cần nạp vào GPU/RAM. "
+            f"Bạn có thể thử lại, hoặc chọn mô hình nhẹ hơn (như llama3:latest hoặc gemma4:latest) để phản hồi nhanh hơn."
+        )
+        log_outgoing_api(
+            service="Ollama",
+            method="POST",
+            url=url,
+            payload=log_payload,
+            duration_ms=duration_ms,
+            error=err_msg,
+        )
+        raise TimeoutError(err_msg)
+    except aiohttp.ClientConnectorError as exc:
+        duration_ms = (time.perf_counter() - t0) * 1000.0
+        err_msg = f"Không thể kết nối tới Ollama tại {effective_base}. Vui lòng kiểm tra xem ứng dụng Ollama đã được mở chưa."
+        log_outgoing_api(
+            service="Ollama",
+            method="POST",
+            url=url,
+            payload=log_payload,
+            duration_ms=duration_ms,
+            error=err_msg,
+        )
+        raise RuntimeError(err_msg) from exc
     except Exception as exc:
         duration_ms = (time.perf_counter() - t0) * 1000.0
         log_outgoing_api(

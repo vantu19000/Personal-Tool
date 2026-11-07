@@ -63,6 +63,8 @@ async def generate_ai(
             image_bytes=img_bytes,
         )
         return JSONResponse({"status": "success", "data": ai_data})
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Lỗi khi sinh metadata qua Ollama: {str(exc)}")
 

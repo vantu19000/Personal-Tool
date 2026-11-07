@@ -74,10 +74,12 @@ class BlockDef:
 
 
 class SystemSettings(BaseModel):
-    """App-wide settings block (homepage title + description)."""
+    """App-wide settings block (homepage title + description + shared Ollama config)."""
 
     home_title: str = Field(..., max_length=300)
     home_description: str = Field(..., max_length=1000)
+    ollama_timeout_seconds: int = Field(600, ge=10, le=7200)
+    ollama_base_url: str = Field("http://localhost:11434", max_length=200)
 
 
 class PdfToMdSettings(BaseModel):
@@ -159,6 +161,8 @@ BLOCKS: Dict[str, BlockDef] = {
                 "Bộ công cụ web chạy local. Chọn một tool từ sidebar bên "
                 "trái để bắt đầu."
             ),
+            "ollama_timeout_seconds": 600,
+            "ollama_base_url": "http://localhost:11434",
         },
         fields=[
             FieldDef(
@@ -172,6 +176,20 @@ BLOCKS: Dict[str, BlockDef] = {
                 label="Mô tả trang chủ",
                 kind="textarea",
                 placeholder="Mô tả ngắn gọn của trang chủ",
+            ),
+            FieldDef(
+                key="ollama_timeout_seconds",
+                label="Thời gian chờ Ollama dùng chung (giây)",
+                kind="number",
+                placeholder="600",
+                help_text="Thời gian chờ tối đa (giây) cho mọi tính năng gọi Ollama. Mặc định 600s (10 phút).",
+            ),
+            FieldDef(
+                key="ollama_base_url",
+                label="Địa chỉ máy chủ Ollama",
+                kind="text",
+                placeholder="http://localhost:11434",
+                help_text="Endpoint URL của máy chủ Ollama cục bộ.",
             ),
         ],
     ),

@@ -24,8 +24,38 @@ class Settings:
     TEMPLATES_DIR = TEMPLATES_DIR
     STATIC_DIR = STATIC_DIR
 
+    # Ollama global config (dùng chung cho toàn bộ các chức năng)
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_TIMEOUT_SECONDS: int = 600  # Mặc định 10 phút (600s)
+
 
 settings = Settings()
+
+
+def get_ollama_timeout() -> float:
+    """Lấy thời gian timeout Ollama dùng chung cho toàn bộ ứng dụng (mặc định 600s ~ 10 phút)."""
+    try:
+        from app.core import settings_store
+        system_cfg = settings_store.get_block("system")
+        val = system_cfg.get("ollama_timeout_seconds")
+        if val is not None and str(val).isdigit() and int(val) > 0:
+            return float(val)
+    except Exception:
+        pass
+    return float(settings.OLLAMA_TIMEOUT_SECONDS)
+
+
+def get_ollama_base_url() -> str:
+    """Lấy địa chỉ Ollama dùng chung cho toàn bộ ứng dụng (mặc định http://localhost:11434)."""
+    try:
+        from app.core import settings_store
+        system_cfg = settings_store.get_block("system")
+        url = system_cfg.get("ollama_base_url")
+        if url and str(url).strip():
+            return str(url).strip().rstrip("/")
+    except Exception:
+        pass
+    return settings.OLLAMA_BASE_URL
 
 
 # Registry of tools shown in the sidebar (and on the dashboard grid).
