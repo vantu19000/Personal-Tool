@@ -4,11 +4,47 @@ from __future__ import annotations
 import base64
 from datetime import datetime
 import io
+import json
 from pathlib import Path
+import re
 from typing import Any
 import zipfile
 
+import aiohttp
 from PIL import ExifTags, Image
+
+DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
+DEFAULT_OLLAMA_MODEL = "llama3:latest"
+
+DEFAULT_AI_METADATA_PROMPT = """Bạn là một chuyên gia biên tập dữ liệu ảnh (EXIF/Metadata) chuyên nghiệp.
+Dựa trên chủ đề hoặc yêu cầu của người dùng sau đây, hãy sáng tạo và trả về DUY NHẤT một đối tượng JSON (không kèm bất kỳ lời dẫn hay văn bản giải thích nào) theo cấu trúc sau:
+{
+  "title": "Tiêu đề ảnh ngắn gọn, ấn tượng, chuẩn SEO",
+  "description": "Đoạn mô tả chi tiết, giàu cảm xúc về bối cảnh, ánh sáng, góc chụp và câu chuyện của bức ảnh (khoảng 2-3 câu)",
+  "keywords": "từ khóa 1; từ khóa 2; từ khóa 3; từ khóa 4; từ khóa 5",
+  "author": "Tên tác giả hoặc người chụp",
+  "copyright": "Bản quyền (ví dụ: © 2026 Bản quyền tác giả)",
+  "rating": 5,
+  "software": "18.1",
+  "latitude": 21.028511,
+  "longitude": 105.854444,
+  "altitude": 15,
+  "camera_make": "Apple",
+  "camera_model": "iPhone 15 Pro",
+  "lens_model": "iPhone 15 Pro back triple camera 6.78mm f/1.78",
+  "iso": 100,
+  "f_number": 1.8,
+  "focal_length": 24
+}
+
+Quy tắc quan trọng:
+1. Nếu chủ đề nhắc tới một địa danh cụ thể (ví dụ: Hồ Gươm, Đà Nẵng, Hội An, Paris, Tokyo...), hãy cung cấp tọa độ latitude và longitude thực tế tương ứng. Nếu là ảnh trừu tượng/không rõ địa điểm, hãy để null cho latitude và longitude.
+2. Giữ giá trị software mặc định là '18.1' trừ khi yêu cầu chỉ định phần mềm khác.
+3. Trả về DUY NHẤT mã JSON hợp lệ.
+
+Yêu cầu/Chủ đề của người dùng:
+{topic}
+"""
 
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff"}
 
@@ -550,3 +586,140 @@ def create_zip_archive(files: list[tuple[str, bytes]]) -> bytes:
         for fname, data in files:
             zf.writestr(fname, data)
     return zip_buffer.getvalue()
+
+
+def _clean_json_text(text: str) -> str:
+    """Strip markdown code fence ```json ... ``` or extract outermost JSON object."""
+    text = text.strip()
+    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        return text[start : end + 1].strip()
+    return text
+
+
+def _normalize_ai_metadata(data: dict[str, Any]) -> dict[str, Any]:
+    """Sanitize and normalize fields returned from Ollama JSON."""
+    out: dict[str, Any] = {}
+    out["title"] = str(data.get("title", "")).strip()
+    out["description"] = str(data.get("description", "")).strip()
+    out["keywords"] = str(data.get("keywords", "")).strip()
+    out["author"] = str(data.get("author", "")).strip()
+    out["copyright"] = str(data.get("copyright", "")).strip()
+    out["software"] = str(data.get("software", "")).strip() or "18.1"
+
+    # Rating
+    try:
+        r = int(data.get("rating", 5))
+        out["rating"] = max(0, min(5, r))
+    except Exception:
+        out["rating"] = 5
+
+    # Coordinates
+    lat = data.get("latitude")
+    lon = data.get("longitude")
+    alt = data.get("altitude")
+
+    try:
+        out["latitude"] = float(lat) if lat is not None and str(lat).strip() not in ("", "null", "None") else None
+    except Exception:
+        out["latitude"] = None
+
+    try:
+        out["longitude"] = float(lon) if lon is not None and str(lon).strip() not in ("", "null", "None") else None
+    except Exception:
+        out["longitude"] = None
+
+    try:
+        out["altitude"] = float(alt) if alt is not None and str(alt).strip() not in ("", "null", "None") else None
+    except Exception:
+        out["altitude"] = None
+
+    # Camera
+    out["camera_make"] = str(data.get("camera_make", "")).strip()
+    out["camera_model"] = str(data.get("camera_model", "")).strip()
+    out["lens_model"] = str(data.get("lens_model", "")).strip()
+
+    try:
+        iso = data.get("iso")
+        out["iso"] = int(iso) if iso is not None and str(iso).strip().isdigit() else None
+    except Exception:
+        out["iso"] = None
+
+    try:
+        f_num = data.get("f_number")
+        out["f_number"] = float(f_num) if f_num is not None and str(f_num).strip() else None
+    except Exception:
+        out["f_number"] = None
+
+    try:
+        focal = data.get("focal_length")
+        out["focal_length"] = float(focal) if focal is not None and str(focal).strip() else None
+    except Exception:
+        out["focal_length"] = None
+
+    return out
+
+
+async def list_ollama_models(base_url: str = DEFAULT_OLLAMA_BASE_URL, timeout_seconds: float = 4.0) -> list[str]:
+    """Return available Ollama models or default fallbacks if unreachable."""
+    url = base_url.rstrip("/") + "/api/tags"
+    try:
+        timeout = aiohttp.ClientTimeout(total=timeout_seconds)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(url) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    models = data.get("models", [])
+                    names = [m["name"] for m in models if isinstance(m, dict) and m.get("name")]
+                    if names:
+                        return sorted(names)
+    except Exception:
+        pass
+    return ["llama3:latest", "qwen3.8:latest", "llama3.2-vision:11b"]
+
+
+async def generate_ai_metadata(
+    topic: str,
+    model: str = DEFAULT_OLLAMA_MODEL,
+    prompt_template: str = "",
+    image_bytes: bytes | None = None,
+    base_url: str = DEFAULT_OLLAMA_BASE_URL,
+    timeout_seconds: float = 120.0,
+) -> dict[str, Any]:
+    """Send user topic + prompt template to Ollama, parse returned JSON and normalize."""
+    url = base_url.rstrip("/") + "/api/generate"
+    template = prompt_template.strip() or DEFAULT_AI_METADATA_PROMPT
+    full_prompt = template.replace("{topic}", topic.strip())
+
+    payload: dict[str, Any] = {
+        "model": model,
+        "prompt": full_prompt,
+        "format": "json",
+        "stream": False,
+    }
+
+    if image_bytes:
+        b64_img = base64.b64encode(image_bytes).decode("ascii")
+        payload["images"] = [b64_img]
+
+    timeout = aiohttp.ClientTimeout(total=timeout_seconds)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with session.post(url, json=payload) as resp:
+            if resp.status != 200:
+                err_text = await resp.text()
+                raise RuntimeError(f"Ollama báo lỗi (HTTP {resp.status}): {err_text}")
+            result = await resp.json()
+            raw_response = result.get("response", "")
+
+    cleaned_json = _clean_json_text(raw_response)
+    try:
+        parsed = json.loads(cleaned_json)
+    except Exception as exc:
+        raise ValueError(f"Không thể phân tích định dạng JSON từ Ollama: {exc}\nNội dung trả về: {raw_response[:300]}") from exc
+
+    return _normalize_ai_metadata(parsed)
+

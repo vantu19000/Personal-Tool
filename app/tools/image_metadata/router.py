@@ -24,8 +24,47 @@ async def image_metadata_page(request: Request):
         {
             "active_tool": "image-metadata",
             "supported_extensions": sorted(list(services.SUPPORTED_EXTENSIONS)),
+            "default_ai_prompt": services.DEFAULT_AI_METADATA_PROMPT,
         },
     )
+
+
+@router.get("/image-metadata/ollama-models", name="image-metadata-ollama-models")
+async def get_ollama_models():
+    """Fetch installed models from local Ollama instance."""
+    models = await services.list_ollama_models()
+    return JSONResponse({"status": "success", "models": models})
+
+
+@router.post("/image-metadata/generate-ai", name="image-metadata-generate-ai")
+async def generate_ai(
+    topic: str = Form(""),
+    model: str = Form("llama3:latest"),
+    prompt_template: str = Form(""),
+    file: Optional[UploadFile] = File(None),
+):
+    """Generate image metadata using local Ollama model from user topic and prompt template."""
+    clean_topic = topic.strip()
+    if not clean_topic:
+        raise HTTPException(status_code=400, detail="Vui lòng nhập chủ đề hoặc yêu cầu cho bức ảnh.")
+
+    img_bytes = None
+    if file and file.filename:
+        try:
+            img_bytes = await file.read()
+        except Exception:
+            img_bytes = None
+
+    try:
+        ai_data = await services.generate_ai_metadata(
+            topic=clean_topic,
+            model=model,
+            prompt_template=prompt_template,
+            image_bytes=img_bytes,
+        )
+        return JSONResponse({"status": "success", "data": ai_data})
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi sinh metadata qua Ollama: {str(exc)}")
 
 
 @router.post("/image-metadata/read", name="image-metadata-read")

@@ -652,6 +652,20 @@
     "status_saving": "Đang ghi metadata...",
     "toast_saved_success": "Đã lưu metadata và tải ảnh thành công!",
     "toast_gps_cleared": "Đã xóa tọa độ GPS khỏi biểu mẫu.",
-    "toast_all_cleared": "Đã xóa sạch toàn bộ metadata EXIF thành công!"
+    "toast_all_cleared": "Đã xóa sạch toàn bộ metadata EXIF thành công!",
+    "ai_assistant_title": "Trợ lý AI Ollama (Tự động tạo Metadata)",
+    "ai_assistant_badge": "✦ Local AI",
+    "ai_assistant_desc": "Nhập chủ đề hoặc ý tưởng, hệ thống ghép prompt theo format chuẩn và gọi Ollama để tự động điền tiêu đề, mô tả, từ khóa, thông số máy và tọa độ GPS!",
+    "ai_topic_label": "Chủ đề / Yêu cầu của bức ảnh",
+    "ai_topic_placeholder": "Ví dụ: Bình minh trên biển Mỹ Khê Đà Nẵng, ảnh nghệ thuật chụp trong sương sớm...",
+    "ai_model_label": "Mô hình Ollama (Model)",
+    "ai_include_image": "Kèm hình ảnh hiện tại để Vision AI phân tích trực quan",
+    "ai_prompt_template_toggle": "Tùy chỉnh Prompt Format gửi tới Ollama",
+    "ai_prompt_template_hint": "Giữ nguyên placeholder {topic} trong format để hệ thống ghép chủ đề của bạn vào.",
+    "ai_btn_generate": "✨ Tạo và tự động điền (AI Auto-Fill)",
+    "ai_btn_generating": "Đang phân tích và tạo metadata...",
+    "ai_reset_prompt": "Đặt lại prompt gốc",
+    "ai_fill_success": "Đã sinh metadata bằng AI và tự động điền vào biểu mẫu thành công!",
+    "ai_fill_alert_no_topic": "Vui lòng nhập chủ đề hoặc yêu cầu cho bức ảnh."
   }
 }

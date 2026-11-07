@@ -652,6 +652,20 @@
     "status_saving": "Writing metadata...",
     "toast_saved_success": "Metadata saved and image downloaded successfully!",
     "toast_gps_cleared": "GPS coordinates removed from the form.",
-    "toast_all_cleared": "All EXIF metadata stripped successfully!"
+    "toast_all_cleared": "All EXIF metadata stripped successfully!",
+    "ai_assistant_title": "AI Metadata Assistant (Ollama Powered)",
+    "ai_assistant_badge": "✦ Local AI",
+    "ai_assistant_desc": "Enter your photo topic or idea, the system merges it into a structured prompt format and queries Ollama to auto-fill title, description, tags, camera specs, and GPS coordinates!",
+    "ai_topic_label": "Photo Topic / Creative Prompt",
+    "ai_topic_placeholder": "E.g., Sunrise over My Khe Beach in Da Nang, atmospheric moody film photography...",
+    "ai_model_label": "Ollama Model",
+    "ai_include_image": "Include current image for visual analysis (Vision models)",
+    "ai_prompt_template_toggle": "Customize Prompt Format sent to Ollama",
+    "ai_prompt_template_hint": "Keep the {topic} placeholder in the template where your topic will be injected.",
+    "ai_btn_generate": "✨ Generate & Auto-Fill",
+    "ai_btn_generating": "Analyzing and generating metadata...",
+    "ai_reset_prompt": "Reset to Default Format",
+    "ai_fill_success": "AI metadata generated and form auto-filled successfully!",
+    "ai_fill_alert_no_topic": "Please enter a topic or description for the photo."
   }
 }

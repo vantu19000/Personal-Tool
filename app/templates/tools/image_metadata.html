@@ -187,6 +187,106 @@
             <!-- RIGHT COLUMN: Metadata Form Cards -->
             <div class="lg:col-span-7 space-y-6">
 
+                <!-- 0. AI Metadata Assistant Card (Ollama) -->
+                <div class="rounded-2xl bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/60 dark:from-[#11192e] dark:via-[#0f172a] dark:to-[#17132e] border border-indigo-200/80 dark:border-indigo-800/60 p-5 sm:p-6 shadow-sm space-y-4">
+                    <div class="flex items-start sm:items-center justify-between gap-3 border-b border-indigo-100 dark:border-indigo-900/60 pb-3.5">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-xs">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <span>{{ t('image_metadata.ai_assistant_title') }}</span>
+                                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
+                                        {{ t('image_metadata.ai_assistant_badge') }}
+                                    </span>
+                                </h2>
+                            </div>
+                        </div>
+                        <span class="text-[11px] text-indigo-600 dark:text-indigo-400 font-mono hidden sm:inline-block">Ollama Local</span>
+                    </div>
+
+                    <p class="text-xs text-slate-600 dark:text-slate-400">
+                        {{ t('image_metadata.ai_assistant_desc') }}
+                    </p>
+
+                    <!-- Topic & Requirements Input -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-800 dark:text-slate-200 block mb-1">
+                            {{ t('image_metadata.ai_topic_label') }}
+                        </label>
+                        <div class="relative">
+                            <textarea id="ai-topic-input" rows="2" placeholder="{{ t('image_metadata.ai_topic_placeholder') }}"
+                                      class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-indigo-200 dark:border-indigo-800/80 bg-white dark:bg-[#0c1220] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition resize-y"
+                                      onkeydown="if(event.ctrlKey && event.key === 'Enter'){ generateAndAutoFill(); }"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Model Selector + Vision Checkbox -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                                    {{ t('image_metadata.ai_model_label') }}
+                                </label>
+                                <button type="button" onclick="loadOllamaModels()" class="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-medium">
+                                    <i data-lucide="refresh-cw" class="w-2.5 h-2.5"></i> Làm mới
+                                </button>
+                            </div>
+                            <div class="relative">
+                                <select id="ai-model-select"
+                                        class="w-full appearance-none text-xs font-mono font-medium px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0c1220] text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                                    <option value="llama3:latest">llama3:latest</option>
+                                    <option value="qwen3.8:latest">qwen3.8:latest</option>
+                                    <option value="llama3.2-vision:11b">llama3.2-vision:11b</option>
+                                    <option value="gemma4:latest">gemma4:latest</option>
+                                </select>
+                                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 sm:pt-0">
+                            <label class="inline-flex items-center gap-2 cursor-pointer text-xs text-slate-700 dark:text-slate-300">
+                                <input type="checkbox" id="ai-include-image-cb" checked
+                                       class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4" />
+                                <span>{{ t('image_metadata.ai_include_image') }}</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Customizable Prompt Template Accordion -->
+                    <details class="group rounded-xl border border-indigo-100 dark:border-indigo-950/80 bg-white/60 dark:bg-slate-900/40 p-3 text-xs transition">
+                        <summary class="flex items-center justify-between cursor-pointer list-none select-none font-semibold text-slate-700 dark:text-slate-300">
+                            <span class="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
+                                <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+                                <span>{{ t('image_metadata.ai_prompt_template_toggle') }}</span>
+                            </span>
+                            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 group-open:rotate-180 transition-transform"></i>
+                        </summary>
+                        <div class="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                            <p class="text-[11px] text-slate-400">
+                                {{ t('image_metadata.ai_prompt_template_hint') }}
+                            </p>
+                            <textarea id="ai-prompt-template" rows="8"
+                                      class="w-full text-xs font-mono p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 resize-y">{{ default_ai_prompt }}</textarea>
+                            <div class="flex justify-end">
+                                <button type="button" onclick="resetAiPromptTemplate()" class="text-[11px] text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1 font-medium">
+                                    <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+                                    {{ t('image_metadata.ai_reset_prompt') }}
+                                </button>
+                            </div>
+                        </div>
+                    </details>
+
+                    <!-- Action Button -->
+                    <button type="button" id="btn-ai-generate" onclick="generateAndAutoFill()"
+                            class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-md shadow-indigo-600/25 flex items-center justify-center gap-2 transition cursor-pointer">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        <span>{{ t('image_metadata.ai_btn_generate') }}</span>
+                    </button>
+                </div>
+
+
                 <!-- 1. Basic Info & Text -->
                 <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 shadow-xs space-y-4">
                     <h2 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
@@ -591,6 +691,199 @@
 <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
 <script>
+    
+    // ==================== OLLAMA AI ASSISTANT ====================
+    const DEFAULT_AI_PROMPT_TEMPLATE = `{{ default_ai_prompt | safe }}`;
+
+    function resetAiPromptTemplate() {
+        document.getElementById('ai-prompt-template').value = DEFAULT_AI_PROMPT_TEMPLATE;
+        showToast("Đã khôi phục prompt format mặc định.", "info");
+    }
+
+    async function loadOllamaModels() {
+        try {
+            const resp = await fetch('/tools/image-metadata/ollama-models');
+            if (resp.ok) {
+                const res = await resp.json();
+                const models = res.models || [];
+                if (models.length > 0) {
+                    const select = document.getElementById('ai-model-select');
+                    const curr = select.value;
+                    select.innerHTML = '';
+                    models.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m;
+                        opt.textContent = m;
+                        if (m === curr || (!curr && (m.includes('llama3') || m.includes('qwen')))) {
+                            opt.selected = true;
+                        }
+                        select.appendChild(opt);
+                    });
+                }
+            }
+        } catch (e) {}
+    }
+
+    function highlightField(el) {
+        if (!el) return;
+        el.classList.add('ring-2', 'ring-purple-500', 'bg-purple-50/40', 'dark:bg-purple-950/30');
+        setTimeout(() => {
+            el.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-50/40', 'dark:bg-purple-950/30');
+        }, 2500);
+    }
+
+    async function generateAndAutoFill() {
+        const topic = document.getElementById('ai-topic-input').value.trim();
+        if (!topic) {
+            showToast("{{ t('image_metadata.ai_fill_alert_no_topic') }}", "warning");
+            document.getElementById('ai-topic-input').focus();
+            return;
+        }
+
+        const btn = document.getElementById('btn-ai-generate');
+        const origHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>{{ t('image_metadata.ai_btn_generating') }}</span>`;
+        lucide.createIcons();
+
+        try {
+            const formData = new FormData();
+            formData.append('topic', topic);
+            formData.append('model', document.getElementById('ai-model-select').value);
+            formData.append('prompt_template', document.getElementById('ai-prompt-template').value);
+
+            const includeImage = document.getElementById('ai-include-image-cb').checked;
+            if (includeImage && currentSingleFile) {
+                formData.append('file', currentSingleFile);
+            }
+
+            const resp = await fetch('/tools/image-metadata/generate-ai', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!resp.ok) {
+                const err = await resp.json();
+                throw new Error(err.detail || "Lỗi khi gọi Ollama.");
+            }
+
+            const res = await resp.json();
+            const data = res.data;
+
+            // Auto-fill Title
+            if (data.title) {
+                const el = document.getElementById('meta-title');
+                el.value = data.title;
+                highlightField(el);
+            }
+
+            // Auto-fill Description
+            if (data.description) {
+                const el = document.getElementById('meta-description');
+                el.value = data.description;
+                highlightField(el);
+            }
+
+            // Auto-fill Keywords
+            if (data.keywords) {
+                const el = document.getElementById('meta-keywords');
+                el.value = data.keywords;
+                highlightField(el);
+            }
+
+            // Auto-fill Author
+            if (data.author) {
+                const el = document.getElementById('meta-author');
+                el.value = data.author;
+                highlightField(el);
+            }
+
+            // Auto-fill Copyright
+            if (data.copyright) {
+                const el = document.getElementById('meta-copyright');
+                el.value = data.copyright;
+                highlightField(el);
+            }
+
+            // Auto-fill Software
+            if (data.software) {
+                const el = document.getElementById('meta-software');
+                el.value = data.software;
+                highlightField(el);
+            }
+
+            // Auto-fill Rating
+            if (data.rating !== undefined && data.rating !== null) {
+                setRating(data.rating);
+            }
+
+            // Auto-fill GPS & Map
+            if (data.latitude !== null && data.longitude !== null && !isNaN(data.latitude) && !isNaN(data.longitude)) {
+                const latEl = document.getElementById('meta-lat');
+                const lonEl = document.getElementById('meta-lon');
+                latEl.value = data.latitude;
+                lonEl.value = data.longitude;
+                highlightField(latEl);
+                highlightField(lonEl);
+
+                if (data.altitude !== null) {
+                    const altEl = document.getElementById('meta-alt');
+                    altEl.value = data.altitude;
+                    highlightField(altEl);
+                }
+
+                setMapCoordinates(data.latitude, data.longitude, true);
+                if (map) map.setView([data.latitude, data.longitude], 15);
+            }
+
+            // Auto-fill Camera Specs
+            if (data.camera_make) {
+                const el = document.getElementById('meta-make');
+                el.value = data.camera_make;
+                highlightField(el);
+            }
+            if (data.camera_model) {
+                const el = document.getElementById('meta-model');
+                el.value = data.camera_model;
+                highlightField(el);
+            }
+            if (data.lens_model) {
+                const el = document.getElementById('meta-lens');
+                el.value = data.lens_model;
+                highlightField(el);
+            }
+            if (data.iso) {
+                const el = document.getElementById('meta-iso');
+                el.value = data.iso;
+                highlightField(el);
+            }
+            if (data.f_number) {
+                const el = document.getElementById('meta-fnumber');
+                el.value = data.f_number;
+                highlightField(el);
+            }
+            if (data.focal_length) {
+                const el = document.getElementById('meta-focal');
+                el.value = data.focal_length;
+                highlightField(el);
+            }
+
+            showToast("{{ t('image_metadata.ai_fill_success') }}", "success");
+
+        } catch (e) {
+            showToast("Lỗi AI: " + e.message, "error");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+            lucide.createIcons();
+        }
+    }
+
+    // Load available models on startup
+    document.addEventListener('DOMContentLoaded', () => {
+        loadOllamaModels();
+    });
+
     // State management
     let currentSingleFile = null;
     let batchFiles = [];

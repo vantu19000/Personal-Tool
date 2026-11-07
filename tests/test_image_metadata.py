@@ -98,6 +98,17 @@ def test_dashboard_shows_new_tool():
     assert response.status_code == 200
     assert "/tools/image-metadata" in response.text
 
+def test_ollama_endpoints():
+    # 1. Models list
+    resp = client.get("/tools/image-metadata/ollama-models")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "success"
+    assert "models" in resp.json()
+
+    # 2. Empty topic validation
+    resp_empty = client.post("/tools/image-metadata/generate-ai", data={"topic": ""})
+    assert resp_empty.status_code == 400
+
 if __name__ == "__main__":
     test_page_loads()
     print("✓ test_page_loads passed")
@@ -109,4 +120,6 @@ if __name__ == "__main__":
     print("✓ test_batch_metadata passed")
     test_dashboard_shows_new_tool()
     print("✓ test_dashboard_shows_new_tool passed")
+    test_ollama_endpoints()
+    print("✓ test_ollama_endpoints passed")
     print("\nALL IMAGE METADATA TESTS PASSED SUCCESSFULLY!")
