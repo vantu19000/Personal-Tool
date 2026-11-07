@@ -10,6 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core import settings_store
 from app.core.config import settings
+from app.core.logger import ApiLoggingMiddleware
 from app.core.i18n import (
     COOKIE_NAME,
     DEFAULT_LOCALE,
@@ -71,6 +72,9 @@ def create_app() -> FastAPI:
 
     # I18n Middleware
     app.add_middleware(I18nMiddleware)
+
+    # API & Endpoint Access Logging Middleware
+    app.add_middleware(ApiLoggingMiddleware)
 
     # Static assets (css / js / images)
     app.mount("/static", StaticFiles(directory=str(settings.STATIC_DIR)), name="static")

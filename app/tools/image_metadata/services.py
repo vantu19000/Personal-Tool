@@ -7,11 +7,14 @@ import io
 import json
 from pathlib import Path
 import re
+import time
 from typing import Any
 import zipfile
 
 import aiohttp
 from PIL import ExifTags, Image
+
+from app.core.logger import log_outgoing_api
 
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 DEFAULT_OLLAMA_MODEL = "llama3:latest"
@@ -667,18 +670,42 @@ def _normalize_ai_metadata(data: dict[str, Any]) -> dict[str, Any]:
 async def list_ollama_models(base_url: str = DEFAULT_OLLAMA_BASE_URL, timeout_seconds: float = 4.0) -> list[str]:
     """Return available Ollama models or default fallbacks if unreachable."""
     url = base_url.rstrip("/") + "/api/tags"
+    t0 = time.perf_counter()
     try:
         timeout = aiohttp.ClientTimeout(total=timeout_seconds)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(url) as resp:
+                duration_ms = (time.perf_counter() - t0) * 1000.0
                 if resp.status == 200:
                     data = await resp.json()
                     models = data.get("models", [])
                     names = [m["name"] for m in models if isinstance(m, dict) and m.get("name")]
                     if names:
+                        log_outgoing_api(
+                            service="Ollama",
+                            method="GET",
+                            url=url,
+                            status_code=200,
+                            duration_ms=duration_ms,
+                            response_data={"models_count": len(names), "models": names},
+                        )
                         return sorted(names)
-    except Exception:
-        pass
+                log_outgoing_api(
+                    service="Ollama",
+                    method="GET",
+                    url=url,
+                    status_code=resp.status,
+                    duration_ms=duration_ms,
+                    error=f"HTTP {resp.status}",
+                )
+    except Exception as exc:
+        log_outgoing_api(
+            service="Ollama",
+            method="GET",
+            url=url,
+            duration_ms=(time.perf_counter() - t0) * 1000.0,
+            error=exc,
+        )
     return ["llama3:latest", "qwen3.8:latest", "llama3.2-vision:11b"]
 
 
@@ -706,20 +733,74 @@ async def generate_ai_metadata(
         b64_img = base64.b64encode(image_bytes).decode("ascii")
         payload["images"] = [b64_img]
 
-    timeout = aiohttp.ClientTimeout(total=timeout_seconds)
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        async with session.post(url, json=payload) as resp:
-            if resp.status != 200:
-                err_text = await resp.text()
-                raise RuntimeError(f"Ollama báo lỗi (HTTP {resp.status}): {err_text}")
-            result = await resp.json()
-            raw_response = result.get("response", "")
+    log_payload = {
+        "model": model,
+        "topic": topic,
+        "prompt_length": len(full_prompt),
+        "has_image": bool(image_bytes),
+        "image_size_bytes": len(image_bytes) if image_bytes else 0,
+    }
 
+    t0 = time.perf_counter()
+    timeout = aiohttp.ClientTimeout(total=timeout_seconds)
+
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(url, json=payload) as resp:
+                duration_ms = (time.perf_counter() - t0) * 1000.0
+                status = resp.status
+                if status != 200:
+                    err_text = await resp.text()
+                    log_outgoing_api(
+                        service="Ollama",
+                        method="POST",
+                        url=url,
+                        payload=log_payload,
+                        status_code=status,
+                        duration_ms=duration_ms,
+                        error=err_text,
+                    )
+                    raise RuntimeError(f"Ollama báo lỗi (HTTP {status}): {err_text}")
+                result = await resp.json()
+                raw_response = result.get("response", "")
+    except Exception as exc:
+        duration_ms = (time.perf_counter() - t0) * 1000.0
+        log_outgoing_api(
+            service="Ollama",
+            method="POST",
+            url=url,
+            payload=log_payload,
+            duration_ms=duration_ms,
+            error=exc,
+        )
+        raise
+
+    duration_ms = (time.perf_counter() - t0) * 1000.0
     cleaned_json = _clean_json_text(raw_response)
     try:
         parsed = json.loads(cleaned_json)
     except Exception as exc:
+        log_outgoing_api(
+            service="Ollama",
+            method="POST",
+            url=url,
+            payload=log_payload,
+            status_code=200,
+            duration_ms=duration_ms,
+            response_data=raw_response,
+            error=exc,
+        )
         raise ValueError(f"Không thể phân tích định dạng JSON từ Ollama: {exc}\nNội dung trả về: {raw_response[:300]}") from exc
 
-    return _normalize_ai_metadata(parsed)
+    normalized = _normalize_ai_metadata(parsed)
+    log_outgoing_api(
+        service="Ollama",
+        method="POST",
+        url=url,
+        payload=log_payload,
+        status_code=200,
+        duration_ms=duration_ms,
+        response_data=normalized,
+    )
+    return normalized
 

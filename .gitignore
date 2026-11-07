@@ -154,6 +154,8 @@ $RECYCLE.BIN/
 # ===== Logs =====
 *.log
 logs/
+app/logs/
+*.log.*
 
 # ===== Misc =====
 *.bak
