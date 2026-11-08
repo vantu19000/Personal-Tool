@@ -25,6 +25,8 @@ async def image_metadata_page(request: Request):
             "active_tool": "image-metadata",
             "supported_extensions": sorted(list(services.SUPPORTED_EXTENSIONS)),
             "default_ai_prompt": services.DEFAULT_AI_METADATA_PROMPT,
+            "languages": services.RESPONSE_LANGUAGES,
+            "default_language": "vi",
         },
     )
 
@@ -41,6 +43,7 @@ async def generate_ai(
     topic: str = Form(""),
     model: str = Form("llama3:latest"),
     prompt_template: str = Form(""),
+    language: str = Form("vi"),
     file: Optional[UploadFile] = File(None),
 ):
     """Generate image metadata using local Ollama model from user topic and prompt template."""
@@ -60,6 +63,7 @@ async def generate_ai(
             topic=clean_topic,
             model=model,
             prompt_template=prompt_template,
+            language=language,
             image_bytes=img_bytes,
         )
         return JSONResponse({"status": "success", "data": ai_data})

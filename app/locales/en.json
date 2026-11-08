@@ -659,6 +659,7 @@
     "ai_topic_label": "Photo Topic / Creative Prompt",
     "ai_topic_placeholder": "E.g., Sunrise over My Khe Beach in Da Nang, atmospheric moody film photography...",
     "ai_model_label": "Ollama Model",
+    "ai_language_label": "Response Language",
     "ai_include_image": "Include current image for visual analysis (Vision models)",
     "ai_prompt_template_toggle": "Customize Prompt Format sent to Ollama",
     "ai_prompt_template_hint": "Keep the {topic} placeholder in the template where your topic will be injected.",

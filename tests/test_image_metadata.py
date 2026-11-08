@@ -109,6 +109,52 @@ def test_ollama_endpoints():
     resp_empty = client.post("/tools/image-metadata/generate-ai", data={"topic": ""})
     assert resp_empty.status_code == 400
 
+    # 3. Check language options rendered on metadata page
+    resp_page = client.get("/tools/image-metadata")
+    assert resp_page.status_code == 200
+    assert "ai-language-select" in resp_page.text
+    assert "Tiếng Việt (Vietnamese)" in resp_page.text
+
+
+def test_ai_prompt_language_formatting():
+    import asyncio
+    from unittest.mock import AsyncMock, patch
+
+    mock_resp = AsyncMock()
+    mock_resp.status = 200
+    mock_resp.json = AsyncMock(return_value={
+        "response": '{"title": "Title in English", "description": "Description in English", "keywords": "test; eng", "software": "18.1"}'
+    })
+
+    captured_payload = {}
+
+    class MockSession:
+        def __init__(self, *args, **kwargs):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            pass
+        def post(self, url, json=None):
+            captured_payload.update(json or {})
+            class ContextManager:
+                async def __aenter__(self):
+                    return mock_resp
+                async def __aexit__(self, *args):
+                    pass
+            return ContextManager()
+
+    with patch("aiohttp.ClientSession", MockSession):
+        res = asyncio.run(services.generate_ai_metadata(
+            topic="A photo of mountains",
+            model="llama3:latest",
+            language="en"
+        ))
+        assert res["title"] == "Title in English"
+        assert "English" in captured_payload.get("prompt", "")
+        assert "A photo of mountains" in captured_payload.get("prompt", "")
+
+
 if __name__ == "__main__":
     test_page_loads()
     print("✓ test_page_loads passed")
@@ -122,4 +168,6 @@ if __name__ == "__main__":
     print("✓ test_dashboard_shows_new_tool passed")
     test_ollama_endpoints()
     print("✓ test_ollama_endpoints passed")
+    test_ai_prompt_language_formatting()
+    print("✓ test_ai_prompt_language_formatting passed")
     print("\nALL IMAGE METADATA TESTS PASSED SUCCESSFULLY!")

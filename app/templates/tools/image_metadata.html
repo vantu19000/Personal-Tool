@@ -222,8 +222,8 @@
                         </div>
                     </div>
 
-                    <!-- Model Selector + Vision Checkbox -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                    <!-- Model Selector + Language Selector + Vision Checkbox -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start">
                         <div>
                             <div class="flex items-center justify-between mb-1">
                                 <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
@@ -243,15 +243,32 @@
                                 </select>
                                 <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
                             </div>
-                            <p class="text-[10px] text-slate-400 mt-1">Gợi ý: Dùng <span class="font-mono text-indigo-600 dark:text-indigo-400 font-semibold">llama3:latest</span> để tạo nhanh (5-10s). Model lớn 27B+ sẽ cần nhiều thời gian hơn.</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Gợi ý: Dùng <span class="font-mono text-indigo-600 dark:text-indigo-400 font-semibold">llama3:latest</span> để tạo nhanh (5-10s).</p>
                         </div>
 
-                        <div class="pt-4 sm:pt-0">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                {{ t('image_metadata.ai_language_label') }}
+                            </label>
+                            <div class="relative">
+                                <select id="ai-language-select"
+                                        class="w-full appearance-none text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0c1220] text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                                    {% for code, name in languages.items() %}
+                                    <option value="{{ code }}" {% if code == default_language %}selected{% endif %}>{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-1">Ngôn ngữ cho Title, Description, Tags (mặc định: Tiếng Việt).</p>
+                        </div>
+
+                        <div class="pt-2 sm:pt-6">
                             <label class="inline-flex items-center gap-2 cursor-pointer text-xs text-slate-700 dark:text-slate-300">
                                 <input type="checkbox" id="ai-include-image-cb" checked
                                        class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4" />
                                 <span>{{ t('image_metadata.ai_include_image') }}</span>
                             </label>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Kèm ảnh cho Vision AI.</p>
                         </div>
                     </div>
 
@@ -751,6 +768,7 @@
             const formData = new FormData();
             formData.append('topic', topic);
             formData.append('model', document.getElementById('ai-model-select').value);
+            formData.append('language', document.getElementById('ai-language-select') ? document.getElementById('ai-language-select').value : 'vi');
             formData.append('prompt_template', document.getElementById('ai-prompt-template').value);
 
             const includeImage = document.getElementById('ai-include-image-cb').checked;

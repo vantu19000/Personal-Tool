@@ -659,6 +659,7 @@
     "ai_topic_label": "Chủ đề / Yêu cầu của bức ảnh",
     "ai_topic_placeholder": "Ví dụ: Bình minh trên biển Mỹ Khê Đà Nẵng, ảnh nghệ thuật chụp trong sương sớm...",
     "ai_model_label": "Mô hình Ollama (Model)",
+    "ai_language_label": "Ngôn ngữ phản hồi (Response Language)",
     "ai_include_image": "Kèm hình ảnh hiện tại để Vision AI phân tích trực quan",
     "ai_prompt_template_toggle": "Tùy chỉnh Prompt Format gửi tới Ollama",
     "ai_prompt_template_hint": "Giữ nguyên placeholder {topic} trong format để hệ thống ghép chủ đề của bạn vào.",

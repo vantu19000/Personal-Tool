@@ -22,6 +22,17 @@ DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 DEFAULT_OLLAMA_MODEL = "llama3:latest"
 DEFAULT_OLLAMA_TIMEOUT = 600.0  # 10 phút cho các model lớn (27B+)
 
+RESPONSE_LANGUAGES: dict[str, str] = {
+    "vi": "Tiếng Việt (Vietnamese)",
+    "en": "English",
+    "ja": "Tiếng Nhật (Japanese)",
+    "ko": "Tiếng Hàn (Korean)",
+    "zh": "Tiếng Trung (Chinese)",
+    "fr": "Tiếng Pháp (French)",
+    "de": "Tiếng Đức (German)",
+    "es": "Tiếng Tây Ban Nha (Spanish)",
+}
+
 DEFAULT_AI_METADATA_PROMPT = """Bạn là một chuyên gia biên tập dữ liệu ảnh (EXIF/Metadata) chuyên nghiệp.
 Dựa trên chủ đề hoặc yêu cầu của người dùng sau đây, hãy sáng tạo và trả về DUY NHẤT một đối tượng JSON (không kèm bất kỳ lời dẫn hay văn bản giải thích nào) theo cấu trúc sau:
 {
@@ -44,9 +55,10 @@ Dựa trên chủ đề hoặc yêu cầu của người dùng sau đây, hãy s
 }
 
 Quy tắc quan trọng:
-1. Nếu chủ đề nhắc tới một địa danh cụ thể (ví dụ: Hồ Gươm, Đà Nẵng, Hội An, Paris, Tokyo...), hãy cung cấp tọa độ latitude và longitude thực tế tương ứng. Nếu là ảnh trừu tượng/không rõ địa điểm, hãy để null cho latitude và longitude.
-2. Giữ giá trị software mặc định là '18.1' trừ khi yêu cầu chỉ định phần mềm khác.
-3. Trả về DUY NHẤT mã JSON hợp lệ.
+1. Ngôn ngữ nội dung: BẮT BUỘC viết toàn bộ tiêu đề (title), mô tả (description), từ khóa (keywords) và bản quyền (copyright) bằng: {language}.
+2. Nếu chủ đề nhắc tới một địa danh cụ thể (ví dụ: Hồ Gươm, Đà Nẵng, Hội An, Paris, Tokyo...), hãy cung cấp tọa độ latitude và longitude thực tế tương ứng. Nếu là ảnh trừu tượng/không rõ địa điểm, hãy để null cho latitude và longitude.
+3. Giữ giá trị software mặc định là '18.1' trừ khi yêu cầu chỉ định phần mềm khác.
+4. Trả về DUY NHẤT mã JSON hợp lệ.
 
 Yêu cầu/Chủ đề của người dùng:
 {topic}
@@ -722,6 +734,7 @@ async def generate_ai_metadata(
     topic: str,
     model: str = DEFAULT_OLLAMA_MODEL,
     prompt_template: str = "",
+    language: str = "vi",
     image_bytes: bytes | None = None,
     base_url: str | None = None,
     timeout_seconds: float | None = None,
@@ -731,7 +744,14 @@ async def generate_ai_metadata(
     effective_timeout = timeout_seconds if timeout_seconds is not None else get_ollama_timeout()
     url = f"{effective_base}/api/generate"
 
+    lang_name = RESPONSE_LANGUAGES.get(language, language) or "Tiếng Việt"
+
     template = prompt_template.strip() or DEFAULT_AI_METADATA_PROMPT
+    if "{language}" in template:
+        template = template.replace("{language}", lang_name)
+    else:
+        template += f"\n\nLưu ý: Toàn bộ tiêu đề (title), mô tả (description) và từ khóa (keywords) BẮT BUỘC viết bằng ngôn ngữ {lang_name}."
+
     full_prompt = template.replace("{topic}", topic.strip())
 
     payload: dict[str, Any] = {
@@ -747,6 +767,8 @@ async def generate_ai_metadata(
 
     log_payload = {
         "model": model,
+        "language": language,
+        "language_name": lang_name,
         "topic": topic,
         "prompt_length": len(full_prompt),
         "has_image": bool(image_bytes),
