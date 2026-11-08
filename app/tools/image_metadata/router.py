@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import io
+import json
 from pathlib import Path
 from urllib.parse import quote
 from typing import Optional
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, Response, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, File, Form, HTTPException, Query, Request, Response, UploadFile
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.core.templates import templates
 from app.tools.image_metadata import services
@@ -260,3 +261,160 @@ async def save_batch_metadata(
             "Content-Disposition": f'attachment; filename="{zip_name}"',
         },
     )
+
+
+@router.get("/image-metadata/folder-scan", name="image-metadata-folder-scan")
+async def scan_folder(
+    folder: str = Query(..., description="Đường dẫn thư mục chứa ảnh trên máy"),
+    recursive: bool = Query(False, description="Quét cả thư mục con"),
+):
+    """Scan local directory for supported images, ignoring results subfolder."""
+    if not folder or not folder.strip():
+        raise HTTPException(status_code=400, detail="Vui lòng nhập đường dẫn thư mục.")
+
+    folder_path = Path(folder.strip()).expanduser()
+    if not folder_path.is_dir():
+        raise HTTPException(status_code=400, detail=f"Thư mục không tồn tại: {folder_path}")
+
+    try:
+        files = services.scan_folder_images(folder_path, recursive=recursive)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    results_dir = folder_path / "results"
+    file_list = []
+    for f in files:
+        try:
+            sz = f.stat().st_size
+        except OSError:
+            sz = 0
+        file_list.append({
+            "name": f.name,
+            "path": str(f),
+            "size_bytes": sz,
+        })
+
+    return JSONResponse({
+        "status": "success",
+        "folder": str(folder_path),
+        "results_dir": str(results_dir),
+        "count": len(files),
+        "files": file_list,
+    })
+
+
+@router.post("/image-metadata/process-folder-ai", name="image-metadata-process-folder-ai")
+async def process_folder_ai(
+    folder: str = Form(...),
+    topic: str = Form(""),
+    model: str = Form("llama3:latest"),
+    language: str = Form("vi"),
+    prompt_template: str = Form(""),
+    latitude: Optional[str] = Form(None),
+    longitude: Optional[str] = Form(None),
+    altitude: Optional[str] = Form(None),
+    recursive: bool = Form(False),
+):
+    """Batch process folder images using Ollama, set current datetime, update metadata, and stream progress."""
+    if not folder or not folder.strip():
+        raise HTTPException(status_code=400, detail="Vui lòng nhập đường dẫn thư mục.")
+
+    folder_path = Path(folder.strip()).expanduser()
+    if not folder_path.is_dir():
+        raise HTTPException(status_code=400, detail=f"Thư mục không tồn tại: {folder_path}")
+
+    files = services.scan_folder_images(folder_path, recursive=recursive)
+    if not files:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Không tìm thấy ảnh hợp lệ ({', '.join(services.SUPPORTED_EXTENSIONS)}) trong thư mục {folder_path}",
+        )
+
+    # Parse location overrides if provided
+    override_lat: float | None = None
+    override_lon: float | None = None
+    override_alt: float | None = None
+
+    if latitude and str(latitude).strip():
+        try:
+            override_lat = float(str(latitude).strip())
+        except ValueError:
+            override_lat = None
+
+    if longitude and str(longitude).strip():
+        try:
+            override_lon = float(str(longitude).strip())
+        except ValueError:
+            override_lon = None
+
+    if altitude and str(altitude).strip():
+        try:
+            override_alt = float(str(altitude).strip())
+        except ValueError:
+            override_alt = None
+
+    results_dir = folder_path / "results"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    total = len(files)
+
+    async def event_stream():
+        def line(obj: dict) -> str:
+            return json.dumps(obj, ensure_ascii=False) + "\n"
+
+        yield line({
+            "type": "start",
+            "total": total,
+            "folder": str(folder_path),
+            "results_dir": str(results_dir),
+        })
+
+        ok_count = 0
+        failed_count = 0
+
+        for idx, img_path in enumerate(files):
+            yield line({
+                "type": "file_start",
+                "index": idx + 1,
+                "total": total,
+                "filename": img_path.name,
+                "path": str(img_path),
+            })
+
+            try:
+                result = await services.process_folder_ai_image(
+                    image_path=img_path,
+                    output_dir=results_dir,
+                    topic=topic,
+                    model=model,
+                    language=language,
+                    prompt_template=prompt_template,
+                    override_lat=override_lat,
+                    override_lon=override_lon,
+                    override_alt=override_alt,
+                )
+                ok_count += 1
+                yield line({
+                    "type": "file_done",
+                    "index": idx + 1,
+                    "total": total,
+                    **result,
+                })
+            except Exception as exc:
+                failed_count += 1
+                yield line({
+                    "type": "file_error",
+                    "index": idx + 1,
+                    "total": total,
+                    "filename": img_path.name,
+                    "error": str(exc),
+                })
+
+        yield line({
+            "type": "done",
+            "total": total,
+            "ok": ok_count,
+            "failed": failed_count,
+            "results_dir": str(results_dir),
+        })
+
+    return StreamingResponse(event_stream(), media_type="application/x-ndjson")

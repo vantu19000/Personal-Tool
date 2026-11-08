@@ -667,6 +667,24 @@
     "ai_btn_generating": "Analyzing and generating metadata...",
     "ai_reset_prompt": "Reset to Default Format",
     "ai_fill_success": "AI metadata generated and form auto-filled successfully!",
-    "ai_fill_alert_no_topic": "Please enter a topic or description for the photo."
+    "ai_fill_alert_no_topic": "Please enter a topic or description for the photo.",
+    "tab_folder": "Folder AI Batch",
+    "folder_input_label": "Images folder path on your computer",
+    "folder_input_placeholder": "E.g. D:\\Photos\\Album2026 or C:\\Users\\...\\Pictures",
+    "folder_btn_scan": "Scan Folder",
+    "folder_recursive_label": "Scan subdirectories (Recursive)",
+    "folder_scan_initial": "Enter image folder path and click Scan Folder.",
+    "folder_scan_found": "Found {count} valid images. Results will be saved automatically to: {results_dir}",
+    "folder_topic_label": "General Topic / Context for Batch (Optional)",
+    "folder_topic_placeholder": "E.g. Autumn landscape series in Sa Pa, natural lighting...",
+    "folder_location_card": "Fixed Location for Batch (Optional)",
+    "folder_location_desc": "Click on the map or search to assign fixed GPS coordinates. Leave blank for AI inference.",
+    "folder_datetime_note": "Date & Time: Automatically filled with the current datetime for all photos.",
+    "folder_btn_run": "🚀 Start Folder AI & Save to results",
+    "folder_btn_running": "Processing AI & saving metadata...",
+    "folder_results_card": "Progress & Results",
+    "folder_results_empty": "No processing job yet.",
+    "folder_completed_title": "Batch processing completed!",
+    "folder_completed_desc": "Processed {ok}/{total} images and saved to folder: {dir}"
   }
 }

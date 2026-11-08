@@ -868,3 +868,94 @@ async def generate_ai_metadata(
     )
     return normalized
 
+
+def scan_folder_images(folder_path: Path, recursive: bool = False) -> list[Path]:
+    """Scan folder for supported images, ignoring any 'results' subfolder."""
+    if not folder_path.is_dir():
+        raise ValueError(f"Đường dẫn không phải thư mục: {folder_path}")
+
+    files: list[Path] = []
+    iterator = folder_path.rglob("*") if recursive else folder_path.glob("*")
+    for p in iterator:
+        if not p.is_file():
+            continue
+        # Skip files inside 'results' subdirectory
+        if "results" in p.parts:
+            continue
+        if p.suffix.lower() in SUPPORTED_EXTENSIONS:
+            files.append(p)
+
+    files.sort(key=lambda x: x.name.lower())
+    return files
+
+
+async def process_folder_ai_image(
+    image_path: Path,
+    output_dir: Path,
+    topic: str = "",
+    model: str = DEFAULT_OLLAMA_MODEL,
+    language: str = "vi",
+    prompt_template: str = "",
+    override_lat: float | None = None,
+    override_lon: float | None = None,
+    override_alt: float | None = None,
+) -> dict[str, Any]:
+    """Process a single image from folder: call Ollama, set current datetime, update metadata, and save to output_dir."""
+    raw_bytes = image_path.read_bytes()
+
+    # User topic or contextual fallback
+    effective_topic = topic.strip() or f"Bức ảnh '{image_path.name}'. Hãy phân tích nội dung hình ảnh và sáng tạo metadata phù hợp nhất."
+
+    # Call Ollama AI
+    ai_meta = await generate_ai_metadata(
+        topic=effective_topic,
+        model=model,
+        prompt_template=prompt_template,
+        language=language,
+        image_bytes=raw_bytes,
+    )
+
+    # 1. Fill all datetime fields with current local time
+    now_iso = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    ai_meta["date_taken"] = now_iso
+    ai_meta["date_digitized"] = now_iso
+    ai_meta["date_modified"] = now_iso
+
+    # 2. Location override from folder map if set
+    if override_lat is not None and override_lon is not None:
+        ai_meta["latitude"] = override_lat
+        ai_meta["longitude"] = override_lon
+        if override_alt is not None:
+            ai_meta["altitude"] = override_alt
+
+    # 3. Default software
+    if not ai_meta.get("software"):
+        ai_meta["software"] = "18.1"
+
+    # 4. Update metadata
+    updated_bytes, mime_type = update_metadata(
+        image_bytes=raw_bytes,
+        meta=ai_meta,
+    )
+
+    # 5. Save into output_dir (results/)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    out_file = output_dir / image_path.name
+    out_file.write_bytes(updated_bytes)
+
+    return {
+        "status": "ok",
+        "filename": image_path.name,
+        "input_path": str(image_path),
+        "output_path": str(out_file),
+        "size_bytes": len(updated_bytes),
+        "title": ai_meta.get("title", ""),
+        "description": ai_meta.get("description", ""),
+        "keywords": ai_meta.get("keywords", ""),
+        "author": ai_meta.get("author", ""),
+        "rating": ai_meta.get("rating", 5),
+        "date_taken": now_iso,
+        "latitude": ai_meta.get("latitude"),
+        "longitude": ai_meta.get("longitude"),
+    }
+

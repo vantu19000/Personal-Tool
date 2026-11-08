@@ -667,6 +667,24 @@
     "ai_btn_generating": "Đang phân tích và tạo metadata...",
     "ai_reset_prompt": "Đặt lại prompt gốc",
     "ai_fill_success": "Đã sinh metadata bằng AI và tự động điền vào biểu mẫu thành công!",
-    "ai_fill_alert_no_topic": "Vui lòng nhập chủ đề hoặc yêu cầu cho bức ảnh."
+    "ai_fill_alert_no_topic": "Vui lòng nhập chủ đề hoặc yêu cầu cho bức ảnh.",
+    "tab_folder": "AI Thư mục (Tự động)",
+    "folder_input_label": "Đường dẫn thư mục chứa ảnh trên máy tính",
+    "folder_input_placeholder": "Ví dụ: D:\\Photos\\Album2026 hoặc C:\\Users\\...\\Pictures",
+    "folder_btn_scan": "Quét thư mục",
+    "folder_recursive_label": "Quét cả thư mục con (Recursive)",
+    "folder_scan_initial": "Nhập đường dẫn thư mục ảnh rồi nhấn Quét thư mục.",
+    "folder_scan_found": "Tìm thấy {count} ảnh hợp lệ. Kết quả sẽ được lưu tự động vào thư mục con: {results_dir}",
+    "folder_topic_label": "Chủ đề / Yêu cầu chung cho loạt ảnh (Tùy chọn)",
+    "folder_topic_placeholder": "Ví dụ: Loạt ảnh chụp phong cảnh Sa Pa mùa thu, ánh sáng tự nhiên...",
+    "folder_location_card": "Vị trí địa lý cố định cho loạt ảnh (Tùy chọn)",
+    "folder_location_desc": "Nhấp chọn vị trí trên bản đồ để gán tọa độ GPS cố định cho toàn bộ ảnh. Nếu để trống, AI sẽ tự phán đoán theo ngữ cảnh ảnh.",
+    "folder_datetime_note": "Thời gian (Date/Time): Tự động điền ngày giờ hiện tại cho tất cả ảnh.",
+    "folder_btn_run": "🚀 Bắt đầu xử lý AI & Lưu vào thư mục results",
+    "folder_btn_running": "Đang xử lý AI và ghi metadata...",
+    "folder_results_card": "Tiến trình & Kết quả xử lý",
+    "folder_results_empty": "Chưa có tiến trình nào.",
+    "folder_completed_title": "Hoàn thành xử lý loạt ảnh!",
+    "folder_completed_desc": "Đã xử lý xong {ok}/{total} ảnh và lưu vào thư mục: {dir}"
   }
 }

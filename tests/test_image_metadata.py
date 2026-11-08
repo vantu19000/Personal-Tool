@@ -155,6 +155,100 @@ def test_ai_prompt_language_formatting():
         assert "A photo of mountains" in captured_payload.get("prompt", "")
 
 
+def test_folder_scan_and_ai_process():
+    import json
+    import tempfile
+    from unittest.mock import AsyncMock, patch
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        td = Path(tmpdir)
+        # Create test images
+        img_bytes = create_test_image("JPEG")
+        (td / "img1.jpg").write_bytes(img_bytes)
+        (td / "img2.jpg").write_bytes(img_bytes)
+        (td / "notes.txt").write_text("not an image")
+        
+        # Subfolder results should be ignored during scan
+        results_dir = td / "results"
+        results_dir.mkdir()
+        (results_dir / "already_processed.jpg").write_bytes(img_bytes)
+
+        # 1. Test scan service
+        scanned = services.scan_folder_images(td, recursive=True)
+        names = [p.name for p in scanned]
+        assert "img1.jpg" in names
+        assert "img2.jpg" in names
+        assert "already_processed.jpg" not in names
+        assert "notes.txt" not in names
+
+        # 2. Test scan endpoint
+        resp_scan = client.get(f"/tools/image-metadata/folder-scan?folder={td}")
+        assert resp_scan.status_code == 200
+        scan_data = resp_scan.json()
+        assert scan_data["count"] == 2
+        assert scan_data["results_dir"] == str(td / "results")
+
+        # 3. Test folder AI process endpoint with mock Ollama
+        mock_resp = AsyncMock()
+        mock_resp.status = 200
+        mock_resp.json = AsyncMock(return_value={
+            "response": '{"title": "Đỉnh Fansipan Hùng Vĩ", "description": "Mây bồng bềnh", "keywords": "fansipan; sapa", "author": "Tu Nguyen", "rating": 5, "latitude": 22.3033, "longitude": 103.7753}'
+        })
+
+        class MockSession:
+            def __init__(self, *args, **kwargs):
+                pass
+            async def __aenter__(self):
+                return self
+            async def __aexit__(self, *args):
+                pass
+            def post(self, url, json=None):
+                class ContextManager:
+                    async def __aenter__(self):
+                        return mock_resp
+                    async def __aexit__(self, *args):
+                        pass
+                return ContextManager()
+
+        with patch("aiohttp.ClientSession", MockSession):
+            resp_proc = client.post(
+                "/tools/image-metadata/process-folder-ai",
+                data={
+                    "folder": str(td),
+                    "topic": "Chuyến đi Sa Pa",
+                    "model": "llama3:latest",
+                    "language": "vi",
+                    "latitude": "22.3033",
+                    "longitude": "103.7753",
+                }
+            )
+            assert resp_proc.status_code == 200
+
+            # Parse NDJSON events
+            lines = [line.strip() for line in resp_proc.text.split("\n") if line.strip()]
+            events = [json.loads(l) for l in lines]
+            event_types = [e["type"] for e in events]
+            assert "start" in event_types
+            assert "file_start" in event_types
+            assert "file_done" in event_types
+            assert "done" in event_types
+
+            # Verify files were created in results/
+            out1 = results_dir / "img1.jpg"
+            out2 = results_dir / "img2.jpg"
+            assert out1.exists()
+            assert out2.exists()
+
+            # Verify metadata on output file
+            meta1 = services.extract_metadata(out1.read_bytes(), "img1.jpg")
+            assert meta1["title"] == "Đỉnh Fansipan Hùng Vĩ"
+            assert meta1["has_gps"] is True
+            assert abs(meta1["latitude"] - 22.3033) < 0.001
+            assert abs(meta1["longitude"] - 103.7753) < 0.001
+            # Datetime should be set to current time
+            assert meta1["date_taken"] != ""
+
+
 if __name__ == "__main__":
     test_page_loads()
     print("✓ test_page_loads passed")
@@ -170,4 +264,6 @@ if __name__ == "__main__":
     print("✓ test_ollama_endpoints passed")
     test_ai_prompt_language_formatting()
     print("✓ test_ai_prompt_language_formatting passed")
+    test_folder_scan_and_ai_process()
+    print("✓ test_folder_scan_and_ai_process passed")
     print("\nALL IMAGE METADATA TESTS PASSED SUCCESSFULLY!")

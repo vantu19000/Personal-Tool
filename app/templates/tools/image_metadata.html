@@ -76,6 +76,11 @@
             <i data-lucide="layers" class="w-4 h-4"></i>
             <span>{{ t('image_metadata.tab_batch') }}</span>
         </button>
+        <button type="button" id="tab-btn-folder" onclick="switchTab('folder')"
+                class="px-4 py-2 text-sm font-medium rounded-xl flex items-center gap-2 transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <i data-lucide="folder-cog" class="w-4 h-4"></i>
+            <span>{{ t('image_metadata.tab_folder') }}</span>
+        </button>
     </div>
 
     <!-- ==================== TAB 1: SINGLE IMAGE ==================== -->
@@ -703,6 +708,252 @@
 
     </div>
 
+    <!-- ==================== TAB 3: FOLDER AI BATCH ==================== -->
+    <div id="section-folder" class="hidden space-y-6">
+
+        <!-- Card 1: Folder Path & AI Configuration -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                        <i data-lucide="folder-cog" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <span>{{ t('image_metadata.tab_folder') }}</span>
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
+                                ✦ Ollama Local
+                            </span>
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Tự động quét ảnh trong thư mục máy tính, gọi Ollama sinh metadata, gán ngày giờ hiện tại, gán tọa độ GPS và lưu vào thư mục con <span class="font-mono font-bold text-purple-600 dark:text-purple-400">results/</span>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Folder Path Input + Scan Button -->
+            <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
+                    {{ t('image_metadata.folder_input_label') }}
+                </label>
+                <div class="flex flex-col sm:flex-row gap-2.5">
+                    <div class="relative flex-1">
+                        <input type="text" id="folder-path-input"
+                               placeholder="{{ t('image_metadata.folder_input_placeholder') }}"
+                               class="w-full text-xs sm:text-sm font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                               onkeydown="if(event.key === 'Enter'){ scanFolderImages(); }" />
+                    </div>
+                    <button type="button" id="btn-scan-folder" onclick="scanFolderImages()"
+                            class="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer shrink-0 shadow-xs">
+                        <i data-lucide="folder-search" class="w-4 h-4"></i>
+                        <span>{{ t('image_metadata.folder_btn_scan') }}</span>
+                    </button>
+                </div>
+                <div class="flex items-center justify-between flex-wrap gap-2 pt-1">
+                    <label class="inline-flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-400">
+                        <input type="checkbox" id="folder-recursive-cb"
+                               class="rounded border-slate-300 text-purple-600 focus:ring-purple-500 w-4 h-4" />
+                        <span>{{ t('image_metadata.folder_recursive_label') }}</span>
+                    </label>
+                    <span class="text-[11px] text-slate-400">Hỗ trợ: JPG, PNG, WEBP, TIFF (tự động bỏ qua thư mục results/)</span>
+                </div>
+            </div>
+
+            <!-- Scan Status Notice Box -->
+            <div id="folder-scan-status-box" class="hidden p-3.5 rounded-xl border border-purple-200 dark:border-purple-900/60 bg-purple-50/50 dark:bg-purple-950/30 text-xs text-slate-700 dark:text-slate-300">
+            </div>
+
+            <!-- Model, Language, and General Topic Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                <!-- Model -->
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                            {{ t('image_metadata.ai_model_label') }}
+                        </label>
+                        <button type="button" onclick="loadOllamaModels()" class="text-[10px] text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1 font-medium">
+                            <i data-lucide="refresh-cw" class="w-2.5 h-2.5"></i> Làm mới
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <select id="folder-ai-model-select"
+                                class="w-full appearance-none text-xs font-mono font-medium px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0c1220] text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/30">
+                            <option value="llama3:latest">llama3:latest</option>
+                            <option value="qwen3.8:latest">qwen3.8:latest</option>
+                            <option value="llama3.2-vision:11b">llama3.2-vision:11b</option>
+                            <option value="gemma4:latest">gemma4:latest</option>
+                        </select>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <!-- Language -->
+                <div>
+                    <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        {{ t('image_metadata.ai_language_label') }}
+                    </label>
+                    <div class="relative">
+                        <select id="folder-ai-language-select"
+                                class="w-full appearance-none text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0c1220] text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/30">
+                            {% for code, name in languages.items() %}
+                            <option value="{{ code }}" {% if code == default_language %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <!-- Software & Rating -->
+                <div>
+                    <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        {{ t('image_metadata.software_label') }}
+                    </label>
+                    <input type="text" id="folder-meta-software" value="18.1"
+                           class="w-full text-xs font-mono px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0c1220] text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/30" />
+                </div>
+            </div>
+
+            <!-- General Topic / Context -->
+            <div>
+                <label class="text-xs font-semibold text-slate-800 dark:text-slate-200 block mb-1">
+                    {{ t('image_metadata.folder_topic_label') }}
+                </label>
+                <textarea id="folder-ai-topic" rows="2"
+                          placeholder="{{ t('image_metadata.folder_topic_placeholder') }}"
+                          class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30 resize-y"></textarea>
+                <p class="text-[11px] text-slate-400 mt-1">
+                    Nếu để trống, AI sẽ tự động phân tích và tạo metadata chi tiết dựa trên từng bức ảnh.
+                </p>
+            </div>
+
+            <!-- Auto Datetime Notice Callout -->
+            <div class="flex items-center gap-2.5 p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/50 text-xs text-blue-900 dark:text-blue-200">
+                <i data-lucide="clock" class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0"></i>
+                <span><b>Tự động điền ngày giờ</b>: Toàn bộ ngày chụp (Date Taken), ngày số hóa (Date Digitized) và ngày chỉnh sửa (Date Modified) sẽ tự động lấy thời gian hiện tại lúc xử lý.</span>
+            </div>
+        </div>
+
+        <!-- Card 2: Location Map Selection -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-4">
+            <div class="border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h2 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="map-pin" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
+                    <span>{{ t('image_metadata.folder_location_card') }}</span>
+                </h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {{ t('image_metadata.folder_location_desc') }}
+                </p>
+            </div>
+
+            <!-- Map Search & Quick Actions -->
+            <div class="flex flex-col sm:flex-row gap-2">
+                <div class="relative flex-1">
+                    <input type="text" id="folder-map-search-input" placeholder="{{ t('image_metadata.map_search_placeholder') }}"
+                           class="w-full text-xs px-3.5 py-2 pl-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                           onkeydown="if(event.key === 'Enter'){ searchFolderLocation(); }" />
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                </div>
+                <button type="button" onclick="searchFolderLocation()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shrink-0 flex items-center justify-center gap-1.5">
+                    <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                    <span>{{ t('image_metadata.btn_search_map') }}</span>
+                </button>
+                <button type="button" onclick="getCurrentFolderLocation()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900 text-purple-700 dark:text-purple-300 transition shrink-0 flex items-center justify-center gap-1.5 border border-purple-200/60 dark:border-purple-800/60">
+                    <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+                    <span>{{ t('image_metadata.btn_my_location') }}</span>
+                </button>
+                <button type="button" onclick="clearFolderGps()" class="px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0 flex items-center justify-center gap-1">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    <span>{{ t('image_metadata.clear_gps_btn') }}</span>
+                </button>
+            </div>
+
+            <!-- Leaflet Map Container -->
+            <div id="folder-leaflet-map" class="h-64 sm:h-72 w-full rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-inner z-0"></div>
+
+            <!-- Coordinate inputs -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        {{ t('image_metadata.lat_label') }}
+                    </label>
+                    <input type="number" step="any" id="folder-meta-lat" placeholder="Để trống nếu muốn AI tự đoán"
+                           class="w-full text-xs font-mono px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/30" />
+                </div>
+                <div>
+                    <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        {{ t('image_metadata.lon_label') }}
+                    </label>
+                    <input type="number" step="any" id="folder-meta-lon" placeholder="Để trống nếu muốn AI tự đoán"
+                           class="w-full text-xs font-mono px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/30" />
+                </div>
+                <div>
+                    <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        {{ t('image_metadata.alt_label') }}
+                    </label>
+                    <input type="number" step="any" id="folder-meta-alt" placeholder="0"
+                           class="w-full text-xs font-mono px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/30" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Run Action Button -->
+        <button type="button" id="btn-run-folder-ai" onclick="runFolderAiProcess()"
+                class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:opacity-95 text-white font-bold text-sm sm:text-base shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2.5 transition cursor-pointer">
+            <i data-lucide="play" class="w-5 h-5"></i>
+            <span id="folder-run-btn-label">{{ t('image_metadata.folder_btn_run') }}</span>
+        </button>
+
+        <!-- Card 3: Real-time Progress & Results -->
+        <div id="folder-progress-card" class="hidden rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="activity" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
+                    <span>{{ t('image_metadata.folder_results_card') }}</span>
+                </h3>
+                <span id="folder-progress-counter" class="text-xs font-mono font-bold text-purple-600 dark:text-purple-400">
+                    0 / 0
+                </span>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="space-y-1.5">
+                <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                    <div id="folder-progress-bar" class="bg-gradient-to-r from-purple-600 to-indigo-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between text-[11px] text-slate-400">
+                    <span id="folder-progress-status-text">Đang chuẩn bị...</span>
+                    <span id="folder-progress-percent">0%</span>
+                </div>
+            </div>
+
+            <!-- Done Banner -->
+            <div id="folder-done-banner" class="hidden p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs sm:text-sm text-emerald-900 dark:text-emerald-200 space-y-2">
+                <div class="flex items-center gap-2 font-bold text-emerald-800 dark:text-emerald-100">
+                    <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600 dark:text-emerald-400"></i>
+                    <span id="folder-done-title">{{ t('image_metadata.folder_completed_title') }}</span>
+                </div>
+                <p id="folder-done-desc" class="text-xs text-emerald-700 dark:text-emerald-300">
+                    Tất cả ảnh đã được xử lý và lưu an toàn.
+                </p>
+                <div class="flex items-center gap-2 pt-1">
+                    <input type="text" id="folder-done-path-input" readonly
+                           class="flex-1 font-mono text-xs px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-800 bg-white/80 dark:bg-slate-900/80 text-slate-800 dark:text-slate-200 select-all" />
+                    <button type="button" onclick="copyFolderResultsPath()"
+                            class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1 shrink-0">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                        <span>Sao chép đường dẫn</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Items List -->
+            <div class="space-y-2 max-h-[450px] overflow-y-auto pr-1" id="folder-items-container">
+            </div>
+        </div>
+
+    </div>
+
 </div>
 
 <!-- Toast notification container -->
@@ -725,17 +976,20 @@
                 const res = await resp.json();
                 const models = res.models || [];
                 if (models.length > 0) {
-                    const select = document.getElementById('ai-model-select');
-                    const curr = select.value;
-                    select.innerHTML = '';
-                    models.forEach(m => {
-                        const opt = document.createElement('option');
-                        opt.value = m;
-                        opt.textContent = m;
-                        if (m === curr || (!curr && (m.includes('llama3') || m.includes('qwen')))) {
-                            opt.selected = true;
-                        }
-                        select.appendChild(opt);
+                    ['ai-model-select', 'folder-ai-model-select'].forEach(id => {
+                        const select = document.getElementById(id);
+                        if (!select) return;
+                        const curr = select.value;
+                        select.innerHTML = '';
+                        models.forEach(m => {
+                            const opt = document.createElement('option');
+                            opt.value = m;
+                            opt.textContent = m;
+                            if (m === curr || (!curr && (m.includes('llama3') || m.includes('qwen')))) {
+                                opt.selected = true;
+                            }
+                            select.appendChild(opt);
+                        });
                     });
                 }
             }
@@ -1051,20 +1305,32 @@
     function switchTab(mode) {
         const singleBtn = document.getElementById('tab-btn-single');
         const batchBtn = document.getElementById('tab-btn-batch');
+        const folderBtn = document.getElementById('tab-btn-folder');
         const singleSec = document.getElementById('section-single');
         const batchSec = document.getElementById('section-batch');
+        const folderSec = document.getElementById('section-folder');
+
+        const btnClassDefault = "px-4 py-2 text-sm font-medium rounded-xl flex items-center gap-2 transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800";
+        singleBtn.className = btnClassDefault;
+        batchBtn.className = btnClassDefault;
+        if (folderBtn) folderBtn.className = btnClassDefault;
+
+        singleSec.classList.add('hidden');
+        batchSec.classList.add('hidden');
+        if (folderSec) folderSec.classList.add('hidden');
 
         if (mode === 'single') {
             singleBtn.className = "px-4 py-2 text-sm font-semibold rounded-xl flex items-center gap-2 transition bg-blue-600 text-white shadow-xs";
-            batchBtn.className = "px-4 py-2 text-sm font-medium rounded-xl flex items-center gap-2 transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800";
             singleSec.classList.remove('hidden');
-            batchSec.classList.add('hidden');
             if (map) setTimeout(() => map.invalidateSize(), 200);
-        } else {
+        } else if (mode === 'batch') {
             batchBtn.className = "px-4 py-2 text-sm font-semibold rounded-xl flex items-center gap-2 transition bg-indigo-600 text-white shadow-xs";
-            singleBtn.className = "px-4 py-2 text-sm font-medium rounded-xl flex items-center gap-2 transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800";
             batchSec.classList.remove('hidden');
-            singleSec.classList.add('hidden');
+        } else if (mode === 'folder') {
+            if (folderBtn) folderBtn.className = "px-4 py-2 text-sm font-semibold rounded-xl flex items-center gap-2 transition bg-purple-600 text-white shadow-xs";
+            if (folderSec) folderSec.classList.remove('hidden');
+            initFolderMap();
+            if (folderMap) setTimeout(() => folderMap.invalidateSize(), 200);
         }
     }
 
@@ -1379,6 +1645,371 @@
             btn.disabled = false;
             btn.innerHTML = origText;
             lucide.createIcons();
+        }
+    }
+
+    // ==================== TAB 3: FOLDER AI BATCH HANDLERS ====================
+    let folderMap = null;
+    let folderMapMarker = null;
+
+    function initFolderMap(lat = 21.028511, lon = 105.854444, zoom = 12) {
+        if (folderMap) return;
+        const container = document.getElementById('folder-leaflet-map');
+        if (!container) return;
+
+        folderMap = L.map('folder-leaflet-map').setView([lat, lon], zoom);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(folderMap);
+
+        folderMap.on('click', function(e) {
+            setFolderMapCoordinates(e.latlng.lat, e.latlng.lng, false);
+        });
+
+        ['folder-meta-lat', 'folder-meta-lon'].forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.addEventListener('change', () => {
+                    const lLat = parseFloat(document.getElementById('folder-meta-lat').value);
+                    const lLon = parseFloat(document.getElementById('folder-meta-lon').value);
+                    if (!isNaN(lLat) && !isNaN(lLon)) {
+                        setFolderMapCoordinates(lLat, lLon, true);
+                    }
+                });
+            }
+        });
+    }
+
+    function setFolderMapCoordinates(lat, lon, pan = false) {
+        const roundedLat = parseFloat(lat.toFixed(6));
+        const roundedLon = parseFloat(lon.toFixed(6));
+        document.getElementById('folder-meta-lat').value = roundedLat;
+        document.getElementById('folder-meta-lon').value = roundedLon;
+
+        if (!folderMap) return;
+        if (folderMapMarker) {
+            folderMapMarker.setLatLng([roundedLat, roundedLon]);
+        } else {
+            folderMapMarker = L.marker([roundedLat, roundedLon], { draggable: true }).addTo(folderMap);
+            folderMapMarker.on('dragend', function(e) {
+                const pos = e.target.getLatLng();
+                setFolderMapCoordinates(pos.lat, pos.lng, false);
+            });
+        }
+        folderMapMarker.bindPopup(`<b>Tọa độ cố định:</b><br>${roundedLat}, ${roundedLon}`).openPopup();
+        if (pan) folderMap.panTo([roundedLat, roundedLon]);
+    }
+
+    function clearFolderGps() {
+        document.getElementById('folder-meta-lat').value = '';
+        document.getElementById('folder-meta-lon').value = '';
+        document.getElementById('folder-meta-alt').value = '';
+        if (folderMapMarker && folderMap) {
+            folderMap.removeLayer(folderMapMarker);
+            folderMapMarker = null;
+        }
+        showToast("Đã xóa tọa độ GPS cố định.", "info");
+    }
+
+    async function searchFolderLocation() {
+        const query = document.getElementById('folder-map-search-input').value.trim();
+        if (!query) return;
+
+        try {
+            const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+            const data = await resp.json();
+            if (data && data.length > 0) {
+                const first = data[0];
+                const lat = parseFloat(first.lat);
+                const lon = parseFloat(first.lon);
+                setFolderMapCoordinates(lat, lon, true);
+                if (folderMap) folderMap.setView([lat, lon], 15);
+                showToast(`Đã định vị: ${first.display_name.split(',')[0]}`, 'success');
+            } else {
+                showToast("Không tìm thấy địa điểm phù hợp.", "warning");
+            }
+        } catch (e) {
+            showToast("Lỗi tìm kiếm bản đồ: " + e.message, "error");
+        }
+    }
+
+    function getCurrentFolderLocation() {
+        if (!navigator.geolocation) {
+            showToast("Trình duyệt không hỗ trợ Geolocation.", "warning");
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const alt = pos.coords.altitude;
+                setFolderMapCoordinates(lat, lon, true);
+                if (alt) document.getElementById('folder-meta-alt').value = Math.round(alt);
+                if (folderMap) folderMap.setView([lat, lon], 16);
+                showToast("Đã lấy vị trí hiện tại của bạn!", "success");
+            },
+            (err) => {
+                showToast("Không thể lấy vị trí: " + err.message, "warning");
+            }
+        );
+    }
+
+    function readNdjsonLines(readableStream) {
+        const reader = readableStream.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        const pending = [];
+        return {
+            push() {
+                return reader.read().then((result) => {
+                    if (result.done) {
+                        if (buffer.trim()) pending.push(buffer.trim());
+                        buffer = "";
+                        return false;
+                    }
+                    buffer += decoder.decode(result.value, { stream: true });
+                    let idx;
+                    while ((idx = buffer.indexOf("\n")) >= 0) {
+                        const line = buffer.slice(0, idx).trim();
+                        buffer = buffer.slice(idx + 1);
+                        if (line) pending.push(line);
+                    }
+                    return true;
+                });
+            },
+            next() {
+                while (pending.length) {
+                    const line = pending.shift();
+                    try {
+                        return JSON.parse(line);
+                    } catch (e) {}
+                }
+                return null;
+            },
+            async *events() {
+                for (;;) {
+                    let event = this.next();
+                    while (event === null) {
+                        const hasMore = await this.push();
+                        if (!hasMore) return;
+                        event = this.next();
+                    }
+                    yield event;
+                }
+            },
+        };
+    }
+
+    async function scanFolderImages() {
+        const folder = document.getElementById('folder-path-input').value.trim();
+        if (!folder) {
+            showToast("Vui lòng nhập đường dẫn thư mục ảnh.", "warning");
+            document.getElementById('folder-path-input').focus();
+            return;
+        }
+
+        const recursive = document.getElementById('folder-recursive-cb').checked;
+        const btn = document.getElementById('btn-scan-folder');
+        const origText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Đang quét...</span>`;
+        lucide.createIcons();
+
+        try {
+            const resp = await fetch(`/tools/image-metadata/folder-scan?folder=${encodeURIComponent(folder)}&recursive=${recursive}`);
+            const res = await resp.json();
+            if (!resp.ok) {
+                throw new Error(res.detail || "Không thể quét thư mục.");
+            }
+
+            const box = document.getElementById('folder-scan-status-box');
+            box.classList.remove('hidden');
+
+            if (res.count === 0) {
+                box.className = "p-3.5 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/50 dark:bg-amber-950/30 text-xs text-amber-800 dark:text-amber-200";
+                box.innerHTML = `<span>Không tìm thấy bức ảnh hợp lệ nào trong thư mục. Hỗ trợ: JPG, PNG, WEBP, TIFF.</span>`;
+            } else {
+                box.className = "p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/50 dark:bg-emerald-950/30 text-xs text-emerald-900 dark:text-emerald-200";
+                box.innerHTML = `
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <span>✓ Tìm thấy <b>${res.count}</b> hình ảnh. Kết quả sẽ tự động lưu vào:</span>
+                        <span class="font-mono text-xs px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 font-semibold select-all">${res.results_dir}</span>
+                    </div>
+                `;
+            }
+            showToast(`Tìm thấy ${res.count} bức ảnh!`, "success");
+        } catch (e) {
+            showToast(e.message, "error");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+            lucide.createIcons();
+        }
+    }
+
+    async function runFolderAiProcess() {
+        const folder = document.getElementById('folder-path-input').value.trim();
+        if (!folder) {
+            showToast("Vui lòng nhập đường dẫn thư mục ảnh.", "warning");
+            document.getElementById('folder-path-input').focus();
+            return;
+        }
+
+        const btn = document.getElementById('btn-run-folder-ai');
+        const origText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader" class="w-5 h-5 animate-spin"></i><span>Đang xử lý AI & Ghi Metadata...</span>`;
+        lucide.createIcons();
+
+        // UI Reset
+        const progressCard = document.getElementById('folder-progress-card');
+        const itemsContainer = document.getElementById('folder-items-container');
+        const doneBanner = document.getElementById('folder-done-banner');
+        const progressBar = document.getElementById('folder-progress-bar');
+        const progressCounter = document.getElementById('folder-progress-counter');
+        const progressPercent = document.getElementById('folder-progress-percent');
+        const progressStatusText = document.getElementById('folder-progress-status-text');
+
+        progressCard.classList.remove('hidden');
+        doneBanner.classList.add('hidden');
+        itemsContainer.innerHTML = '';
+        progressBar.style.width = '0%';
+        progressPercent.textContent = '0%';
+        progressCounter.textContent = '0 / 0';
+        progressStatusText.textContent = 'Đang bắt đầu...';
+
+        const rowMap = new Map();
+
+        const formData = new FormData();
+        formData.append('folder', folder);
+        formData.append('topic', document.getElementById('folder-ai-topic').value);
+        formData.append('model', document.getElementById('folder-ai-model-select').value);
+        formData.append('language', document.getElementById('folder-ai-language-select').value);
+        formData.append('recursive', document.getElementById('folder-recursive-cb').checked);
+
+        const latVal = document.getElementById('folder-meta-lat').value;
+        const lonVal = document.getElementById('folder-meta-lon').value;
+        const altVal = document.getElementById('folder-meta-alt').value;
+        if (latVal) formData.append('latitude', latVal);
+        if (lonVal) formData.append('longitude', lonVal);
+        if (altVal) formData.append('altitude', altVal);
+
+        try {
+            const resp = await fetch('/tools/image-metadata/process-folder-ai', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!resp.ok) {
+                const err = await resp.json();
+                throw new Error(err.detail || "Không thể khởi động tiến trình xử lý thư mục.");
+            }
+
+            const stream = readNdjsonLines(resp.body);
+            let totalImages = 0;
+
+            for await (const evt of stream.events()) {
+                if (evt.type === 'start') {
+                    totalImages = evt.total || 0;
+                    progressCounter.textContent = `0 / ${totalImages}`;
+                    progressStatusText.textContent = `Đang xử lý thư mục...`;
+                } else if (evt.type === 'file_start') {
+                    let row = document.createElement('div');
+                    row.id = `folder-item-${evt.index}`;
+                    row.className = "p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 flex flex-col gap-2 transition";
+                    row.innerHTML = `
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="font-mono text-xs font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1.5">
+                                <i data-lucide="image" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
+                                ${evt.filename}
+                            </span>
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                                <i data-lucide="loader" class="w-3 h-3 animate-spin"></i> Đang gọi Ollama...
+                            </span>
+                        </div>
+                    `;
+                    itemsContainer.prepend(row);
+                    rowMap.set(evt.filename, row);
+                    lucide.createIcons();
+
+                    progressStatusText.textContent = `Đang xử lý: ${evt.filename}`;
+                } else if (evt.type === 'file_done') {
+                    const row = rowMap.get(evt.filename);
+                    if (row) {
+                        row.className = "p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/70 bg-emerald-50/40 dark:bg-emerald-950/20 flex flex-col gap-2 transition";
+                        row.innerHTML = `
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="font-mono text-xs font-bold text-slate-900 dark:text-white truncate flex items-center gap-1.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                                    ${evt.filename}
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
+                                    Đã lưu vào results/
+                                </span>
+                            </div>
+                            <div class="space-y-1 text-xs text-slate-600 dark:text-slate-300 pt-1 border-t border-emerald-100 dark:border-emerald-900/40">
+                                <p><b class="text-slate-800 dark:text-slate-200">Tiêu đề:</b> ${evt.title || '(Không có)'}</p>
+                                <p class="line-clamp-2"><b class="text-slate-800 dark:text-slate-200">Mô tả:</b> ${evt.description || '(Không có)'}</p>
+                                <div class="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 font-mono flex-wrap pt-0.5">
+                                    <span>Tọa độ: ${evt.latitude ? evt.latitude.toFixed(4) : 'Null'}, ${evt.longitude ? evt.longitude.toFixed(4) : 'Null'}</span>
+                                    <span>Ngày giờ: ${evt.date_taken}</span>
+                                    <span>Đánh giá: ★ ${evt.rating}</span>
+                                </div>
+                            </div>
+                        `;
+                        lucide.createIcons();
+                    }
+
+                    if (totalImages > 0 && evt.index) {
+                        const pct = Math.round((evt.index / totalImages) * 100);
+                        progressBar.style.width = `${pct}%`;
+                        progressPercent.textContent = `${pct}%`;
+                        progressCounter.textContent = `${evt.index} / ${totalImages}`;
+                    }
+                } else if (evt.type === 'file_error') {
+                    const row = rowMap.get(evt.filename);
+                    if (row) {
+                        row.className = "p-3 rounded-xl border border-rose-200 dark:border-rose-900/70 bg-rose-50/50 dark:bg-rose-950/20 flex flex-col gap-1.5 transition";
+                        row.innerHTML = `
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="font-mono text-xs font-bold text-rose-800 dark:text-rose-200 truncate flex items-center gap-1.5">
+                                    <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-500"></i>
+                                    ${evt.filename}
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 shrink-0">
+                                    Lỗi
+                                </span>
+                            </div>
+                            <p class="text-xs font-mono text-rose-700 dark:text-rose-300 break-all">${evt.error}</p>
+                        `;
+                        lucide.createIcons();
+                    }
+                } else if (evt.type === 'done') {
+                    progressBar.style.width = '100%';
+                    progressPercent.textContent = '100%';
+                    progressStatusText.textContent = `Hoàn thành (${evt.ok} thành công, ${evt.failed} lỗi)`;
+                    doneBanner.classList.remove('hidden');
+                    document.getElementById('folder-done-desc').textContent = `Đã hoàn thành xử lý ${evt.ok}/${evt.total} hình ảnh và lưu metadata vào thư mục kết quả.`;
+                    document.getElementById('folder-done-path-input').value = evt.results_dir;
+                    lucide.createIcons();
+                    showToast(`Hoàn thành xử lý ${evt.ok} ảnh vào thư mục results!`, "success");
+                }
+            }
+        } catch (e) {
+            showToast("Lỗi xử lý thư mục: " + e.message, "error");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+            lucide.createIcons();
+        }
+    }
+
+    function copyFolderResultsPath() {
+        const input = document.getElementById('folder-done-path-input');
+        if (input && input.value) {
+            navigator.clipboard.writeText(input.value);
+            showToast("Đã sao chép đường dẫn thư mục results!", "success");
         }
     }
 
