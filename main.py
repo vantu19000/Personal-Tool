@@ -10,6 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core import settings_store
 from app.core.config import settings
+from app.core.database import check_db_connection
 from app.core.logger import ApiLoggingMiddleware
 from app.core.i18n import (
     COOKIE_NAME,
@@ -124,6 +125,13 @@ def create_app() -> FastAPI:
 
     # Global settings screen (homepage text + per-tool options, e.g. SRT prompt).
     app.include_router(settings_router, tags=["settings"])
+
+    # Database connection health check endpoint
+    @app.get("/api/health/db", tags=["health"])
+    async def db_health():
+        health = await check_db_connection()
+        status_code = 200 if health.get("status") == "ok" else 503
+        return JSONResponse(health, status_code=status_code)
 
     # Dashboard (home)
     @app.get("/", name="dashboard")

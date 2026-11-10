@@ -6,10 +6,16 @@ Adding a new tool
 2. Create a sub-package under ``app/tools/<tool_name>/`` with a ``router.py``.
 3. Register the router in ``main.py``.
 """
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # ``app/`` directory (config.py lives in app/core/config.py -> up two levels)
 BASE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_DIR = BASE_DIR.parent
+
+# Tự động nạp biến môi trường từ .env nếu có
+load_dotenv(PROJECT_DIR / ".env")
 TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
 
@@ -27,6 +33,39 @@ class Settings:
     # Ollama global config (dùng chung cho toàn bộ các chức năng)
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_TIMEOUT_SECONDS: int = 600  # Mặc định 10 phút (600s)
+
+    # PostgreSQL Database config
+    DB_HOST: str = os.getenv("DB_HOST", "localhost")
+    DB_PORT: int = int(os.getenv("DB_PORT", "5432"))
+    DB_USER: str = os.getenv("DB_USER", "postgres")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "postgres")
+    DB_NAME: str = os.getenv("DB_NAME", "personal_tool_db")
+
+    @property
+    def async_database_url(self) -> str:
+        override = os.getenv("DATABASE_URL")
+        if override:
+            if override.startswith("postgresql://"):
+                return override.replace("postgresql://", "postgresql+asyncpg://", 1)
+            return override
+        return (
+            f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@"
+            f"{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        )
+
+    @property
+    def sync_database_url(self) -> str:
+        override = os.getenv("DATABASE_URL")
+        if override:
+            if override.startswith("postgresql+asyncpg://"):
+                return override.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+            elif override.startswith("postgresql://"):
+                return override.replace("postgresql://", "postgresql+psycopg2://", 1)
+            return override
+        return (
+            f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASSWORD}@"
+            f"{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        )
 
 
 settings = Settings()
