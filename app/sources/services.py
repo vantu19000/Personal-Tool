@@ -218,7 +218,7 @@ _repo = SourceRepository()
 
 
 async def init_sources_collection(db: Optional[Any] = None) -> None:
-    """Ensure indexes and seed initial sources if empty."""
+    """Ensure indexes for crawler_sources collection (no auto-seeding on service init)."""
     col = _repo.get_collection(db)
     if col is not None:
         try:
@@ -232,12 +232,6 @@ async def init_sources_collection(db: Optional[Any] = None) -> None:
             ], db)
         except Exception as exc:
             logger.warning(f"Failed to ensure indexes for crawler_sources: {exc}")
-
-    # Seed initial 9 sources if empty
-    count = await _repo.count({}, db)
-    if count == 0:
-        logger.info(f"Seeding {len(DEFAULT_SOURCES)} initial crawler sources...")
-        await _repo.seed_if_empty(DEFAULT_SOURCES, db)
 
 
 def format_source_display(source: Dict[str, Any]) -> Dict[str, Any]:

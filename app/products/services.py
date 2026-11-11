@@ -166,7 +166,7 @@ _repo = ProductRepository()
 
 
 async def init_products_collection(db: Optional[Any] = None) -> None:
-    """Ensure indexes and seed initial products if collection is empty."""
+    """Ensure indexes for user_products collection (no auto-seeding on service init)."""
     col = _repo.get_collection(db)
     if col is not None:
         try:
@@ -179,11 +179,6 @@ async def init_products_collection(db: Optional[Any] = None) -> None:
             ], db)
         except Exception as exc:
             logger.warning(f"Failed to ensure indexes for my_products: {exc}")
-
-    count = await _repo.count({}, db)
-    if count == 0:
-        logger.info(f"Seeding {len(DEFAULT_PRODUCTS)} initial products / channels...")
-        await _repo.seed_if_empty(DEFAULT_PRODUCTS, db)
 
 
 def format_product_display(product: Dict[str, Any]) -> Dict[str, Any]:
