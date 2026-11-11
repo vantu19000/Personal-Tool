@@ -1,0 +1,108 @@
+{# 
+  Reusable Pagination Component.
+  Expects:
+    - pagination: PaginationMeta instance (with page, page_size, total_items, total_pages, etc.)
+    - request: FastAPI Request (to preserve query params via page_url global)
+#}
+{% if pagination and pagination.total_items > 0 %}
+<div class="px-4 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 border-t border-slate-200/90 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-900/40 text-xs text-slate-500 dark:text-slate-400 select-none">
+    
+    <!-- Left: Info & Page Size Selector -->
+    <div class="flex items-center gap-3 flex-wrap">
+        <div>
+            <span>Hiển thị </span>
+            <strong class="font-semibold text-slate-700 dark:text-slate-200 font-mono">{{ pagination.start_index }}</strong>
+            <span> - </span>
+            <strong class="font-semibold text-slate-700 dark:text-slate-200 font-mono">{{ pagination.end_index }}</strong>
+            <span> trong </span>
+            <strong class="font-semibold text-slate-900 dark:text-white font-mono">{{ pagination.total_items }}</strong>
+            <span> bản ghi</span>
+        </div>
+
+        <div class="flex items-center gap-1.5 text-[11px] text-slate-400 pl-2 border-l border-slate-200 dark:border-slate-800">
+            <label for="pagination-page-size" class="shrink-0 hidden xs:inline">Cỡ trang:</label>
+            <select id="pagination-page-size"
+                    onchange="if (this.value) window.location.href = this.value;"
+                    class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer">
+                {% for opt in pagination.page_size_options %}
+                <option value="{{ page_url(request, page=1, page_size=opt) }}" {% if pagination.page_size == opt %}selected{% endif %}>
+                    {{ opt }} / trang
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Right: Page Navigation -->
+    {% if pagination.total_pages > 1 %}
+    <div class="flex items-center gap-1 flex-wrap justify-end">
+        <!-- First page « -->
+        {% if pagination.page > 2 %}
+        <a href="{{ page_url(request, page=1) }}"
+           title="Trang đầu"
+           class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition active:scale-95">
+            <i data-lucide="chevrons-left" class="w-3.5 h-3.5"></i>
+        </a>
+        {% endif %}
+
+        <!-- Prev page ‹ -->
+        {% if pagination.has_prev %}
+        <a href="{{ page_url(request, page=pagination.prev_page) }}"
+           title="Trang trước"
+           class="inline-flex items-center gap-1 px-2.5 h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition active:scale-95 font-medium">
+            <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Trước</span>
+        </a>
+        {% else %}
+        <span class="inline-flex items-center gap-1 px-2.5 h-8 rounded-lg border border-slate-200/60 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/50 text-slate-300 dark:text-slate-600 cursor-not-allowed font-medium">
+            <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Trước</span>
+        </span>
+        {% endif %}
+
+        <!-- Page numbers -->
+        <div class="flex items-center gap-1">
+            {% for p in pagination.page_range %}
+            {% if p == "..." %}
+            <span class="w-7 h-8 flex items-center justify-center text-slate-400 font-bold">…</span>
+            {% elif p == pagination.page %}
+            <span class="min-w-8 h-8 px-2 flex items-center justify-center rounded-lg bg-emerald-600 text-white font-bold text-xs shadow-xs font-mono">
+                {{ p }}
+            </span>
+            {% else %}
+            <a href="{{ page_url(request, page=p) }}"
+               class="min-w-8 h-8 px-2 flex items-center justify-center rounded-lg border border-transparent hover:border-slate-200 dark:hover:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition font-mono active:scale-95">
+                {{ p }}
+            </a>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Next page › -->
+        {% if pagination.has_next %}
+        <a href="{{ page_url(request, page=pagination.next_page) }}"
+           title="Trang sau"
+           class="inline-flex items-center gap-1 px-2.5 h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition active:scale-95 font-medium">
+            <span class="hidden sm:inline">Sau</span>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+        </a>
+        {% else %}
+        <span class="inline-flex items-center gap-1 px-2.5 h-8 rounded-lg border border-slate-200/60 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/50 text-slate-300 dark:text-slate-600 cursor-not-allowed font-medium">
+            <span class="hidden sm:inline">Sau</span>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+        </span>
+        {% endif %}
+
+        <!-- Last page » -->
+        {% if pagination.page < pagination.total_pages - 1 %}
+        <a href="{{ page_url(request, page=pagination.total_pages) }}"
+           title="Trang cuối"
+           class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition active:scale-95">
+            <i data-lucide="chevrons-right" class="w-3.5 h-3.5"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+{% endif %}

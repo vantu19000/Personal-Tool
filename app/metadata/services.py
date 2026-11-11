@@ -217,8 +217,10 @@ async def list_countries(
     db: Any = None,
     search: str = "",
     status_filter: str = "",
+    page: int = 1,
+    page_size: int = 25,
 ) -> Dict[str, Any]:
-    """Retrieve countries from MongoDB with optional search and filter."""
+    """Retrieve countries from MongoDB with optional search, filter, and pagination."""
     # Ensure initialized/seeded
     await ensure_collection_and_seed(db=db)
 
@@ -235,36 +237,35 @@ async def list_countries(
     if status_filter and status_filter != "all":
         query["status"] = status_filter
 
-    items, db_connected = await country_repo.find_all(
+    items, pagination, db_connected = await country_repo.find_paginated(
         query=query,
         sort_field="id",
         sort_dir=1,
-        limit=1000,
+        page=page,
+        page_size=page_size,
         db=db,
     )
 
-    # In-memory search fallback if DB was offline
-    if not db_connected and (search or (status_filter and status_filter != "all")):
-        filtered = list(items)
-        if search:
-            st = search.strip().lower()
-            filtered = [
-                c for c in filtered
-                if st in c.get("name", "").lower()
-                or st in c.get("country_code", "").lower()
-                or st in c.get("phone_code", "").lower()
-                or st in (c.get("native_name") or "").lower()
-            ]
-        if status_filter and status_filter != "all":
-            filtered = [c for c in filtered if c.get("status") == status_filter]
-        items = filtered
+    # Count active records
+    active_count = 0
+    if db_connected:
+        col = country_repo.get_collection(db)
+        if col is not None:
+            try:
+                active_query = dict(query)
+                active_query["status"] = "active"
+                active_count = await col.count_documents(active_query)
+            except Exception:
+                active_count = sum(1 for c in items if c.get("status") == "active")
+    else:
+        active_count = sum(1 for c in items if c.get("status") == "active")
 
-    active_count = sum(1 for c in items if c.get("status") == "active")
     return {
         "items": items,
-        "total": len(items),
+        "total": pagination.total_items,
         "active_count": active_count,
         "db_connected": db_connected,
+        "pagination": pagination,
     }
 
 

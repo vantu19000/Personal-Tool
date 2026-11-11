@@ -19,6 +19,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from app.core.database import get_mongo_database
+from app.core.pagination import PaginationMeta
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +164,56 @@ class BaseMongoRepository:
         else:
             items.sort(key=lambda x: x.get(self.id_field) or 0)
         return items, False
+
+    async def find_paginated(
+        self,
+        query: Optional[Dict[str, Any]] = None,
+        sort_field: Optional[str] = None,
+        sort_dir: int = 1,
+        page: int = 1,
+        page_size: int = 25,
+        projection: Optional[Dict[str, Any]] = None,
+        db: Optional[Any] = None,
+    ) -> Tuple[List[Dict[str, Any]], PaginationMeta, bool]:
+        """Fetch a paginated slice of records from MongoDB with total counting.
+
+        Returns:
+            (items, pagination_meta, is_db_connected)
+        """
+        col = self.get_collection(db)
+        if col is not None:
+            try:
+                clean_query = query or {}
+                total_items = await col.count_documents(clean_query)
+                meta = PaginationMeta.create(page=page, page_size=page_size, total_items=total_items)
+
+                skip = (meta.page - 1) * meta.page_size
+                proj = projection if projection is not None else {"_id": 0}
+                cursor = col.find(clean_query, proj)
+                if sort_field:
+                    cursor = cursor.sort(sort_field, sort_dir)
+                else:
+                    cursor = cursor.sort(self.id_field, 1)
+
+                cursor = cursor.skip(skip).limit(meta.page_size)
+                items = await cursor.to_list(length=meta.page_size)
+                return items, meta, True
+            except Exception as exc:
+                logger.warning(f"MongoDB find_paginated on '{self.collection_name}' failed: {exc}")
+
+        # Fallback to in-memory cache
+        filtered = list(self._memory_cache)
+        if sort_field:
+            filtered.sort(key=lambda x: x.get(sort_field) or 0, reverse=(sort_dir == -1))
+        else:
+            filtered.sort(key=lambda x: x.get(self.id_field) or 0)
+
+        total_items = len(filtered)
+        meta = PaginationMeta.create(page=page, page_size=page_size, total_items=total_items)
+        start = (meta.page - 1) * meta.page_size
+        end = start + meta.page_size
+        items = filtered[start:end]
+        return items, meta, False
 
     async def find_by_id(
         self,

@@ -23,10 +23,14 @@ async def countries_page(
     request: Request,
     search: str = "",
     status: str = "all",
+    page: int = 1,
+    page_size: int = 25,
     db: Any = Depends(get_db),
 ):
-    """Render the Country Management screen."""
-    data = await services.list_countries(db, search=search, status_filter=status)
+    """Render the Country Management screen with pagination."""
+    data = await services.list_countries(
+        db, search=search, status_filter=status, page=page, page_size=page_size
+    )
     return templates.TemplateResponse(
         request,
         "metadata/countries.html",
@@ -37,6 +41,7 @@ async def countries_page(
             "total_count": data["total"],
             "active_count": data["active_count"],
             "db_connected": data["db_connected"],
+            "pagination": data.get("pagination"),
             "search": search,
             "status_filter": status,
         },
@@ -47,10 +52,16 @@ async def countries_page(
 async def api_list_countries(
     search: str = "",
     status: str = "all",
+    page: int = 1,
+    page_size: int = 25,
     db: Any = Depends(get_db),
 ):
-    """Return JSON list of countries."""
-    data = await services.list_countries(db, search=search, status_filter=status)
+    """Return JSON list of countries with pagination."""
+    data = await services.list_countries(
+        db, search=search, status_filter=status, page=page, page_size=page_size
+    )
+    if "pagination" in data and hasattr(data["pagination"], "to_dict"):
+        data["pagination"] = data["pagination"].to_dict()
     return JSONResponse(data)
 
 

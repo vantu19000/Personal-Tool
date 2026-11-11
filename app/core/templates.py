@@ -57,5 +57,9 @@ templates.env.globals["t"] = jinja_t
 templates.env.globals["current_lang"] = current_lang_proxy
 templates.env.globals["get_supported_locales"] = get_supported_locales
 
+# Reusable Pagination URL builder
+from app.core.pagination import build_page_url
+templates.env.globals["page_url"] = build_page_url
+
 # Also support pipe filter syntax: {{ 'common.save' | t }}
 templates.env.filters["t"] = jinja_t
