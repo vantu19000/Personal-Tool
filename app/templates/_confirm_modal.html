@@ -1,0 +1,159 @@
+<!-- Reusable Global Confirm Modal Component -->
+<div id="global-confirm-modal"
+     class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-200 ease-out select-none">
+    
+    <div id="global-confirm-dialog"
+         class="relative w-full max-w-md transform scale-95 opacity-0 bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-2xl p-6 transition-all duration-200 ease-out overflow-hidden space-y-5">
+        
+        <!-- Decorative Glow -->
+        <div id="global-confirm-glow" class="absolute -top-16 -right-16 w-36 h-36 bg-rose-500/15 rounded-full blur-2xl pointer-events-none"></div>
+
+        <!-- Top Content: Icon & Title -->
+        <div class="flex items-start gap-4">
+            <!-- Icon Container -->
+            <div id="global-confirm-icon-box"
+                 class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/60 shadow-xs">
+                <i data-lucide="trash-2" id="global-confirm-icon" class="w-6 h-6"></i>
+            </div>
+
+            <!-- Title & Description -->
+            <div class="space-y-1.5 min-w-0 flex-1 pt-0.5">
+                <h3 id="global-confirm-title" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-snug">
+                    Xác nhận thao tác
+                </h3>
+                <div id="global-confirm-message" class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed break-words">
+                    Bạn có chắc chắn muốn thực hiện hành động này?
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+            <!-- Cancel Button -->
+            <button type="button"
+                    id="global-confirm-btn-cancel"
+                    class="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold transition active:scale-95 cursor-pointer">
+                Hủy bỏ
+            </button>
+
+            <!-- Confirm Button -->
+            <button type="button"
+                    id="global-confirm-btn-ok"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs sm:text-sm font-semibold shadow-md shadow-rose-600/25 transition active:scale-95 cursor-pointer">
+                <span id="global-confirm-btn-text">Xác nhận</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    let resolver = null;
+
+    const modal = document.getElementById('global-confirm-modal');
+    const dialog = document.getElementById('global-confirm-dialog');
+    const titleEl = document.getElementById('global-confirm-title');
+    const msgEl = document.getElementById('global-confirm-message');
+    const iconBox = document.getElementById('global-confirm-icon-box');
+    const iconEl = document.getElementById('global-confirm-icon');
+    const btnCancel = document.getElementById('global-confirm-btn-cancel');
+    const btnOk = document.getElementById('global-confirm-btn-ok');
+    const btnText = document.getElementById('global-confirm-btn-text');
+    const glow = document.getElementById('global-confirm-glow');
+
+    function close(confirmed) {
+        if (!modal) return;
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        dialog.classList.add('scale-95', 'opacity-0');
+        dialog.classList.remove('scale-100', 'opacity-100');
+
+        if (resolver) {
+            resolver(confirmed);
+            resolver = null;
+        }
+    }
+
+    if (btnCancel) {
+        btnCancel.onclick = () => close(false);
+    }
+    if (btnOk) {
+        btnOk.onclick = () => close(true);
+    }
+
+    // Backdrop click
+    if (modal) {
+        modal.onclick = (e) => {
+            if (e.target === modal) close(false);
+        };
+    }
+
+    // Keyboard support (Escape to close, Enter to confirm)
+    document.addEventListener('keydown', (e) => {
+        if (!modal || modal.classList.contains('pointer-events-none')) return;
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            close(false);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            close(true);
+        }
+    });
+
+    /**
+     * Global promise-based confirm dialog.
+     * 
+     * Usage:
+     * const confirmed = await window.confirmModal({
+     *     title: 'Xóa quốc gia?',
+     *     message: 'Bạn có chắc chắn muốn xóa?',
+     *     confirmText: 'Xóa',
+     *     type: 'danger' // 'danger' | 'warning' | 'info'
+     * });
+     */
+    window.confirmModal = function(options = {}) {
+        return new Promise((resolve) => {
+            resolver = resolve;
+
+            const title = options.title || 'Xác nhận';
+            const message = options.message || 'Bạn có chắc chắn muốn tiếp tục?';
+            const confirmText = options.confirmText || 'Xác nhận';
+            const cancelText = options.cancelText || 'Hủy bỏ';
+            const type = options.type || 'danger'; // default danger for delete
+
+            titleEl.textContent = title;
+            msgEl.innerHTML = message;
+            btnText.textContent = confirmText;
+            btnCancel.textContent = cancelText;
+
+            // Adjust styles based on type
+            if (type === 'danger') {
+                iconBox.className = 'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/60 shadow-xs';
+                iconEl.setAttribute('data-lucide', 'trash-2');
+                btnOk.className = 'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs sm:text-sm font-semibold shadow-md shadow-rose-600/25 transition active:scale-95 cursor-pointer';
+                if (glow) glow.className = 'absolute -top-16 -right-16 w-36 h-36 bg-rose-500/15 rounded-full blur-2xl pointer-events-none';
+            } else if (type === 'warning') {
+                iconBox.className = 'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/60 shadow-xs';
+                iconEl.setAttribute('data-lucide', 'alert-triangle');
+                btnOk.className = 'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-xs sm:text-sm font-semibold shadow-md shadow-amber-500/25 transition active:scale-95 cursor-pointer';
+                if (glow) glow.className = 'absolute -top-16 -right-16 w-36 h-36 bg-amber-500/15 rounded-full blur-2xl pointer-events-none';
+            } else {
+                iconBox.className = 'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/60 shadow-xs';
+                iconEl.setAttribute('data-lucide', 'info');
+                btnOk.className = 'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white text-xs sm:text-sm font-semibold shadow-md shadow-indigo-600/25 transition active:scale-95 cursor-pointer';
+                if (glow) glow.className = 'absolute -top-16 -right-16 w-36 h-36 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none';
+            }
+
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+
+            // Open modal
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                dialog.classList.remove('scale-95', 'opacity-0');
+                dialog.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        });
+    };
+})();
+</script>

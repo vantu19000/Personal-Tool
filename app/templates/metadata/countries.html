@@ -202,13 +202,23 @@
                             <div class="flex items-center justify-end gap-1.5">
                                 <button type="button"
                                         title="Chỉnh sửa"
-                                        onclick="editCountry({{ item|tojson }})"
+                                        data-id="{{ item.id }}"
+                                        data-name="{{ item.name }}"
+                                        data-code="{{ item.country_code }}"
+                                        data-phone="{{ item.phone_code }}"
+                                        data-flag="{{ item.flag_emoji or '🌐' }}"
+                                        data-currency="{{ item.currency_code or '' }}"
+                                        data-native="{{ item.native_name or '' }}"
+                                        data-status="{{ item.status or 'active' }}"
+                                        onclick="openEditFromButton(this)"
                                         class="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
                                     <i data-lucide="edit-3" class="w-4 h-4"></i>
                                 </button>
                                 <button type="button"
                                         title="Xóa"
-                                        onclick="deleteCountry({{ item.id }}, '{{ item.name }}')"
+                                        data-id="{{ item.id }}"
+                                        data-name="{{ item.name }}"
+                                        onclick="deleteCountryFromButton(this)"
                                         class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                 </button>
@@ -344,6 +354,28 @@
         document.getElementById('country-modal').classList.remove('hidden');
     }
 
+    function openEditFromButton(btn) {
+        if (!btn) return;
+        const country = {
+            id: btn.getAttribute('data-id'),
+            name: btn.getAttribute('data-name'),
+            country_code: btn.getAttribute('data-code'),
+            phone_code: btn.getAttribute('data-phone'),
+            flag_emoji: btn.getAttribute('data-flag'),
+            currency_code: btn.getAttribute('data-currency'),
+            native_name: btn.getAttribute('data-native'),
+            status: btn.getAttribute('data-status'),
+        };
+        editCountry(country);
+    }
+
+    function deleteCountryFromButton(btn) {
+        if (!btn) return;
+        const id = btn.getAttribute('data-id');
+        const name = btn.getAttribute('data-name');
+        deleteCountry(id, name);
+    }
+
     function editCountry(country) {
         document.getElementById('form-country-id').value = country.id;
         document.getElementById('form-name').value = country.name;
@@ -389,7 +421,14 @@
     }
 
     async function deleteCountry(id, name) {
-        if (!confirm(`Bạn có chắc chắn muốn xóa quốc gia "${name}"?`)) return;
+        const ok = await window.confirmModal({
+            title: 'Xóa quốc gia?',
+            message: `Bạn có chắc chắn muốn xóa quốc gia <strong class="text-slate-900 dark:text-white font-bold font-mono">"${name}"</strong> khỏi cơ sở dữ liệu MongoDB?<br><span class="text-xs text-rose-500 font-medium">⚠️ Thao tác này sẽ xóa vĩnh viễn và không thể hoàn tác.</span>`,
+            confirmText: 'Xác nhận xóa',
+            cancelText: 'Hủy bỏ',
+            type: 'danger'
+        });
+        if (!ok) return;
 
         try {
             const res = await fetch(`/metadata/api/countries/${id}/delete`, {
@@ -399,13 +438,20 @@
             const data = await res.json();
             if (data.ok) {
                 const row = document.getElementById(`row-${id}`);
-                if (row) row.remove();
-                window.location.reload();
+                if (row) {
+                    row.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                    setTimeout(() => {
+                        row.remove();
+                        window.location.reload();
+                    }, 300);
+                } else {
+                    window.location.reload();
+                }
             } else {
-                alert('Không thể xóa quốc gia này!');
+                alert('Không thể xóa quốc gia này: ' + (data.error || 'Lỗi không xác định'));
             }
         } catch (err) {
-            alert('Lỗi kết nối khi xóa!');
+            alert('Lỗi kết nối khi gửi yêu cầu xóa!');
         }
     }
 </script>
