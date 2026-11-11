@@ -140,3 +140,32 @@ def test_api_create_and_delete_ward(client):
     )
     assert del_res.status_code == 200
     assert del_res.json().get("ok") is True
+
+
+@pytest.mark.anyio
+async def test_ward_province_mapping_service():
+    # Test resolving province mapping from code
+    mapping_by_code = await services.resolve_province_mapping(province_code="01")
+    assert mapping_by_code["province_code"] == "01"
+    assert "Hà Nội" in mapping_by_code["province_name"]
+    assert mapping_by_code["province_id"] == 1
+
+    # Test resolving former province name (e.g. Hải Dương -> TP. Hải Phòng code 31)
+    mapping_old = await services.resolve_province_mapping(province_name="Tỉnh Hải Dương")
+    assert mapping_old["province_code"] == "31"
+    assert "Hải Phòng" in mapping_old["province_name"]
+    assert mapping_old["old_province_name"] == "Tỉnh Hải Dương"
+
+    # Test creating ward with mapped province
+    created = await services.create_ward(
+        None,
+        {
+            "name": "Xã Hải Dương Thử Nghiệm",
+            "province_name": "Tỉnh Hải Dương",
+            "type": "Xã",
+        },
+    )
+    assert created["province_code"] == "31"
+    assert created["province_name"] in ("Hải Phòng", "TP. Hải Phòng", "Thành phố Hải Phòng")
+    assert created["old_province_name"] == "Tỉnh Hải Dương"
+

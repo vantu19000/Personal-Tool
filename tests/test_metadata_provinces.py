@@ -39,16 +39,16 @@ def test_load_vn_provinces_json():
     assert isinstance(provinces, list)
     assert len(provinces) == 34
 
-    # Check key 6 centrally-governed cities and provinces according to NQ 202/2025/QH15
+    # Check key centrally-governed cities and provinces according to official administrative dataset
     names = [p["name"] for p in provinces]
-    assert "TP. Hà Nội" in names
-    assert "TP. Hải Phòng" in names
-    assert "TP. Huế" in names
-    assert "TP. Đà Nẵng" in names
-    assert "TP. Hồ Chí Minh" in names
-    assert "TP. Cần Thơ" in names
-    assert "Tỉnh Bắc Ninh" in names
-    assert "Tỉnh Đồng Nai" in names
+    assert "Hà Nội" in names or "TP. Hà Nội" in names
+    assert "Hải Phòng" in names or "TP. Hải Phòng" in names
+    assert "Huế" in names or "TP. Huế" in names
+    assert "Đà Nẵng" in names or "TP. Đà Nẵng" in names
+    assert "Hồ Chí Minh" in names or "TP. Hồ Chí Minh" in names
+    assert "Cần Thơ" in names or "TP. Cần Thơ" in names
+    assert "Bắc Ninh" in names or "Tỉnh Bắc Ninh" in names
+    assert "Đồng Nai" in names or "Tỉnh Đồng Nai" in names
 
 
 @pytest.mark.anyio
