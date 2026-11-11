@@ -297,12 +297,13 @@ _repo = ArticleRepository()
 
 
 async def init_articles_collection(db: Optional[Any] = None) -> None:
-    """Ensure indexes and seed initial articles if empty."""
+    """Ensure indexes for crawled_articles collection (no auto-seeding on page load)."""
     col = _repo.get_collection(db)
     if col is not None:
         try:
             await _repo.ensure_indexes([
                 ("id", True),
+                "url",
                 "source_type",
                 "category",
                 "location",
@@ -313,11 +314,6 @@ async def init_articles_collection(db: Optional[Any] = None) -> None:
             ], db)
         except Exception as exc:
             logger.warning(f"Failed to ensure indexes for crawled_articles: {exc}")
-
-    count = await _repo.count({}, db)
-    if count == 0:
-        logger.info(f"Seeding {len(DEFAULT_ARTICLES)} initial crawled articles...")
-        await _repo.seed_if_empty(DEFAULT_ARTICLES, db)
 
 
 def format_article_display(article: Dict[str, Any]) -> Dict[str, Any]:

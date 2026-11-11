@@ -148,8 +148,20 @@ async def test_update_source():
 
 
 @pytest.mark.anyio
-async def test_toggle_status_and_trigger_scan():
+async def test_toggle_status_and_trigger_scan(monkeypatch):
     """Verify toggling active/paused and triggering instant scan."""
+    from app.sources import crawler
+
+    async def mock_api(url, limit=10):
+        return [{
+            "title": "Chỉ số xuất nhập khẩu tháng này đạt mức cao",
+            "summary": "Báo cáo số liệu giao thương...",
+            "content": "Báo cáo chi tiết...",
+            "url": "https://example.com/api/indicator-q1",
+        }]
+
+    monkeypatch.setattr(crawler, "fetch_api_content", mock_api)
+
     await services.reset_demo_sources(db=None)
     created = await services.create_source(
         {
@@ -303,10 +315,29 @@ def test_normalize_url_and_deduplication_helpers():
 
 
 @pytest.mark.anyio
-async def test_crawl_saves_to_articles_and_deduplicates():
+async def test_crawl_saves_to_articles_and_deduplicates(monkeypatch):
     """Verify crawl saves into crawled_articles and strictly prevents duplicates on subsequent runs."""
     from app.articles import services as article_services
+    from app.sources import crawler
     from app.sources.crawler import crawl_source_and_save
+
+    async def mock_rss(url, limit=10):
+        return [
+            {
+                "title": "Quy hoạch phân khu đô thị Hà Nội mới nhất 2026",
+                "summary": "Thông tin chi tiết bản đồ quy hoạch xây dựng thủ đô đến năm 2030...",
+                "content": "Nội dung phân tích quy hoạch các trục hướng tâm và vành đai...",
+                "url": "https://example.com/quy-hoach-ha-noi-2026",
+            },
+            {
+                "title": "Thị trường BĐS công nghiệp phía Bắc bứt phá mạnh",
+                "summary": "Nhu cầu thuê nhà xưởng tiêu chuẩn cao tăng trưởng 2 con số...",
+                "content": "Báo cáo chi tiết dòng vốn FDI đổ vào các khu công nghiệp...",
+                "url": "https://example.com/bds-cong-nghiep-phia-bac",
+            },
+        ]
+
+    monkeypatch.setattr(crawler, "fetch_rss_feed", mock_rss)
 
     await services.reset_demo_sources(db=None)
     await article_services.reset_demo_articles(db=None)
@@ -314,26 +345,26 @@ async def test_crawl_saves_to_articles_and_deduplicates():
     articles_before = await article_services.list_articles(db=None, page=1, page_size=100)
     count_before = articles_before["total"]
 
-    # --- Run 1: Crawl Source ID 1 (Website) ---
-    res1 = await crawl_source_and_save(source_id=1, db=None)
+    # --- Run 1: Crawl Source ID 2 (RSS) ---
+    res1 = await crawl_source_and_save(source_id=2, db=None)
     assert res1["ok"] is True
-    assert res1["scanned_count"] >= 3
-    assert res1["new_count"] >= 1
+    assert res1["scanned_count"] == 2
+    assert res1["new_count"] == 2
 
     articles_after_run1 = await article_services.list_articles(db=None, page=1, page_size=100)
     count_after_run1 = articles_after_run1["total"]
-    assert count_after_run1 == count_before + res1["new_count"]
+    assert count_after_run1 == count_before + 2
 
-    # Verify newly saved articles belong to Source 1
+    # Verify newly saved articles belong to Source 2
     new_titles = [a["title"] for a in res1["new_articles"]]
-    assert any("Quy hoạch" in t or "Hà Nội" in t for t in new_titles)
+    assert any("Quy hoạch" in t for t in new_titles)
 
-    # --- Run 2: Crawl Source ID 1 again (Exact same source) ---
+    # --- Run 2: Crawl Source ID 2 again (Exact same source & content) ---
     # MUST DEDUPLICATE: 0 new articles, duplicate_count > 0!
-    res2 = await crawl_source_and_save(source_id=1, db=None)
+    res2 = await crawl_source_and_save(source_id=2, db=None)
     assert res2["ok"] is True
     assert res2["new_count"] == 0, "Duplicate articles should NOT be saved again!"
-    assert res2["duplicate_count"] >= res1["new_count"], "All previously crawled articles must be detected as duplicates"
+    assert res2["duplicate_count"] == 2, "All previously crawled articles must be detected as duplicates"
     assert "không lưu thêm bài trùng" in res2["message"]
 
     articles_after_run2 = await article_services.list_articles(db=None, page=1, page_size=100)

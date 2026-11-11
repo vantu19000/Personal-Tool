@@ -265,12 +265,14 @@ def format_idea_display(item: Dict[str, Any]) -> Dict[str, Any]:
 
 
 async def init_ideas_collection(db: Optional[Any] = None) -> bool:
-    """Seed collection with default AI ideas if empty."""
-    return await _repo.seed_if_empty(
-        default_items=DEFAULT_IDEAS,
-        index_specs=[("id", True), "status", "viral_score", "target_product_id"],
-        db=db,
-    )
+    """Ensure indexes for ai_ideas collection (no auto-seeding on page load)."""
+    col = _repo.get_collection(db)
+    if col is not None:
+        try:
+            await _repo.ensure_indexes([("id", True), "status", "viral_score", "target_product_id"], db=db)
+        except Exception as exc:
+            logger.warning(f"Failed to ensure indexes for ai_ideas: {exc}")
+    return True
 
 
 async def list_ideas(
