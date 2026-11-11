@@ -41,8 +41,16 @@
                 </p>
             </div>
 
-            <!-- Action Button -->
-            <div class="shrink-0 flex items-center gap-3">
+            <!-- Action Buttons -->
+            <div class="shrink-0 flex items-center gap-2.5 flex-wrap">
+                <button type="button"
+                        id="btn-import-iso"
+                        onclick="triggerImportIso()"
+                        class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold border border-white/20 backdrop-blur-sm transition active:scale-95 cursor-pointer">
+                    <i data-lucide="download-cloud" class="w-4 h-4 text-emerald-300"></i>
+                    <span>Nạp 249 Quốc gia ISO</span>
+                </button>
+
                 <button type="button"
                         onclick="openCountryModal()"
                         class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-emerald-600/30 transition active:scale-95 cursor-pointer">
@@ -452,6 +460,44 @@
             }
         } catch (err) {
             alert('Lỗi kết nối khi gửi yêu cầu xóa!');
+        }
+    }
+
+    async function triggerImportIso() {
+        const ok = await window.confirmModal({
+            title: 'Nạp danh mục 249 Quốc gia ISO 3166-1',
+            message: 'Hệ thống sẽ nạp toàn bộ danh mục 249 quốc gia & vùng lãnh thổ chuẩn quốc tế vào MongoDB.<br><span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Dữ liệu hiện có của bạn sẽ được bảo toàn nguyên vẹn.</span>',
+            confirmText: 'Bắt đầu nạp',
+            cancelText: 'Hủy bỏ',
+            type: 'info'
+        });
+        if (!ok) return;
+
+        const btn = document.getElementById('btn-import-iso');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="inline-block animate-spin mr-1.5">⏳</span> Đang nạp...';
+
+        try {
+            const formData = new FormData();
+            formData.append('overwrite', 'false');
+            const res = await fetch('/metadata/api/countries/import-iso', {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.ok) {
+                window.location.reload();
+            } else {
+                alert('Không thể nạp dữ liệu: ' + (data.error || 'Lỗi không xác định'));
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        } catch (err) {
+            alert('Lỗi kết nối: ' + err.message);
+            btn.disabled = false;
+            btn.innerHTML = originalText;
         }
     }
 </script>

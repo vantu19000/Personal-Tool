@@ -28,3 +28,6 @@ PyMuPDF
 
 # --- Image processing & compression ---
 pillow
+
+# --- ISO Standards Data ---
+pycountry

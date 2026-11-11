@@ -28,9 +28,15 @@ def port_open() -> bool:
 def main() -> None:
     if not port_open():
         # Start the server detached so it keeps running after this script exits.
+        log_dir = os.path.join(ROOT, "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = open(os.path.join(log_dir, "uvicorn.log"), "a", encoding="utf-8")
         subprocess.Popen(
             [VENV_PY, "-m", "uvicorn", "main:app", "--host", HOST, "--port", str(PORT)],
             cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            stdout=log_file,
+            stderr=log_file,
             creationflags=getattr(subprocess, "DETACHED_PROCESS", 0)
             | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
         )

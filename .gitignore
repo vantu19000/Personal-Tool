@@ -166,3 +166,6 @@ app/logs/
 # ===== Local user data (settings, caches) =====
 app/data/
 data/
+
+!app/metadata/data/
+!app/metadata/data/**

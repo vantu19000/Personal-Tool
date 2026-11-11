@@ -140,3 +140,18 @@ async def api_delete_country(
     if "application/json" in accept or "fetch" in request.headers.get("sec-fetch-mode", ""):
         return JSONResponse({"ok": success})
     return RedirectResponse(url="/metadata/countries", status_code=303)
+
+
+@router.post("/api/countries/import-iso", name="api-import-iso-countries")
+async def api_import_iso_countries(
+    request: Request,
+    overwrite: bool = Form(False),
+    db: Any = Depends(get_db),
+):
+    """Import / Migrate 249 ISO countries into MongoDB."""
+    result = await services.migrate_iso_countries(db=db, overwrite=overwrite)
+    accept = request.headers.get("accept", "")
+    if "application/json" in accept or "fetch" in request.headers.get("sec-fetch-mode", ""):
+        return JSONResponse(result)
+    return RedirectResponse(url="/metadata/countries", status_code=303)
+

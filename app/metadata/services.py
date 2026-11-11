@@ -319,3 +319,84 @@ async def update_country(db: Any, country_id: int, data: Dict[str, Any]) -> Opti
 async def delete_country(db: Any, country_id: int) -> bool:
     """Delete a country record from MongoDB."""
     return await country_repo.delete(country_id, db=db)
+
+
+def load_iso_countries_json() -> List[Dict[str, Any]]:
+    """Load the pre-built ISO 3166-1 dataset from data/iso_countries.json."""
+    import json
+    from pathlib import Path
+    data_path = Path(__file__).resolve().parent / "data" / "iso_countries.json"
+    if data_path.exists():
+        with open(data_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+
+async def migrate_iso_countries(
+    db: Any = None,
+    overwrite: bool = False,
+) -> Dict[str, Any]:
+    """Migrate 249 ISO countries into MongoDB with smart upsert.
+
+    - If country_code already exists:
+        - If overwrite=False: preserves existing record (keeps user edits).
+        - If overwrite=True: updates fields.
+    - If country_code does not exist:
+        - Inserts new record with autoincrement ID.
+    """
+    iso_list = load_iso_countries_json()
+    if not iso_list:
+        return {"ok": False, "error": "ISO dataset file not found."}
+
+    await ensure_collection_and_seed(db=db)
+    col = country_repo.get_collection(db)
+
+    inserted_count = 0
+    updated_count = 0
+    skipped_count = 0
+
+    if col is not None:
+        try:
+            # Fetch existing codes
+            existing_docs = await col.find({}, {"country_code": 1, "id": 1, "_id": 0}).to_list(length=10000)
+            existing_map = {doc.get("country_code", "").upper(): doc.get("id") for doc in existing_docs if doc.get("country_code")}
+
+            # Next id counter
+            next_id = await country_repo.get_next_id(db=db)
+
+            for item in iso_list:
+                code = item.get("country_code", "").upper()
+                if not code:
+                    continue
+
+                if code in existing_map:
+                    if overwrite:
+                        update_payload = dict(item)
+                        update_payload.pop("country_code", None)
+                        await country_repo.update(existing_map[code], update_payload, db=db)
+                        updated_count += 1
+                    else:
+                        skipped_count += 1
+                else:
+                    new_doc = dict(item)
+                    new_doc["id"] = next_id
+                    next_id += 1
+                    await country_repo.insert(new_doc, auto_id=False, db=db)
+                    existing_map[code] = new_doc["id"]
+                    inserted_count += 1
+
+            total_now = await col.count_documents({})
+            return {
+                "ok": True,
+                "total_iso": len(iso_list),
+                "inserted": inserted_count,
+                "updated": updated_count,
+                "skipped": skipped_count,
+                "total_now": total_now,
+            }
+        except Exception as exc:
+            logger.error(f"Migration error: {exc}")
+            return {"ok": False, "error": str(exc)}
+
+    return {"ok": False, "error": "Database not connected"}
+
