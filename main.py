@@ -19,6 +19,7 @@ from app.core.i18n import (
     set_current_locale,
 )
 from app.core.templates import templates
+from app.articles import router as articles_router
 from app.metadata import router as metadata_router
 from app.products import router as products_router
 from app.settings import router as settings_router
@@ -141,6 +142,9 @@ def create_app() -> FastAPI:
 
     # My Products & Publishing Channels router
     app.include_router(products_router, tags=["products"])
+
+    # Crawled Articles router (Kho bài viết thu thập)
+    app.include_router(articles_router, tags=["crawled-articles"])
 
     # Shortcut redirect for Crawler
     @app.get("/crawler", include_in_schema=False)

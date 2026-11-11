@@ -176,18 +176,37 @@ async def content_ideas_sources(
 
 
 @router.get("/content-ideas/articles", name="content-ideas-articles")
-async def content_ideas_articles(request: Request):
-    """Crawled Articles feed and explorer."""
-    return templates.TemplateResponse(
-        request,
-        "tools/content_ideas/articles.html",
-        {
-            "active_tool": "content-ideas",
-            "active_sub_menu": "articles",
-            "sub_menus": CONTENT_IDEAS_MENUS,
-            "articles": RECENT_ARTICLES,
-            "metrics": OVERVIEW_METRICS,
-        },
+async def content_ideas_articles(
+    request: Request,
+    search: str = "",
+    category: str = "all",
+    location: str = "all",
+    source_type: str = "all",
+    sentiment: str = "all",
+    status: str = "all",
+    product: str = "all",
+    view_mode: str = "grid",
+    page: int = 1,
+    page_size: int = 12,
+    sort_by: str = "newest",
+):
+    """Crawled Articles feed and explorer backed by database."""
+    from app.core.database import get_mongo_database
+    from app.articles.router import articles_page
+    return await articles_page(
+        request=request,
+        search=search,
+        category=category,
+        location=location,
+        source_type=source_type,
+        sentiment=sentiment,
+        status=status,
+        product=product,
+        view_mode=view_mode,
+        page=page,
+        page_size=page_size,
+        sort_by=sort_by,
+        db=get_mongo_database(),
     )
 
 
