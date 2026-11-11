@@ -99,7 +99,7 @@ async def articles_page(
     product: str = "all",
     view_mode: str = "grid",
     page: int = 1,
-    page_size: int = 12,
+    page_size: int = 6,
     sort_by: str = "newest",
     db: Any = Depends(get_db),
 ):

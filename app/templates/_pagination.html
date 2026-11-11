@@ -34,8 +34,8 @@
     </div>
 
     <!-- Right: Page Navigation -->
-    {% if pagination.total_pages > 1 %}
     <div class="flex items-center gap-1 flex-wrap justify-end">
+        {% if pagination.total_pages > 1 %}
         <!-- First page « -->
         {% if pagination.page > 2 %}
         <a href="{{ page_url(request, page=1) }}"
@@ -101,8 +101,13 @@
             <i data-lucide="chevrons-right" class="w-3.5 h-3.5"></i>
         </a>
         {% endif %}
+        {% else %}
+        <!-- Total pages is 1: Display current page 1 pill -->
+        <span class="min-w-8 h-8 px-2.5 flex items-center justify-center rounded-lg bg-emerald-600 text-white font-bold text-xs shadow-xs font-mono">
+            1
+        </span>
+        {% endif %}
     </div>
-    {% endif %}
 
 </div>
 {% endif %}

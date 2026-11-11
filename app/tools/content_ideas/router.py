@@ -187,7 +187,7 @@ async def content_ideas_articles(
     product: str = "all",
     view_mode: str = "grid",
     page: int = 1,
-    page_size: int = 12,
+    page_size: int = 6,
     sort_by: str = "newest",
 ):
     """Crawled Articles feed and explorer backed by database."""

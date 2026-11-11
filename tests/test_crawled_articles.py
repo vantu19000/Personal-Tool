@@ -152,8 +152,8 @@ async def test_filter_articles():
 
 def test_http_articles_pages(client):
     """Verify HTML UI rendering of Crawled Articles screen from database."""
-    # Check /articles
-    resp1 = client.get("/articles")
+    # Check /articles with page_size=20 so all articles are present
+    resp1 = client.get("/articles?page_size=20")
     assert resp1.status_code == 200
     assert "Kho Dữ Liệu Bài Viết Đã Thu Thập" in resp1.text
     assert "AI Agent" in resp1.text
@@ -229,3 +229,43 @@ def test_http_articles_api_crud(client):
     )
     assert res_del.status_code == 200
     assert res_del.json()["ok"] is True
+
+
+@pytest.mark.anyio
+async def test_articles_pagination_services():
+    """Verify services.list_articles correctly slices items and provides pagination metadata."""
+    await services.reset_demo_articles(db=None)
+
+    # Page 1 with size 6
+    p1 = await services.list_articles(db=None, page=1, page_size=6)
+    assert len(p1["items"]) == 6
+    assert p1["pagination"].page == 1
+    assert p1["pagination"].total_pages >= 2
+    assert p1["pagination"].has_next is True
+    assert p1["pagination"].has_prev is False
+    assert p1["pagination"].start_index == 1
+    assert p1["pagination"].end_index == 6
+
+    # Page 2 with size 6
+    p2 = await services.list_articles(db=None, page=2, page_size=6)
+    assert len(p2["items"]) >= 3
+    assert p2["pagination"].page == 2
+    assert p2["pagination"].has_prev is True
+    assert p2["pagination"].start_index == 7
+
+
+def test_articles_pagination_ui(client):
+    """Verify HTML rendered page includes pagination controls and options."""
+    resp = client.get("/articles")
+    assert resp.status_code == 200
+    # Pagination bar is rendered
+    assert "Hiển thị" in resp.text
+    assert "bản ghi" in resp.text
+    assert "Cỡ trang:" in resp.text
+    assert "pagination-page-size" in resp.text
+
+    # Page 2 query
+    resp_p2 = client.get("/articles?page=2&page_size=6")
+    assert resp_p2.status_code == 200
+    assert "Trước" in resp_p2.text
+

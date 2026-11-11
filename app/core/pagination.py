@@ -29,7 +29,7 @@ class PaginationMeta(BaseModel):
     prev_page: Optional[int] = None
     next_page: Optional[int] = None
     page_range: List[Union[int, str]] = Field(default_factory=list)
-    page_size_options: List[int] = Field(default_factory=lambda: [10, 25, 50, 100])
+    page_size_options: List[int] = Field(default_factory=lambda: [6, 12, 24, 48])
 
     @classmethod
     def create(
@@ -71,7 +71,11 @@ class PaginationMeta(BaseModel):
                 page_range.append("...")
             page_range.append(total_pages)
 
-        opts = page_size_options or [10, 25, 50, 100]
+        base_opts = page_size_options or [6, 12, 24, 48]
+        opts = list(base_opts)
+        if page_size not in opts:
+            opts.append(page_size)
+            opts.sort()
 
         return cls(
             page=page,
