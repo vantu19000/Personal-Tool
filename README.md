@@ -18,8 +18,8 @@ Tool đầu tiên: **SRT Translator** (hiện ở dạng skeleton/UI).
 | Tailwind CSS   | Styling (thông qua CDN Play)                   |
 | Alpine.js      | Interactions nhẹ (menu mobile, ...)            |
 | Uvicorn        | ASGI server chạy local                         |
-| PostgreSQL 16  | Cơ sở dữ liệu quan hệ (chạy qua Docker)       |
-| SQLAlchemy 2.0 | ORM & Database toolkit (Async / Sync)          |
+| MongoDB 7.0    | Cơ sở dữ liệu NoSQL / Document (chạy qua Docker) |
+| Motor / PyMongo | Driver Async MongoDB cho FastAPI               |
 
 > Ghi chú: dự án dùng FastAPI **bản mới**, nên `TemplateResponse` yêu cầu `request`
 > là **tham số đầu tiên** (không phải trong dict context).
@@ -29,7 +29,7 @@ Tool đầu tiên: **SRT Translator** (hiện ở dạng skeleton/UI).
 ## 2. Yêu cầu (Prerequisites)
 
 - **Python 3.12+** — kiểm tra: `python --version`
-- **Docker & Docker Compose** (dùng chạy PostgreSQL) — kiểm tra: `docker compose version`
+- **Docker & Docker Compose** (dùng chạy MongoDB) — kiểm tra: `docker compose version`
 - **Git** (tùy chọn)
 - Windows / macOS / Linux đều chạy được.
 
@@ -94,82 +94,68 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 ---
 
-## 6. Cơ sở dữ liệu PostgreSQL (Docker)
+## 6. Cơ sở dữ liệu MongoDB (Docker)
 
-Ứng dụng hỗ trợ sẵn PostgreSQL chạy trên **Docker** thông qua Docker Compose, kết hợp **SQLAlchemy 2.0** (cả chế độ Async và Sync).
+Ứng dụng hỗ trợ sẵn MongoDB chạy trên **Docker** thông qua Docker Compose, kết hợp **Motor** (Async MongoDB Driver chính thức cho FastAPI).
 
 ### 6.1. Thông tin tài khoản & kết nối (Connection Details)
 
 | Thông số / Trường | Giá trị mặc định |
 | :--- | :--- |
 | **Host** | `localhost` (hoặc `127.0.0.1`) |
-| **Port** | `5432` |
-| **Username** | `postgres` |
-| **Password** | `postgres` |
+| **Port** | `27017` |
+| **Username** | `root` |
+| **Password** | `rootpassword` |
 | **Database Name** | `personal_tool_db` |
-| **Container Name** | `personal_tool_postgres` |
-| **Async Connection URL** | `postgresql+asyncpg://postgres:postgres@localhost:5432/personal_tool_db` |
-| **Sync Connection URL** | `postgresql+psycopg2://postgres:postgres@localhost:5432/personal_tool_db` |
+| **Container Name** | `personal_tool_mongodb` |
+| **Async Connection URI** | `mongodb://root:rootpassword@localhost:27017/personal_tool_db?authSource=admin` |
 
 > Các giá trị trên có thể tùy biến dễ dàng qua file `.env` tại thư mục gốc của dự án. Mẫu tham khảo có sẵn tại file `.env.example`.
 
-### 6.2. Lệnh quản lý PostgreSQL qua Docker
+### 6.2. Lệnh quản lý MongoDB qua Docker
 
 Bật PowerShell / Terminal tại thư mục dự án:
 
-```powershell
-# Khởi động PostgreSQL ở chế độ background
+```bash
+# Khởi động MongoDB ở chế độ background
 docker compose up -d
 
-# Xem logs của container PostgreSQL
-docker compose logs -f postgres
+# Xem logs của container MongoDB
+docker compose logs -f mongodb
 
 # Kiểm tra trạng thái container
 docker compose ps
 
-# Dừng PostgreSQL (giữ nguyên dữ liệu)
+# Dừng MongoDB (giữ nguyên dữ liệu)
 docker compose down
 
 # Dừng và xóa toàn bộ dữ liệu database (nếu cần reset từ đầu)
 docker compose down -v
 ```
 
-> **Lưu ý:** Dữ liệu database được lưu bền vững (persist) trên Docker Volume `personal_tool_postgres_data`. Khi tắt container bằng `docker compose down`, dữ liệu không bị mất.
+> **Lưu ý:** Dữ liệu database được lưu bền vững (persist) trên Docker Volume `personal_tool_mongodb_data`. Khi tắt container bằng `docker compose down`, dữ liệu không bị mất.
 
-### 6.3. Cách sử dụng base kết nối trong code
+### 6.3. Cách sử dụng kết nối trong code
 
-Hệ thống cung cấp sẵn base kết nối tại `app/core/database.py`:
+Hệ thống cung cấp sẵn client và dependency kết nối tại `app/core/database.py`:
 
-1. **Sử dụng trong FastAPI Router (Async - Khuyến nghị):**
+1. **Sử dụng trong FastAPI Router (Async Dependency):**
    ```python
    from fastapi import APIRouter, Depends
-   from sqlalchemy.ext.asyncio import AsyncSession
-   from sqlalchemy import select
    from app.core.database import get_db
 
    router = APIRouter()
 
    @router.get("/items")
-   async def list_items(db: AsyncSession = Depends(get_db)):
-       # result = await db.execute(select(YourModel))
-       # return result.scalars().all()
-       return {"status": "ok"}
+   async def list_items(db = Depends(get_db)):
+       if db is not None:
+           collection = db["items"]
+           items = await collection.find({}, {"_id": 0}).to_list(100)
+           return {"status": "ok", "items": items}
+       return {"status": "offline", "items": []}
    ```
 
-2. **Định nghĩa ORM Model (kế thừa từ `Base`):**
-   ```python
-   from sqlalchemy.orm import Mapped, mapped_column
-   from sqlalchemy import String, Integer
-   from app.core.database import Base
-
-   class ExampleItem(Base):
-       __tablename__ = "example_items"
-
-       id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-       name: Mapped[str] = mapped_column(String(255), nullable=False)
-   ```
-
-3. **Kiểm tra kết nối database:**
+2. **Kiểm tra kết nối database:**
    - Qua hàm nội bộ: `from app.core.database import check_db_connection; result = await check_db_connection()`
    - Hoặc qua API endpoint: `GET http://127.0.0.1:8000/api/health/db`
 
