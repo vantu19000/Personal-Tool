@@ -398,3 +398,68 @@ def test_http_scan_api_and_scan_all(client):
     assert "total_scanned" in d_all
     assert "total_duplicates" in d_all
 
+
+def test_extract_articles_from_website_html():
+    """Verify HTML parser extracts article list from headlines, cards, and relative URLs."""
+    from app.sources.crawler import extract_articles_from_html
+
+    sample_html = """
+    <!DOCTYPE html>
+    <html>
+    <head><title>Chuyên trang Kinh Tế Đô Thị</title></head>
+    <body>
+        <div class="header-nav">
+            <a href="/">Trang chủ</a>
+            <a href="/category/kinh-doanh">Kinh doanh</a>
+            <a href="/lien-he">Liên hệ</a>
+            <a href="/login">Đăng nhập</a>
+        </div>
+        <main>
+            <!-- Article 1: Heading with link -->
+            <article class="item-news">
+                <h2 class="title-news">
+                    <a href="/tin-tuc/bat-dong-san-thu-do-tang-truong-2026.html" title="Thị trường bất động sản thủ đô bứt phá năm 2026">
+                        Thị trường bất động sản thủ đô bứt phá năm 2026
+                    </a>
+                </h2>
+                <p class="description">Dòng tiền đầu tư đang chảy mạnh vào các dự án căn hộ và đất nền vùng ven...</p>
+            </article>
+
+            <!-- Article 2: Card container -->
+            <div class="story-item">
+                <h3 class="story-title">
+                    <a href="/tin-tuc/cong-nghe-ai-agent-doanh-nghiep.html">
+                        Ứng dụng AI Agent tự động hóa vận hành doanh nghiệp vừa và nhỏ
+                    </a>
+                </h3>
+                <div class="lead">Nhiều công ty đã cắt giảm 50% chi phí chăm sóc khách hàng nhờ áp dụng Agent AI.</div>
+            </div>
+
+            <!-- Article 3: Relative path article -->
+            <div class="post-card">
+                <h4>
+                    <a href="chung-khoan-khoi-ngoai-mua-rong.html">
+                        Thị trường chứng khoán: Khối ngoại mua ròng kỷ lục phiên đầu tuần
+                    </a>
+                </h4>
+                <p class="summary">Giá trị mua ròng toàn sàn vượt mức 1.500 tỷ đồng tập trung nhóm ngân hàng...</p>
+            </div>
+        </main>
+    </body>
+    </html>
+    """
+    extracted = extract_articles_from_html(sample_html, base_url="https://kinhte.vn/tin-tuc", limit=10)
+
+    assert len(extracted) == 3
+    assert extracted[0]["title"] == "Thị trường bất động sản thủ đô bứt phá năm 2026"
+    assert extracted[0]["url"] == "https://kinhte.vn/tin-tuc/bat-dong-san-thu-do-tang-truong-2026.html"
+    assert "Dòng tiền đầu tư" in extracted[0]["summary"]
+    assert extracted[0]["category"] == "Bất động sản"
+
+    assert extracted[1]["title"] == "Ứng dụng AI Agent tự động hóa vận hành doanh nghiệp vừa và nhỏ"
+    assert extracted[1]["category"] == "Công nghệ"
+
+    assert extracted[2]["title"] == "Thị trường chứng khoán: Khối ngoại mua ròng kỷ lục phiên đầu tuần"
+    assert extracted[2]["category"] == "Tài chính & Đầu tư"
+
+

@@ -11,7 +11,9 @@ aiohttp
 # --- SRT / subtitle ---
 pysrt
 
-# --- Validation / settings ---
+# --- HTML parsing & crawling ---
+beautifulsoup4>=4.12.0
+
 pydantic
 pydantic-settings
 python-dotenv
