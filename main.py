@@ -19,6 +19,7 @@ from app.core.i18n import (
     set_current_locale,
 )
 from app.core.templates import templates
+from app.metadata import router as metadata_router
 from app.settings import router as settings_router
 from app.tools.content_ideas import router as content_ideas_router
 from app.tools.guid_generator import router as guid_generator_router
@@ -129,6 +130,9 @@ def create_app() -> FastAPI:
 
     # Global settings screen (homepage text + per-tool options, e.g. SRT prompt).
     app.include_router(settings_router, tags=["settings"])
+
+    # Metadata suite router (Countries, etc.)
+    app.include_router(metadata_router)
 
     # Database connection health check endpoint
     @app.get("/api/health/db", tags=["health"])

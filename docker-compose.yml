@@ -1,22 +1,22 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: personal_tool_postgres
+  mongodb:
+    image: mongo:7.0
+    container_name: personal_tool_mongodb
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-personal_tool_db}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-rootpassword}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-personal_tool_db}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "${MONGO_PORT:-27017}:27017"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mongodb_data:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-personal_tool_db}"]
-      interval: 5s
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
 volumes:
-  postgres_data:
-    name: personal_tool_postgres_data
+  mongodb_data:
+    name: personal_tool_mongodb_data

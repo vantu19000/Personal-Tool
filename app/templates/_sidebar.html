@@ -193,6 +193,52 @@
             </div>
         </div>
 
+        <!-- ===== Parent Menu: Metadata ===== -->
+        <div class="space-y-1">
+            <div class="px-3 pb-2 pt-1">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center justify-between">
+                    <span>HỆ THỐNG METADATA</span>
+                    <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300">DATA</span>
+                </p>
+            </div>
+
+            {% set in_metadata = (active_tool == 'metadata') %}
+            <div class="rounded-2xl transition-all border {% if in_metadata %}bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200/80 dark:border-emerald-900/50 shadow-xs{% else %}border-transparent hover:border-slate-200/60 dark:hover:border-slate-800/60{% endif %}">
+                <!-- Parent Row -->
+                <div class="flex items-center justify-between">
+                    <a href="/metadata/countries"
+                       class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition group flex-1 min-w-0
+                              {% if in_metadata %}text-emerald-700 dark:text-emerald-300{% else %}text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                        <div class="w-7 h-7 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-emerald-600/30 group-hover:scale-105 transition-transform">
+                            <i data-lucide="database" class="w-4 h-4 text-white"></i>
+                        </div>
+                        <span class="truncate">Metadata</span>
+                    </a>
+                    
+                    <button type="button"
+                            onclick="toggleMetadataMenu()"
+                            class="p-1.5 mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition cursor-pointer"
+                            title="Đóng / Mở menu con">
+                        <i data-lucide="chevron-down" id="chevron-metadata" class="w-4 h-4 transition-transform duration-200 {% if in_metadata %}rotate-180{% endif %}"></i>
+                    </button>
+                </div>
+
+                <!-- Children List (Sub-menus) -->
+                <div id="metadata-children" class="{% if not in_metadata %}hidden{% endif %} pl-3 pr-2 pb-2 pt-1 space-y-1 ml-5 border-l-2 border-emerald-200 dark:border-emerald-800/80">
+                    <!-- 1. Quản lý Quốc gia -->
+                    <a href="/metadata/countries"
+                       class="flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-medium transition
+                              {% if in_metadata and (active_sub_menu == 'countries' or not active_sub_menu) %}bg-emerald-600 text-white font-semibold shadow-xs{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                        <div class="flex items-center gap-2 truncate">
+                            <i data-lucide="globe" class="w-3.5 h-3.5 shrink-0"></i>
+                            <span>Quản lý Quốc gia</span>
+                        </div>
+                        <span class="text-[9px] font-bold px-1 rounded {% if in_metadata and (active_sub_menu == 'countries' or not active_sub_menu) %}bg-white/20 text-white{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400{% endif %}">Mongo</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- Expand Section -->
         <div>
             <div class="px-3 pb-2.5">
@@ -244,6 +290,19 @@
         function toggleContentIdeasMenu() {
             var list = document.getElementById('content-ideas-children');
             var chevron = document.getElementById('chevron-content-ideas');
+            if (!list) return;
+            if (list.classList.contains('hidden')) {
+                list.classList.remove('hidden');
+                if (chevron) chevron.classList.add('rotate-180');
+            } else {
+                list.classList.add('hidden');
+                if (chevron) chevron.classList.remove('rotate-180');
+            }
+        }
+
+        function toggleMetadataMenu() {
+            var list = document.getElementById('metadata-children');
+            var chevron = document.getElementById('chevron-metadata');
             if (!list) return;
             if (list.classList.contains('hidden')) {
                 list.classList.remove('hidden');

@@ -34,38 +34,26 @@ class Settings:
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_TIMEOUT_SECONDS: int = 600  # Mặc định 10 phút (600s)
 
-    # PostgreSQL Database config
-    DB_HOST: str = os.getenv("DB_HOST", "localhost")
-    DB_PORT: int = int(os.getenv("DB_PORT", "5432"))
-    DB_USER: str = os.getenv("DB_USER", "postgres")
-    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "postgres")
-    DB_NAME: str = os.getenv("DB_NAME", "personal_tool_db")
+    # MongoDB Database config (Docker / Local)
+    MONGO_HOST: str = os.getenv("MONGO_HOST", "localhost")
+    MONGO_PORT: int = int(os.getenv("MONGO_PORT", "27017"))
+    MONGO_USER: str = os.getenv("MONGO_USER", "root")
+    MONGO_PASSWORD: str = os.getenv("MONGO_PASSWORD", "rootpassword")
+    MONGO_DB_NAME: str = os.getenv("MONGO_DB_NAME", "personal_tool_db")
+    MONGO_AUTH_SOURCE: str = os.getenv("MONGO_AUTH_SOURCE", "admin")
 
     @property
-    def async_database_url(self) -> str:
-        override = os.getenv("DATABASE_URL")
+    def mongodb_uri(self) -> str:
+        override = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI")
         if override:
-            if override.startswith("postgresql://"):
-                return override.replace("postgresql://", "postgresql+asyncpg://", 1)
             return override
-        return (
-            f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@"
-            f"{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-        )
-
-    @property
-    def sync_database_url(self) -> str:
-        override = os.getenv("DATABASE_URL")
-        if override:
-            if override.startswith("postgresql+asyncpg://"):
-                return override.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
-            elif override.startswith("postgresql://"):
-                return override.replace("postgresql://", "postgresql+psycopg2://", 1)
-            return override
-        return (
-            f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASSWORD}@"
-            f"{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-        )
+        if self.MONGO_USER and self.MONGO_PASSWORD:
+            return (
+                f"mongodb://{self.MONGO_USER}:{self.MONGO_PASSWORD}@"
+                f"{self.MONGO_HOST}:{self.MONGO_PORT}/"
+                f"{self.MONGO_DB_NAME}?authSource={self.MONGO_AUTH_SOURCE}"
+            )
+        return f"mongodb://{self.MONGO_HOST}:{self.MONGO_PORT}/{self.MONGO_DB_NAME}"
 
 
 settings = Settings()
