@@ -18,6 +18,13 @@ from app.metadata import services
 router = APIRouter(prefix="/metadata", tags=["metadata"])
 
 
+@router.get("", include_in_schema=False)
+@router.get("/", include_in_schema=False)
+async def metadata_root_redirect():
+    """Redirect /metadata root to countries screen."""
+    return RedirectResponse(url="/metadata/countries", status_code=307)
+
+
 @router.get("/countries", name="metadata-countries")
 async def countries_page(
     request: Request,
@@ -165,4 +172,182 @@ async def api_import_iso_countries(
     if "application/json" in accept or "fetch" in request.headers.get("sec-fetch-mode", ""):
         return JSONResponse(result)
     return RedirectResponse(url="/metadata/countries", status_code=303)
+
+
+# ============================================================================
+# Province / City Endpoints
+# ============================================================================
+
+@router.get("/provinces", name="metadata-provinces")
+async def provinces_page(
+    request: Request,
+    search: str = "",
+    status: str = "all",
+    region: str = "all",
+    type: str = "all",
+    page: int = 1,
+    page_size: int = 25,
+    db: Any = Depends(get_db),
+):
+    """Render the Province / City management screen with pagination and filters."""
+    data = await services.list_provinces(
+        db,
+        search=search,
+        status_filter=status,
+        region_filter=region,
+        type_filter=type,
+        page=page,
+        page_size=page_size,
+    )
+    return templates.TemplateResponse(
+        request,
+        "metadata/provinces.html",
+        {
+            "active_tool": "metadata",
+            "active_sub_menu": "provinces",
+            "provinces": data["items"],
+            "total_count": data["total"],
+            "active_count": data["active_count"],
+            "central_cities_count": data.get("central_cities_count", 0),
+            "db_connected": data["db_connected"],
+            "pagination": data.get("pagination"),
+            "search": search,
+            "status_filter": status,
+            "region_filter": region,
+            "type_filter": type,
+        },
+    )
+
+
+@router.get("/api/provinces", name="api-list-provinces")
+async def api_list_provinces(
+    search: str = "",
+    status: str = "all",
+    region: str = "all",
+    type: str = "all",
+    page: int = 1,
+    page_size: int = 25,
+    db: Any = Depends(get_db),
+):
+    """Return JSON list of provinces with pagination."""
+    data = await services.list_provinces(
+        db,
+        search=search,
+        status_filter=status,
+        region_filter=region,
+        type_filter=type,
+        page=page,
+        page_size=page_size,
+    )
+    if "pagination" in data and hasattr(data["pagination"], "to_dict"):
+        data["pagination"] = data["pagination"].to_dict()
+    return JSONResponse(data)
+
+
+@router.post("/api/provinces", name="api-create-province")
+async def api_create_province(
+    request: Request,
+    name: str = Form(...),
+    code: str = Form(...),
+    type: str = Form("Tỉnh"),
+    region: Optional[str] = Form(None),
+    country_code: str = Form("VN"),
+    phone_code: Optional[str] = Form(None),
+    postal_code: Optional[str] = Form(None),
+    status: str = Form("active"),
+    db: Any = Depends(get_db),
+):
+    """Create a new province / city record in MongoDB."""
+    try:
+        province = await services.create_province(
+            db,
+            {
+                "name": name,
+                "code": code,
+                "type": type,
+                "region": region,
+                "country_code": country_code,
+                "phone_code": phone_code,
+                "postal_code": postal_code,
+                "status": status,
+            },
+        )
+        accept = request.headers.get("accept", "")
+        if "application/json" in accept or "fetch" in request.headers.get("sec-fetch-mode", ""):
+            return JSONResponse({"ok": True, "province": province})
+        return RedirectResponse(url="/metadata/provinces", status_code=303)
+    except Exception as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+
+
+@router.post("/api/provinces/{province_id}/edit", name="api-update-province")
+async def api_update_province(
+    province_id: int,
+    request: Request,
+    name: Optional[str] = Form(None),
+    code: Optional[str] = Form(None),
+    type: Optional[str] = Form(None),
+    region: Optional[str] = Form(None),
+    country_code: Optional[str] = Form(None),
+    phone_code: Optional[str] = Form(None),
+    postal_code: Optional[str] = Form(None),
+    status: Optional[str] = Form(None),
+    db: Any = Depends(get_db),
+):
+    """Update an existing province / city record in MongoDB."""
+    update_data = {}
+    if name is not None:
+        update_data["name"] = name
+    if code is not None:
+        update_data["code"] = code
+    if type is not None:
+        update_data["type"] = type
+    if region is not None:
+        update_data["region"] = region
+    if country_code is not None:
+        update_data["country_code"] = country_code
+    if phone_code is not None:
+        update_data["phone_code"] = phone_code
+    if postal_code is not None:
+        update_data["postal_code"] = postal_code
+    if status is not None:
+        update_data["status"] = status
+
+    province = await services.update_province(db, province_id, update_data)
+    if not province:
+        return JSONResponse({"ok": False, "error": "Province not found"}, status_code=404)
+
+    accept = request.headers.get("accept", "")
+    if "application/json" in accept or "fetch" in request.headers.get("sec-fetch-mode", ""):
+        return JSONResponse({"ok": True, "province": province})
+    return RedirectResponse(url="/metadata/provinces", status_code=303)
+
+
+@router.post("/api/provinces/{province_id}/delete", name="api-delete-province")
+async def api_delete_province(
+    province_id: int,
+    request: Request,
+    db: Any = Depends(get_db),
+):
+    """Delete a province record from MongoDB."""
+    success = await services.delete_province(db, province_id)
+    accept = request.headers.get("accept", "")
+    if "application/json" in accept or "fetch" in request.headers.get("sec-fetch-mode", ""):
+        return JSONResponse({"ok": success})
+    return RedirectResponse(url="/metadata/provinces", status_code=303)
+
+
+@router.post("/api/provinces/import-vn", name="api-import-vn-provinces")
+async def api_import_vn_provinces(
+    request: Request,
+    overwrite: bool = Form(False),
+    db: Any = Depends(get_db),
+):
+    """Import / Migrate 63 Vietnam provinces/cities into MongoDB."""
+    result = await services.migrate_vn_provinces(db=db, overwrite=overwrite)
+    accept = request.headers.get("accept", "")
+    if "application/json" in accept or "fetch" in request.headers.get("sec-fetch-mode", ""):
+        return JSONResponse(result)
+    return RedirectResponse(url="/metadata/provinces", status_code=303)
+
 

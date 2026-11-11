@@ -148,6 +148,13 @@ def create_app() -> FastAPI:
         target = f"/tools/content-ideas/{rest_of_path}".rstrip("/") if rest_of_path else "/tools/content-ideas"
         return RedirectResponse(url=target, status_code=307)
 
+    # Shortcut redirect to Metadata suite
+    @app.get("/tools/metadata", include_in_schema=False)
+    @app.get("/tools/metadata/{rest_of_path:path}", include_in_schema=False)
+    async def redirect_tools_metadata(rest_of_path: str = ""):
+        target = f"/metadata/{rest_of_path}".rstrip("/") if rest_of_path else "/metadata/countries"
+        return RedirectResponse(url=target, status_code=307)
+
     # Dashboard (home)
     @app.get("/", name="dashboard")
     async def dashboard(request: Request):

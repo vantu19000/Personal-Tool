@@ -37,3 +37,31 @@ class CountryModel(BaseDocumentModel):
     flag_emoji: Optional[str] = "🌐"
     currency_code: Optional[str] = None
     status: str = "active"
+
+
+class ProvinceModel(BaseDocumentModel):
+    """Province / City metadata model stored in MongoDB collection 'metadata_provinces'.
+
+    Fields:
+        id: Integer ID
+        name: Name of province / municipality (e.g. 'Hà Nội', 'TP. Hồ Chí Minh')
+        code: Administrative or short code (e.g. '01', '79', 'HN', 'HCM')
+        country_code: Country ISO code (default 'VN')
+        type: Administrative unit type (e.g. 'Thành phố Trung ương', 'Tỉnh')
+        region: Geographic region (e.g. 'Miền Bắc', 'Miền Trung', 'Miền Nam')
+        phone_code: Landline area phone code (e.g. '024', '028', '0236')
+        postal_code: Postal zip code (e.g. '100000', '700000')
+        status: 'active' or 'inactive'
+        created_at: Formatted creation timestamp
+        updated_at: Formatted last update timestamp
+    """
+    id: int
+    name: str
+    code: str
+    country_code: str = "VN"
+    type: str = "Tỉnh"
+    region: Optional[str] = None
+    phone_code: Optional[str] = None
+    postal_code: Optional[str] = None
+    status: str = "active"
+

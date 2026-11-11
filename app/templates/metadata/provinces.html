@@ -1,0 +1,604 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý Tỉnh / Thành phố · Metadata · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}Quản lý Tỉnh / Thành phố{% endblock %}
+
+{% block content %}
+<div class="space-y-6 w-full pb-10">
+
+    <!-- ===== Header Section ===== -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0c1a1a] via-[#102422] to-[#0c1a1a] text-white p-6 sm:p-7 border border-emerald-950/80 shadow-xl">
+        <div class="absolute -top-24 -left-12 w-80 h-80 bg-teal-600/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 right-1/4 w-80 h-80 bg-emerald-600/15 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div class="space-y-2">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <i data-lucide="database" class="w-3.5 h-3.5"></i>
+                        <span>Metadata · Hệ thống Danh mục</span>
+                    </span>
+
+                    {% if db_connected %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>MongoDB Connected</span>
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span>Chế độ Demo Cục bộ</span>
+                    </span>
+                    {% endif %}
+                </div>
+
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                    <span>Quản lý Tỉnh / Thành phố (Provinces)</span>
+                </h1>
+
+                <p class="text-xs sm:text-sm text-slate-300/90 max-w-2xl leading-relaxed">
+                    Bảng danh mục hành chính 63 Tỉnh và Thành phố trực thuộc Trung ương của Việt Nam, quản lý mã hành chính, phân loại vùng miền, mã bưu chính và mã vùng điện thoại lưu trữ trong MongoDB.
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="shrink-0 flex items-center gap-2.5 flex-wrap">
+                <button type="button"
+                        id="btn-import-vn"
+                        onclick="triggerImportVn()"
+                        class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold border border-white/20 backdrop-blur-sm transition active:scale-95 cursor-pointer">
+                    <i data-lucide="download-cloud" class="w-4 h-4 text-emerald-300"></i>
+                    <span>Nạp 63 Tỉnh/Thành VN</span>
+                </button>
+
+                <button type="button"
+                        onclick="openProvinceModal()"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-emerald-600/30 transition active:scale-95 cursor-pointer">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Thêm Tỉnh / Thành mới</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== KPI Cards ===== -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Tổng số tỉnh thành -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tổng số tỉnh/thành</p>
+                <p class="text-2xl font-extrabold text-slate-900 dark:text-white font-mono mt-1" id="stat-total">{{ total_count }}</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <i data-lucide="map-pin" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Đang hoạt động -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Đang hoạt động</p>
+                <p class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono mt-1" id="stat-active">{{ active_count }}</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <i data-lucide="check-circle" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- TP trực thuộc TW -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">TP Trực thuộc TW</p>
+                <p class="text-2xl font-extrabold text-purple-600 dark:text-purple-400 font-mono mt-1">{{ central_cities_count }}</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                <i data-lucide="building-2" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Lưu trữ CSDL -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Lưu trữ dữ liệu</p>
+                <p class="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 font-mono">
+                    {% if db_connected %}MongoDB: metadata_provinces{% else %}Bộ nhớ Cục bộ (In-Memory){% endif %}
+                </p>
+                <p class="text-[10px] text-slate-400 mt-0.5">Tự động đồng bộ hóa</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+                <i data-lucide="server" class="w-5 h-5"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Search & Filter Toolbar ===== -->
+    <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs">
+        <form method="get" action="/metadata/provinces" class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div class="relative flex-1 max-w-md">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </div>
+                <input type="text"
+                       name="search"
+                       value="{{ search }}"
+                       placeholder="Tìm theo tên tỉnh/thành, mã (01, 79), mã vùng..."
+                       class="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+            </div>
+
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <!-- Vùng miền -->
+                <select name="region"
+                        onchange="this.form.submit()"
+                        class="px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none">
+                    <option value="all" {% if region_filter == 'all' %}selected{% endif %}>Tất cả Vùng miền</option>
+                    <option value="Miền Bắc" {% if region_filter == 'Miền Bắc' %}selected{% endif %}>Miền Bắc</option>
+                    <option value="Miền Trung" {% if region_filter == 'Miền Trung' %}selected{% endif %}>Miền Trung</option>
+                    <option value="Miền Nam" {% if region_filter == 'Miền Nam' %}selected{% endif %}>Miền Nam</option>
+                </select>
+
+                <!-- Loại hình -->
+                <select name="type"
+                        onchange="this.form.submit()"
+                        class="px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none">
+                    <option value="all" {% if type_filter == 'all' %}selected{% endif %}>Tất cả Loại hình</option>
+                    <option value="Thành phố Trung ương" {% if type_filter == 'Thành phố Trung ương' %}selected{% endif %}>TP Trung ương</option>
+                    <option value="Tỉnh" {% if type_filter == 'Tỉnh' %}selected{% endif %}>Tỉnh</option>
+                </select>
+
+                <!-- Trạng thái -->
+                <select name="status"
+                        onchange="this.form.submit()"
+                        class="px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>Tất cả trạng thái</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Đang hoạt động</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Tạm dừng</option>
+                </select>
+
+                <button type="submit" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 transition">
+                    Lọc
+                </button>
+
+                {% if search or status_filter != 'all' or region_filter != 'all' or type_filter != 'all' %}
+                <a href="/metadata/provinces" class="px-3 py-2 rounded-xl text-xs text-rose-600 dark:text-rose-400 hover:underline">
+                    Đặt lại
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- ===== Provinces Table ===== -->
+    <div class="rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 overflow-hidden shadow-xs">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
+                        <th class="p-3.5 pl-6 w-16">ID</th>
+                        <th class="p-3.5">Tỉnh / Thành phố</th>
+                        <th class="p-3.5">Mã hành chính</th>
+                        <th class="p-3.5">Loại hình</th>
+                        <th class="p-3.5">Vùng miền</th>
+                        <th class="p-3.5">Mã vùng ĐT</th>
+                        <th class="p-3.5">Mã Bưu chính</th>
+                        <th class="p-3.5">Trạng thái</th>
+                        <th class="p-3.5 pr-6 text-right w-28">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80 text-slate-700 dark:text-slate-300">
+                    {% if provinces %}
+                    {% for item in provinces %}
+                    <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition group" id="row-{{ item.id }}">
+                        <!-- ID -->
+                        <td class="p-3.5 pl-6 font-mono text-slate-400 font-semibold text-xs">
+                            #{{ item.id }}
+                        </td>
+
+                        <!-- Name & Icon -->
+                        <td class="p-3.5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 {% if 'Trung ương' in item.type %}bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300{% endif %}">
+                                    {% if 'Trung ương' in item.type %}
+                                    <i data-lucide="building-2" class="w-4 h-4"></i>
+                                    {% else %}
+                                    <i data-lucide="map-pin" class="w-4 h-4"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="font-bold text-slate-900 dark:text-white text-sm truncate">{{ item.name }}</p>
+                                    <p class="text-[11px] text-slate-400">Quốc gia: {{ item.country_code or 'VN' }} 🇻🇳</p>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Administrative Code -->
+                        <td class="p-3.5">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700">
+                                {{ item.code }}
+                            </span>
+                        </td>
+
+                        <!-- Type -->
+                        <td class="p-3.5">
+                            {% if 'Trung ương' in item.type %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50">
+                                <i data-lucide="shield-check" class="w-3 h-3"></i>
+                                <span>TP Trung ương</span>
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                <span>Tỉnh</span>
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Region -->
+                        <td class="p-3.5">
+                            {% if item.region == 'Miền Bắc' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
+                                {{ item.region }}
+                            </span>
+                            {% elif item.region == 'Miền Trung' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                                {{ item.region }}
+                            </span>
+                            {% elif item.region == 'Miền Nam' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                {{ item.region }}
+                            </span>
+                            {% else %}
+                            <span class="text-xs text-slate-400">{{ item.region or '—' }}</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Phone Code -->
+                        <td class="p-3.5 font-mono text-xs">
+                            {% if item.phone_code %}
+                            <span class="inline-flex items-center gap-1 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded">
+                                <i data-lucide="phone" class="w-3 h-3 text-slate-400"></i>
+                                <span>{{ item.phone_code }}</span>
+                            </span>
+                            {% else %}
+                            <span class="text-slate-400">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Postal Code -->
+                        <td class="p-3.5 font-mono text-xs text-slate-500 dark:text-slate-400">
+                            {{ item.postal_code or '—' }}
+                        </td>
+
+                        <!-- Status -->
+                        <td class="p-3.5">
+                            {% if item.status == 'active' %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                <span>Hoạt động</span>
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                <span>Tạm dừng</span>
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="p-3.5 pr-6 text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <button type="button"
+                                        title="Chỉnh sửa"
+                                        data-id="{{ item.id }}"
+                                        data-name="{{ item.name }}"
+                                        data-code="{{ item.code }}"
+                                        data-type="{{ item.type or 'Tỉnh' }}"
+                                        data-region="{{ item.region or '' }}"
+                                        data-country="{{ item.country_code or 'VN' }}"
+                                        data-phone="{{ item.phone_code or '' }}"
+                                        data-postal="{{ item.postal_code or '' }}"
+                                        data-status="{{ item.status or 'active' }}"
+                                        onclick="openEditProvinceFromButton(this)"
+                                        class="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                </button>
+                                <button type="button"
+                                        title="Xóa"
+                                        data-id="{{ item.id }}"
+                                        data-name="{{ item.name }}"
+                                        onclick="deleteProvinceFromButton(this)"
+                                        class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="p-10 text-center text-slate-400">
+                            <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+                            <p class="text-sm font-medium">Không tìm thấy tỉnh / thành phố nào phù hợp.</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Reusable Pagination Component -->
+        {% include "_pagination.html" %}
+    </div>
+
+</div>
+
+<!-- ===== Modal Thêm / Chỉnh Sửa Tỉnh / Thành Phố ===== -->
+<div id="province-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <!-- Modal Header -->
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <h3 id="province-modal-title" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <i data-lucide="map-pin" class="w-5 h-5 text-emerald-500"></i>
+                <span>Thêm Tỉnh / Thành mới</span>
+            </h3>
+            <button type="button" onclick="closeProvinceModal()" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Modal Form -->
+        <form id="province-form" onsubmit="handleProvinceFormSubmit(event)" class="p-6 space-y-4">
+            <input type="hidden" id="form-province-id" name="id" value="" />
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Tên tỉnh/thành -->
+                <div class="sm:col-span-2 space-y-1">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Tên Tỉnh / Thành phố <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" id="form-province-name" name="name" required placeholder="Ví dụ: TP. Hà Nội, TP. Hồ Chí Minh, Bình Dương..."
+                           class="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                </div>
+
+                <!-- Mã hành chính -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Mã hành chính <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" id="form-province-code" name="code" required maxlength="10" placeholder="01, 79, HN, HCM..."
+                           class="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm uppercase font-mono border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                </div>
+
+                <!-- Loại hình -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Loại hình hành chính
+                    </label>
+                    <select id="form-province-type" name="type" class="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none">
+                        <option value="Tỉnh">Tỉnh</option>
+                        <option value="Thành phố Trung ương">Thành phố Trung ương</option>
+                        <option value="Thành phố">Thành phố</option>
+                    </select>
+                </div>
+
+                <!-- Vùng miền -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Vùng miền
+                    </label>
+                    <select id="form-province-region" name="region" class="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none">
+                        <option value="">-- Chưa phân loại --</option>
+                        <option value="Miền Bắc">Miền Bắc</option>
+                        <option value="Miền Trung">Miền Trung</option>
+                        <option value="Miền Nam">Miền Nam</option>
+                    </select>
+                </div>
+
+                <!-- Mã Quốc gia -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Mã Quốc gia
+                    </label>
+                    <input type="text" id="form-province-country" name="country_code" value="VN" maxlength="5" placeholder="VN"
+                           class="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm uppercase font-mono border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none" />
+                </div>
+
+                <!-- Mã vùng điện thoại cố định -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Mã vùng điện thoại
+                    </label>
+                    <input type="text" id="form-province-phone" name="phone_code" placeholder="024, 028, 0236..."
+                           class="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm font-mono border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none" />
+                </div>
+
+                <!-- Mã bưu chính -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Mã bưu chính (Zip code)
+                    </label>
+                    <input type="text" id="form-province-postal" name="postal_code" placeholder="100000, 700000..."
+                           class="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm font-mono border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none" />
+                </div>
+
+                <!-- Trạng thái -->
+                <div class="sm:col-span-2 space-y-1">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Trạng thái hoạt động
+                    </label>
+                    <select id="form-province-status" name="status" class="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+                        <option value="active">Hoạt động (Active)</option>
+                        <option value="inactive">Tạm dừng (Inactive)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
+                <button type="button" onclick="closeProvinceModal()" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+                    Hủy bỏ
+                </button>
+                <button type="submit" id="btn-submit-province" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition active:scale-95">
+                    Lưu thông tin
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openProvinceModal() {
+        document.getElementById('form-province-id').value = '';
+        document.getElementById('form-province-name').value = '';
+        document.getElementById('form-province-code').value = '';
+        document.getElementById('form-province-type').value = 'Tỉnh';
+        document.getElementById('form-province-region').value = '';
+        document.getElementById('form-province-country').value = 'VN';
+        document.getElementById('form-province-phone').value = '';
+        document.getElementById('form-province-postal').value = '';
+        document.getElementById('form-province-status').value = 'active';
+        document.getElementById('province-modal-title').innerHTML = '<i data-lucide="map-pin" class="w-5 h-5 text-emerald-500"></i><span>Thêm Tỉnh / Thành mới</span>';
+        if (window.lucide) window.lucide.createIcons();
+        document.getElementById('province-modal').classList.remove('hidden');
+    }
+
+    function openEditProvinceFromButton(btn) {
+        if (!btn) return;
+        const item = {
+            id: btn.getAttribute('data-id'),
+            name: btn.getAttribute('data-name'),
+            code: btn.getAttribute('data-code'),
+            type: btn.getAttribute('data-type'),
+            region: btn.getAttribute('data-region'),
+            country_code: btn.getAttribute('data-country'),
+            phone_code: btn.getAttribute('data-phone'),
+            postal_code: btn.getAttribute('data-postal'),
+            status: btn.getAttribute('data-status'),
+        };
+        editProvince(item);
+    }
+
+    function editProvince(item) {
+        document.getElementById('form-province-id').value = item.id;
+        document.getElementById('form-province-name').value = item.name;
+        document.getElementById('form-province-code').value = item.code;
+        document.getElementById('form-province-type').value = item.type || 'Tỉnh';
+        document.getElementById('form-province-region').value = item.region || '';
+        document.getElementById('form-province-country').value = item.country_code || 'VN';
+        document.getElementById('form-province-phone').value = item.phone_code || '';
+        document.getElementById('form-province-postal').value = item.postal_code || '';
+        document.getElementById('form-province-status').value = item.status || 'active';
+        document.getElementById('province-modal-title').innerHTML = '<i data-lucide="edit-3" class="w-5 h-5 text-emerald-500"></i><span>Chỉnh sửa Tỉnh / Thành phố</span>';
+        if (window.lucide) window.lucide.createIcons();
+        document.getElementById('province-modal').classList.remove('hidden');
+    }
+
+    function closeProvinceModal() {
+        document.getElementById('province-modal').classList.add('hidden');
+    }
+
+    function deleteProvinceFromButton(btn) {
+        if (!btn) return;
+        const id = btn.getAttribute('data-id');
+        const name = btn.getAttribute('data-name');
+        deleteProvince(id, name);
+    }
+
+    async function handleProvinceFormSubmit(e) {
+        e.preventDefault();
+        const id = document.getElementById('form-province-id').value;
+        const form = document.getElementById('province-form');
+        const formData = new FormData(form);
+
+        const url = id ? `/metadata/api/provinces/${id}/edit` : `/metadata/api/provinces`;
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.ok) {
+                closeProvinceModal();
+                window.location.reload();
+            } else {
+                alert('Lỗi: ' + (data.error || 'Không thể lưu tỉnh / thành phố'));
+            }
+        } catch (err) {
+            alert('Lỗi kết nối khi gửi dữ liệu!');
+        }
+    }
+
+    async function deleteProvince(id, name) {
+        const ok = await window.confirmModal({
+            title: 'Xóa tỉnh / thành phố?',
+            message: `Bạn có chắc chắn muốn xóa <strong class="text-slate-900 dark:text-white font-bold font-mono">"${name}"</strong> khỏi cơ sở dữ liệu MongoDB?<br><span class="text-xs text-rose-500 font-medium">⚠️ Thao tác này sẽ xóa vĩnh viễn và không thể hoàn tác.</span>`,
+            confirmText: 'Xác nhận xóa',
+            cancelText: 'Hủy bỏ',
+            type: 'danger'
+        });
+        if (!ok) return;
+
+        try {
+            const res = await fetch(`/metadata/api/provinces/${id}/delete`, {
+                method: 'POST',
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.ok) {
+                const row = document.getElementById(`row-${id}`);
+                if (row) {
+                    row.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                    setTimeout(() => {
+                        row.remove();
+                        window.location.reload();
+                    }, 300);
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                alert('Không thể xóa tỉnh thành này: ' + (data.error || 'Lỗi không xác định'));
+            }
+        } catch (err) {
+            alert('Lỗi kết nối khi gửi yêu cầu xóa!');
+        }
+    }
+
+    async function triggerImportVn() {
+        const ok = await window.confirmModal({
+            title: 'Nạp danh mục 63 Tỉnh / Thành phố Việt Nam',
+            message: 'Hệ thống sẽ nạp toàn bộ danh mục 63 tỉnh và thành phố trực thuộc Trung ương của Việt Nam vào MongoDB.<br><span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Dữ liệu hiện có của bạn sẽ được bảo toàn nguyên vẹn.</span>',
+            confirmText: 'Bắt đầu nạp',
+            cancelText: 'Hủy bỏ',
+            type: 'info'
+        });
+        if (!ok) return;
+
+        const btn = document.getElementById('btn-import-vn');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="inline-block animate-spin mr-1.5">⏳</span> Đang nạp...';
+
+        try {
+            const formData = new FormData();
+            formData.append('overwrite', 'false');
+            const res = await fetch('/metadata/api/provinces/import-vn', {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.ok) {
+                window.location.reload();
+            } else {
+                alert('Không thể nạp dữ liệu: ' + (data.error || 'Lỗi không xác định'));
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        } catch (err) {
+            alert('Lỗi kết nối: ' + err.message);
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+</script>
+{% endblock %}

@@ -328,7 +328,7 @@ def load_iso_countries_json() -> List[Dict[str, Any]]:
     from pathlib import Path
     data_path = Path(__file__).resolve().parent / "data" / "iso_countries.json"
     if data_path.exists():
-        with open(data_path, "r", encoding="utf-8") as f:
+        with open(data_path, "r", encoding="utf-8-sig") as f:
             return json.load(f)
     return []
 
@@ -400,4 +400,260 @@ async def migrate_iso_countries(
             return {"ok": False, "error": str(exc)}
 
     return {"ok": False, "error": "Database not connected"}
+
+
+# ============================================================================
+# Province / City (Tỉnh / Thành phố) Metadata Management
+# ============================================================================
+
+PROVINCE_COLLECTION_NAME = "metadata_provinces"
+province_repo = BaseMongoRepository(collection_name=PROVINCE_COLLECTION_NAME, id_field="id")
+
+
+def load_vn_provinces_json() -> List[Dict[str, Any]]:
+    """Load the pre-built 63 Vietnam provinces/cities dataset from data/vn_provinces.json."""
+    import json
+    from pathlib import Path
+    data_path = Path(__file__).resolve().parent / "data" / "vn_provinces.json"
+    if data_path.exists():
+        with open(data_path, "r", encoding="utf-8-sig") as f:
+            return json.load(f)
+    return []
+
+
+async def ensure_province_collection_and_seed(db: Any = None) -> bool:
+    """Ensure the province collection exists and seed with Vietnam provinces if empty."""
+    index_specs = [
+        ("id", True),
+        ("code", False),
+        "name",
+        "region",
+        "type",
+    ]
+    vn_list = load_vn_provinces_json()
+    return await province_repo.seed_if_empty(vn_list, index_specs=index_specs, db=db)
+
+
+async def list_provinces(
+    db: Any = None,
+    search: str = "",
+    status_filter: str = "all",
+    region_filter: str = "all",
+    type_filter: str = "all",
+    page: int = 1,
+    page_size: int = 25,
+) -> Dict[str, Any]:
+    """Retrieve provinces from MongoDB with optional search, filters, and pagination."""
+    await ensure_province_collection_and_seed(db=db)
+
+    query: Dict[str, Any] = {}
+    if search:
+        regex_pattern = {"$regex": search.strip(), "$options": "i"}
+        query["$or"] = [
+            {"name": regex_pattern},
+            {"code": regex_pattern},
+            {"phone_code": regex_pattern},
+            {"postal_code": regex_pattern},
+            {"region": regex_pattern},
+        ]
+
+    if status_filter and status_filter != "all":
+        query["status"] = status_filter
+
+    if region_filter and region_filter != "all":
+        query["region"] = region_filter
+
+    if type_filter and type_filter != "all":
+        query["type"] = type_filter
+
+    items, pagination, db_connected = await province_repo.find_paginated(
+        query=query,
+        sort_field="id",
+        sort_dir=1,
+        page=page,
+        page_size=page_size,
+        db=db,
+    )
+
+    # Compute quick stats
+    active_count = 0
+    total_count = pagination.total_items
+    central_cities_count = 0
+
+    if db_connected:
+        col = province_repo.get_collection(db)
+        if col is not None:
+            try:
+                active_count = await col.count_documents({"status": "active"})
+                central_cities_count = await col.count_documents({"type": {"$regex": "Trung ương", "$options": "i"}})
+            except Exception:
+                active_count = sum(1 for c in items if c.get("status") == "active")
+                central_cities_count = sum(1 for c in items if "Trung ương" in c.get("type", ""))
+    else:
+        active_count = sum(1 for c in items if c.get("status") == "active")
+        central_cities_count = sum(1 for c in items if "Trung ương" in c.get("type", ""))
+
+    return {
+        "items": items,
+        "total": total_count,
+        "active_count": active_count,
+        "central_cities_count": central_cities_count,
+        "db_connected": db_connected,
+        "pagination": pagination,
+    }
+
+
+async def create_province(db: Any, data: Dict[str, Any]) -> Dict[str, Any]:
+    """Create a new province / city record in MongoDB."""
+    name = str(data.get("name", "")).strip()
+    code = str(data.get("code", "")).strip()
+
+    if not name or not code:
+        raise ValueError("Tên tỉnh/thành phố và mã hành chính là bắt buộc.")
+
+    doc = {
+        "name": name,
+        "code": code,
+        "type": str(data.get("type", "Tỉnh")).strip() or "Tỉnh",
+        "region": str(data.get("region", "")).strip() or None,
+        "country_code": str(data.get("country_code", "VN")).strip().upper() or "VN",
+        "phone_code": str(data.get("phone_code", "")).strip() or None,
+        "postal_code": str(data.get("postal_code", "")).strip() or None,
+        "status": str(data.get("status", "active")),
+    }
+
+    return await province_repo.insert(doc, auto_id=True, db=db)
+
+
+async def update_province(db: Any, province_id: int, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Update an existing province / city in MongoDB."""
+    update_fields: Dict[str, Any] = {}
+
+    if "name" in data and data["name"]:
+        update_fields["name"] = str(data["name"]).strip()
+    if "code" in data and data["code"]:
+        update_fields["code"] = str(data["code"]).strip()
+    if "type" in data and data["type"]:
+        update_fields["type"] = str(data["type"]).strip()
+    if "region" in data:
+        update_fields["region"] = str(data["region"]).strip() or None
+    if "country_code" in data:
+        update_fields["country_code"] = str(data["country_code"]).strip().upper() or "VN"
+    if "phone_code" in data:
+        update_fields["phone_code"] = str(data["phone_code"]).strip() or None
+    if "postal_code" in data:
+        update_fields["postal_code"] = str(data["postal_code"]).strip() or None
+    if "status" in data:
+        update_fields["status"] = str(data["status"])
+
+    return await province_repo.update(province_id, update_fields, db=db)
+
+
+async def delete_province(db: Any, province_id: int) -> bool:
+    """Delete a province / city record from MongoDB."""
+    return await province_repo.delete(province_id, db=db)
+
+
+async def migrate_vn_provinces(
+    db: Any = None,
+    overwrite: bool = False,
+) -> Dict[str, Any]:
+    """Import / Migrate 63 Vietnam provinces/cities into MongoDB with smart upsert."""
+    vn_list = load_vn_provinces_json()
+    if not vn_list:
+        return {"ok": False, "error": "Vietnam provinces dataset file not found."}
+
+    await ensure_province_collection_and_seed(db=db)
+    col = province_repo.get_collection(db)
+
+    inserted_count = 0
+    updated_count = 0
+    skipped_count = 0
+
+    if col is not None:
+        try:
+            existing_docs = await col.find({}, {"code": 1, "name": 1, "id": 1, "_id": 0}).to_list(length=10000)
+            existing_code_map = {str(doc.get("code", "")).strip().upper(): doc.get("id") for doc in existing_docs if doc.get("code")}
+            existing_name_map = {str(doc.get("name", "")).strip().lower(): doc.get("id") for doc in existing_docs if doc.get("name")}
+
+            next_id = await province_repo.get_next_id(db=db)
+
+            for item in vn_list:
+                code_key = str(item.get("code", "")).strip().upper()
+                name_key = str(item.get("name", "")).strip().lower()
+
+                target_id = existing_code_map.get(code_key) or existing_name_map.get(name_key)
+
+                if target_id is not None:
+                    if overwrite:
+                        update_payload = dict(item)
+                        update_payload.pop("id", None)
+                        await province_repo.update(target_id, update_payload, db=db)
+                        updated_count += 1
+                    else:
+                        skipped_count += 1
+                else:
+                    new_doc = dict(item)
+                    new_doc["id"] = next_id
+                    next_id += 1
+                    await province_repo.insert(new_doc, auto_id=False, db=db)
+                    existing_code_map[code_key] = new_doc["id"]
+                    existing_name_map[name_key] = new_doc["id"]
+                    inserted_count += 1
+
+            total_now = await col.count_documents({})
+            return {
+                "ok": True,
+                "total_provinces": len(vn_list),
+                "inserted": inserted_count,
+                "updated": updated_count,
+                "skipped": skipped_count,
+                "total_now": total_now,
+            }
+        except Exception as exc:
+            logger.error(f"Province migration error: {exc}")
+            if province_repo.enable_fallback:
+                inserted_count = 0
+                for item in vn_list:
+                    exists = any(
+                        p.get("code") == item.get("code") or p.get("name") == item.get("name")
+                        for p in province_repo._memory_cache
+                    )
+                    if not exists:
+                        province_repo._memory_cache.append(dict(item))
+                        inserted_count += 1
+                return {
+                    "ok": True,
+                    "total_provinces": len(vn_list),
+                    "inserted": inserted_count,
+                    "updated": 0,
+                    "skipped": len(vn_list) - inserted_count,
+                    "total_now": len(province_repo._memory_cache),
+                    "fallback": True,
+                }
+            return {"ok": False, "error": str(exc)}
+
+    # Fallback when DB is not connected
+    if province_repo.enable_fallback:
+        inserted_count = 0
+        for item in vn_list:
+            exists = any(
+                p.get("code") == item.get("code") or p.get("name") == item.get("name")
+                for p in province_repo._memory_cache
+            )
+            if not exists:
+                province_repo._memory_cache.append(dict(item))
+                inserted_count += 1
+        return {
+            "ok": True,
+            "total_provinces": len(vn_list),
+            "inserted": inserted_count,
+            "updated": 0,
+            "skipped": len(vn_list) - inserted_count,
+            "total_now": len(province_repo._memory_cache),
+            "fallback": True,
+        }
+
+    return {"ok": False, "error": "Database not connected"}
+
 

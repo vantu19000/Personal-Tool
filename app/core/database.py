@@ -29,9 +29,25 @@ _db: Optional[Any] = None
 
 def get_mongo_client() -> Optional[Any]:
     """Get or initialize singleton AsyncIOMotorClient."""
-    global _client
+    global _client, _db
     if not HAS_MOTOR:
         return None
+    try:
+        import asyncio
+        current_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        current_loop = None
+
+    if _client is not None:
+        try:
+            client_loop = getattr(_client, "get_io_loop", lambda: getattr(_client, "io_loop", None))()
+            if client_loop and (client_loop.is_closed() or (current_loop and client_loop is not current_loop)):
+                _client = None
+                _db = None
+        except Exception:
+            _client = None
+            _db = None
+
     if _client is None:
         try:
             _client = AsyncIOMotorClient(
@@ -48,10 +64,12 @@ def get_mongo_client() -> Optional[Any]:
 def get_mongo_database() -> Optional[Any]:
     """Get the default MongoDB database instance."""
     global _db
+    client = get_mongo_client()
+    if client is None:
+        _db = None
+        return None
     if _db is None:
-        client = get_mongo_client()
-        if client:
-            _db = client[settings.MONGO_DB_NAME]
+        _db = client[settings.MONGO_DB_NAME]
     return _db
 
 

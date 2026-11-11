@@ -32,7 +32,7 @@ def main() -> None:
         os.makedirs(log_dir, exist_ok=True)
         log_file = open(os.path.join(log_dir, "uvicorn.log"), "a", encoding="utf-8")
         subprocess.Popen(
-            [VENV_PY, "-m", "uvicorn", "main:app", "--host", HOST, "--port", str(PORT)],
+            [VENV_PY, "-m", "uvicorn", "main:app", "--host", HOST, "--port", str(PORT), "--reload"],
             cwd=ROOT,
             stdin=subprocess.DEVNULL,
             stdout=log_file,
