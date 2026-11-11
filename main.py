@@ -20,6 +20,7 @@ from app.core.i18n import (
 )
 from app.core.templates import templates
 from app.metadata import router as metadata_router
+from app.products import router as products_router
 from app.settings import router as settings_router
 from app.sources import router as sources_router
 from app.tools.content_ideas import router as content_ideas_router
@@ -137,6 +138,9 @@ def create_app() -> FastAPI:
 
     # Source Management router (Crawler Sources)
     app.include_router(sources_router, tags=["crawler-sources"])
+
+    # My Products & Publishing Channels router
+    app.include_router(products_router, tags=["products"])
 
     # Shortcut redirect for Crawler
     @app.get("/crawler", include_in_schema=False)

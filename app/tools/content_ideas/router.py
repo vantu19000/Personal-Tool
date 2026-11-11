@@ -43,8 +43,16 @@ CONTENT_IDEAS_MENUS = [
         "badge_color": "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
     },
     {
+        "id": "products",
+        "title": "Sản phẩm của tôi",
+        "icon": "layers",
+        "path": "/tools/content-ideas/products",
+        "badge": "Output",
+        "badge_color": "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
+    },
+    {
         "id": "sources",
-        "title": "Nguồn theo dõi",
+        "title": "Nguồn cào (Input)",
         "icon": "radio",
         "path": "/tools/content-ideas/sources",
         "count": len(MONITORED_SOURCES),
@@ -108,6 +116,33 @@ async def content_ideas_dashboard(request: Request):
             "recent_sources": MONITORED_SOURCES,
             "recent_ideas": AI_IDEAS_LIST,
         },
+    )
+
+
+@router.get("/content-ideas/products", name="content-ideas-products")
+async def content_ideas_products(
+    request: Request,
+    search: str = "",
+    platform: str = "all",
+    status: str = "all",
+    niche: str = "all",
+    page: int = 1,
+    page_size: int = 15,
+    sort_by: str = "id",
+):
+    """My Products & Publishing Channels management screen."""
+    from app.core.database import get_mongo_database
+    from app.products.router import products_page
+    return await products_page(
+        request=request,
+        search=search,
+        platform=platform,
+        status=status,
+        niche=niche,
+        page=page,
+        page_size=page_size,
+        sort_by=sort_by,
+        db=get_mongo_database(),
     )
 
 

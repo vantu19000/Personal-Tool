@@ -1,0 +1,964 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý Sản phẩm & Kênh của tôi · AI Content Ideas · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}Quản lý Sản phẩm & Kênh của tôi{% endblock %}
+
+{% block content %}
+<div class="space-y-6 w-full pb-12">
+
+    <!-- Suite Header Navigation -->
+    {% include "tools/content_ideas/_header.html" %}
+
+    <!-- Top Action & Overview Banner -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0b1329] via-[#131d42] to-[#0b1329] text-white p-6 sm:p-7 border border-blue-950/70 shadow-xl">
+        <div class="absolute -top-20 -left-10 w-72 h-72 bg-blue-600/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-20 right-10 w-72 h-72 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div class="space-y-2">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                        <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                        <span>My Products & Channels · Sản phẩm & Kênh của tôi</span>
+                    </span>
+
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        <i data-lucide="share-2" class="w-3 h-3"></i>
+                        <span>Kênh Đích Xuất Bản (Output)</span>
+                    </span>
+
+                    {% if db_connected %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>MongoDB: my_products</span>
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span>Chế độ Demo Cục bộ</span>
+                    </span>
+                    {% endif %}
+                </div>
+
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                    <span>Quản lý Sản phẩm & Kênh của Tôi</span>
+                    <span class="text-xs sm:text-sm font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-200 border border-blue-400/30">
+                        {{ total_count }} Kênh / Sản phẩm
+                    </span>
+                </h1>
+
+                <p class="text-xs sm:text-sm text-slate-300/90 max-w-3xl leading-relaxed">
+                    Thiết lập danh mục các kênh phân phối bạn đang sở hữu: <strong>YouTube, TikTok, Web Blog, Facebook, Instagram, Pinterest, Threads...</strong> Quản lý định dạng content, tone giọng thương hiệu và <strong>AI Prompt riêng</strong> cho từng sản phẩm để hệ thống tự động gán và sinh nội dung chính xác.
+                </p>
+            </div>
+
+            <!-- Header Action Buttons -->
+            <div class="shrink-0 flex items-center gap-2.5 flex-wrap">
+                <button type="button"
+                        onclick="triggerResetDemoProducts()"
+                        class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold border border-white/20 backdrop-blur-sm transition active:scale-95 cursor-pointer"
+                        title="Khôi phục các kênh mẫu (YouTube, TikTok, Web Blog, Facebook, Instagram, Pinterest)">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4 text-blue-300"></i>
+                    <span>Khôi phục kênh mẫu</span>
+                </button>
+
+                <button type="button"
+                        onclick="openProductModal()"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-blue-600/30 transition active:scale-95 cursor-pointer">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Thêm sản phẩm / kênh mới</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Platform Filter Tabs -->
+    <div class="bg-white dark:bg-[#0f172a] rounded-2xl border border-slate-200/90 dark:border-slate-800/80 p-2 shadow-xs overflow-x-auto scrollbar-none">
+        <div class="flex items-center gap-2 min-w-max">
+            <a href="?platform=all{% if search %}&search={{ search }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if niche_filter != 'all' %}&niche={{ niche_filter }}{% endif %}"
+               class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition {% if platform_filter == 'all' or not platform_filter %}bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
+                <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                <span>Tất cả nền tảng</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded-md font-mono {% if platform_filter == 'all' or not platform_filter %}bg-white/20 dark:bg-black/10{% else %}bg-slate-100 dark:bg-slate-800{% endif %}">
+                    {{ stats.total_products }}
+                </span>
+            </a>
+
+            {% for key, meta in platforms.items() %}
+            {% set is_curr = (platform_filter == key) %}
+            <a href="?platform={{ key }}{% if search %}&search={{ search }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if niche_filter != 'all' %}&niche={{ niche_filter }}{% endif %}"
+               class="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition
+                      {% if is_curr %}bg-blue-600 text-white font-semibold shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                <i data-lucide="{{ meta.icon }}" class="w-3.5 h-3.5 shrink-0 {% if is_curr %}text-white{% else %}{{ meta.color_class }}{% endif %}"></i>
+                <span>{{ meta.label }}</span>
+                <span class="text-[10px] font-mono px-1.5 py-0.2 rounded-md {% if is_curr %}bg-white/20 text-white{% else %}bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400{% endif %}">
+                    {{ stats.platform_counts.get(key, 0) }}
+                </span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- KPI Summary Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Card 1: Tổng sản phẩm / kênh -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tổng sản phẩm sở hữu</p>
+                <p class="text-2xl font-extrabold text-slate-900 dark:text-white font-mono mt-1">{{ stats.total_products }}</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">Kênh phân phối nội dung</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <i data-lucide="layers" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Card 2: Đang hoạt động -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Đang hoạt động</p>
+                <p class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono mt-1">{{ stats.active_count }}</p>
+                <p class="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">Sẵn sàng nhận content</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <i data-lucide="check-circle" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Card 3: Tổng bài đã xuất bản -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nội dung đã xuất bản</p>
+                <p class="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 font-mono mt-1">{{ stats.total_published }}</p>
+                <p class="text-[11px] text-indigo-600/80 dark:text-indigo-400/80 mt-0.5">Bài viết & Video thực tế</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <i data-lucide="file-check-2" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Card 4: Ý tưởng đang chờ gán -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ý tưởng gán theo kênh</p>
+                <p class="text-2xl font-extrabold text-purple-600 dark:text-purple-400 font-mono mt-1">{{ stats.total_assigned_ideas }}</p>
+                <p class="text-[11px] text-purple-600/80 dark:text-purple-400/80 mt-0.5">Ý tưởng chờ sản xuất</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                <i data-lucide="sparkles" class="w-5 h-5"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 sm:p-5 shadow-xs">
+        <form method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
+            <div class="lg:col-span-4 relative">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text"
+                       name="search"
+                       value="{{ search }}"
+                       placeholder="Tìm theo tên kênh, link, ngách, đối tượng, tone..."
+                       class="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+            </div>
+
+            <div class="lg:col-span-3">
+                <select name="platform"
+                        class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer">
+                    <option value="all" {% if platform_filter == 'all' or not platform_filter %}selected{% endif %}>Tất cả nền tảng</option>
+                    {% for key, meta in platforms.items() %}
+                    <option value="{{ key }}" {% if platform_filter == key %}selected{% endif %}>{{ meta.label }} ({{ meta.sub_label }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="lg:col-span-3">
+                <select name="status"
+                        class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer">
+                    <option value="all" {% if status_filter == 'all' or not status_filter %}selected{% endif %}>Tất cả trạng thái</option>
+                    {% for key, meta in statuses.items() %}
+                    <option value="{{ key }}" {% if status_filter == key %}selected{% endif %}>{{ meta.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="lg:col-span-2 flex items-center gap-2">
+                <button type="submit"
+                        class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-semibold shadow-xs transition active:scale-95 cursor-pointer">
+                    <i data-lucide="filter" class="w-3.5 h-3.5"></i>
+                    <span>Lọc</span>
+                </button>
+                <a href="/products"
+                   class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                   title="Xóa bộ lọc">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Products Cards / Table View -->
+    <div class="rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 overflow-hidden shadow-xs">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-100 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
+                        <th class="p-4 pl-6">Sản phẩm / Kênh</th>
+                        <th class="p-4">Ngách & Khách mục tiêu</th>
+                        <th class="p-4">Định dạng & Tần suất</th>
+                        <th class="p-4">AI Prompt & Tone giọng</th>
+                        <th class="p-4">Nội dung sản xuất</th>
+                        <th class="p-4 text-center">Trạng thái</th>
+                        <th class="p-4 pr-6 text-right">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80 text-slate-700 dark:text-slate-300">
+                    {% for prod in products %}
+                    <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition group" id="product-row-{{ prod.id }}">
+                        <!-- Col 1: Product Name, Platform, Handle/URL -->
+                        <td class="p-4 pl-6 max-w-xs">
+                            <div class="flex items-start gap-3">
+                                <div class="w-10 h-10 rounded-2xl {{ prod.platform_bg_soft }} {{ prod.platform_color_class }} flex items-center justify-center shrink-0 mt-0.5 border border-slate-200/50 dark:border-slate-700/50 shadow-xs">
+                                    <i data-lucide="{{ prod.platform_icon }}" class="w-5 h-5"></i>
+                                </div>
+                                <div class="min-w-0 space-y-1">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <p class="font-bold text-slate-900 dark:text-white truncate text-sm" title="{{ prod.name }}">{{ prod.name }}</p>
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border {{ prod.platform_badge_color }}">
+                                            {{ prod.platform_label }}
+                                        </span>
+                                    </div>
+                                    {% if prod.url %}
+                                    <a href="{{ prod.url }}" target="_blank" rel="noopener noreferrer"
+                                       class="text-[11px] text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 truncate flex items-center gap-1 group-hover:underline"
+                                       title="{{ prod.url }}">
+                                        <i data-lucide="external-link" class="w-3 h-3 shrink-0"></i>
+                                        <span class="truncate">{{ prod.url }}</span>
+                                    </a>
+                                    {% elif prod.code %}
+                                    <span class="text-[11px] text-slate-400 font-mono">#{{ prod.code }}</span>
+                                    {% endif %}
+                                    {% if prod.followers_metric %}
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                                        <i data-lucide="users" class="w-3 h-3"></i>
+                                        <span>{{ prod.followers_metric }}</span>
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Col 2: Niche & Target Audience -->
+                        <td class="p-4">
+                            <div class="space-y-1">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
+                                    <i data-lucide="target" class="w-3 h-3 text-blue-500"></i>
+                                    <span>{{ prod.niche or 'Chung' }}</span>
+                                </span>
+                                {% if prod.target_audience %}
+                                <p class="text-[11px] text-slate-400 line-clamp-2 max-w-xs" title="{{ prod.target_audience }}">
+                                    {{ prod.target_audience }}
+                                </p>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- Col 3: Content Format & Schedule -->
+                        <td class="p-4 max-w-xs">
+                            <div class="space-y-1">
+                                <p class="text-xs font-medium text-slate-700 dark:text-slate-300 truncate" title="{{ prod.content_format or prod.default_format }}">
+                                    {{ prod.content_format or prod.default_format or 'Đa định dạng' }}
+                                </p>
+                                <div class="flex items-center gap-1.5 text-[11px] text-slate-400 font-mono">
+                                    <i data-lucide="calendar" class="w-3 h-3"></i>
+                                    <span>{{ prod.posting_frequency or 'Linh hoạt' }}</span>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Col 4: AI Prompt & Brand Voice -->
+                        <td class="p-4 max-w-xs">
+                            <div class="space-y-1.5">
+                                {% if prod.brand_voice %}
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 italic line-clamp-1" title="{{ prod.brand_voice }}">
+                                    "{{ prod.brand_voice }}"
+                                </p>
+                                {% endif %}
+
+                                {% if prod.ai_system_prompt %}
+                                <button type="button"
+                                        onclick="showProductPromptModal({{ prod.id }}, '{{ prod.name|replace("'", "\\'") }}', '{{ prod.ai_system_prompt|replace("'", "\\'")|replace('\n', ' ') }}')"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 transition cursor-pointer"
+                                        title="Xem AI Prompt định hướng riêng cho kênh này">
+                                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-500"></i>
+                                    <span>AI Prompt riêng</span>
+                                </button>
+                                {% else %}
+                                <button type="button"
+                                        onclick="openEditProductModal({{ prod.id }})"
+                                        class="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-blue-500 cursor-pointer">
+                                    <i data-lucide="plus-circle" class="w-3 h-3"></i>
+                                    <span>Cài đặt Prompt</span>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- Col 5: Content counts -->
+                        <td class="p-4">
+                            <div class="space-y-0.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold text-slate-900 dark:text-white font-mono">
+                                        {{ prod.published_content_count }} đã xuất bản
+                                    </span>
+                                </div>
+                                <p class="text-[11px] text-purple-600 dark:text-purple-400 font-mono">
+                                    {{ prod.assigned_ideas_count }} ý tưởng chờ
+                                </p>
+                                <p class="text-[10px] text-slate-400">
+                                    {{ prod.last_published_at or 'Chưa đăng' }}
+                                </p>
+                            </div>
+                        </td>
+
+                        <!-- Col 6: Status Toggle -->
+                        <td class="p-4 text-center">
+                            <div class="inline-flex flex-col items-center gap-1">
+                                <button type="button"
+                                        onclick="toggleProductStatus({{ prod.id }})"
+                                        id="btn-prod-toggle-{{ prod.id }}"
+                                        class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {% if prod.status == 'active' %}bg-emerald-500{% else %}bg-slate-300 dark:bg-slate-700{% endif %}"
+                                        title="Bật/Tạm dừng kênh">
+                                    <span class="sr-only">Toggle status</span>
+                                    <span id="prod-toggle-dot-{{ prod.id }}"
+                                          class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {% if prod.status == 'active' %}translate-x-4{% else %}translate-x-0{% endif %}"></span>
+                                </button>
+                                <span id="prod-status-text-{{ prod.id }}" class="text-[10px] font-semibold {% if prod.status == 'active' %}text-emerald-600 dark:text-emerald-400{% else %}text-slate-400{% endif %}">
+                                    {{ prod.status_label }}
+                                </span>
+                            </div>
+                        </td>
+
+                        <!-- Col 7: Actions -->
+                        <td class="p-4 pr-6 text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <button type="button"
+                                        onclick="openEditProductModal({{ prod.id }})"
+                                        title="Chỉnh sửa sản phẩm"
+                                        class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+                                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                </button>
+
+                                <button type="button"
+                                        onclick="confirmDeleteProduct({{ prod.id }}, '{{ prod.name|replace("'", "\\'") }}')"
+                                        title="Xóa sản phẩm"
+                                        class="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="p-12 text-center text-slate-400">
+                            <div class="max-w-sm mx-auto space-y-3">
+                                <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                                    <i data-lucide="layers" class="w-6 h-6"></i>
+                                </div>
+                                <p class="text-sm font-semibold text-slate-600 dark:text-slate-300">Chưa có sản phẩm hoặc kênh phân phối nào</p>
+                                <p class="text-xs text-slate-400">Thêm kênh YouTube, TikTok, Web Blog, Facebook... để định hình mục tiêu sáng tạo content.</p>
+                                <button type="button" onclick="triggerResetDemoProducts()"
+                                        class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-500 transition">
+                                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                                    <span>Khôi phục các kênh mẫu</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if pagination and pagination.total_pages > 1 %}
+        <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
+            {% include "_pagination.html" %}
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL: THÊM / CHỈNH SỬA SẢN PHẨM / KÊNH (PRODUCT MODAL)                 -->
+<!-- ======================================================================= -->
+<div id="product-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="relative w-full max-w-2xl rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform animate-in fade-in zoom-in duration-200 my-8">
+        
+        <!-- Header -->
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                    <i data-lucide="layers" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 id="product-modal-title" class="text-base font-bold text-slate-900 dark:text-white">Thêm Sản Phẩm / Kênh Mới</h3>
+                    <p class="text-xs text-slate-400">Thiết lập kênh đích phân phối nội dung và hướng dẫn AI</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeProductModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Form Body -->
+        <form id="product-form" onsubmit="saveProductForm(event)" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+            <input type="hidden" id="form-product-id" value="">
+
+            <!-- Row 1: Tên sản phẩm & Nền tảng -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="sm:col-span-2 space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Tên sản phẩm / Kênh <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" id="form-prod-name" required placeholder="Ví dụ: Kênh YouTube BĐS Thủ Đô, TikTok GenZ..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Nền tảng <span class="text-rose-500">*</span>
+                    </label>
+                    <select id="form-prod-platform" required
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer">
+                        {% for key, meta in platforms.items() %}
+                        <option value="{{ key }}">{{ meta.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 2: URL & Mã code -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="sm:col-span-2 space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Đường dẫn URL / Handle kênh
+                    </label>
+                    <input type="text" id="form-prod-url" placeholder="https://youtube.com/@..., https://tiktok.com/@..., https://..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Mã định danh (Slug)
+                    </label>
+                    <input type="text" id="form-prod-code" placeholder="yt-bds, blog-ai..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Row 3: Ngách nội dung & Đối tượng mục tiêu -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Chủ đề / Ngách nội dung (Niche)
+                    </label>
+                    <input type="text" id="form-prod-niche" placeholder="Bất động sản, Tài chính, AI, Decor, Thời trang..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Đối tượng mục tiêu (Target Audience)
+                    </label>
+                    <input type="text" id="form-prod-audience" placeholder="Nhà đầu tư cá nhân, Gen Z, Dân văn phòng..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Row 4: Định dạng nội dung & Tần suất & Số liệu theo dõi -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Định dạng nội dung chủ đạo
+                    </label>
+                    <input type="text" id="form-prod-format" placeholder="Video 10-15p + Shorts, Bài viết SEO..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Tần suất đăng bài
+                    </label>
+                    <input type="text" id="form-prod-frequency" placeholder="1 bài/ngày, 3 bài/tuần..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Số lượng Followers / Sub
+                    </label>
+                    <input type="text" id="form-prod-followers" placeholder="50K Subs, 100K Followers..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Row 5: Tone giọng & Trạng thái -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Tone giọng & Phong cách thương hiệu
+                    </label>
+                    <input type="text" id="form-prod-voice" placeholder="Chuyên gia thực chiến, hài hước, súc tích..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Trạng thái hoạt động
+                    </label>
+                    <select id="form-prod-status"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer">
+                        <option value="active" selected>Đang hoạt động (Active)</option>
+                        <option value="paused">Tạm dừng sản xuất (Paused)</option>
+                        <option value="planning">Đang lên kế hoạch (Planning)</option>
+                        <option value="archived">Đã lưu trữ (Archived)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 6: AI System Prompt Riêng -->
+            <div class="space-y-2 pt-1">
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-500"></i>
+                        <span>AI System Prompt riêng cho sản phẩm / kênh này</span>
+                    </label>
+                    <span class="text-[11px] text-slate-400">Hướng dẫn AI khi viết content cho kênh</span>
+                </div>
+
+                <!-- Template prompt pills -->
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] text-slate-400 font-medium">Chèn mẫu nhanh:</span>
+                    <button type="button" onclick="insertProductPromptTemplate('youtube')"
+                            class="px-2 py-0.5 rounded-md text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 dark:hover:bg-rose-950/60 text-slate-600 dark:text-slate-400 hover:text-rose-600 transition cursor-pointer">
+                        + Kịch bản YouTube
+                    </button>
+                    <button type="button" onclick="insertProductPromptTemplate('tiktok')"
+                            class="px-2 py-0.5 rounded-md text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-pink-100 dark:hover:bg-pink-950/60 text-slate-600 dark:text-slate-400 hover:text-pink-600 transition cursor-pointer">
+                        + TikTok Hook Viral
+                    </button>
+                    <button type="button" onclick="insertProductPromptTemplate('blog')"
+                            class="px-2 py-0.5 rounded-md text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-blue-950/60 text-slate-600 dark:text-slate-400 hover:text-blue-600 transition cursor-pointer">
+                        + Bài viết Blog SEO
+                    </button>
+                    <button type="button" onclick="insertProductPromptTemplate('facebook')"
+                            class="px-2 py-0.5 rounded-md text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-indigo-950/60 text-slate-600 dark:text-slate-400 hover:text-indigo-600 transition cursor-pointer">
+                        + Facebook Storytelling
+                    </button>
+                    <button type="button" onclick="insertProductPromptTemplate('instagram')"
+                            class="px-2 py-0.5 rounded-md text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-950/60 text-slate-600 dark:text-slate-400 hover:text-purple-600 transition cursor-pointer">
+                        + Instagram Visual
+                    </button>
+                </div>
+
+                <textarea id="form-prod-ai-prompt" rows="3"
+                          placeholder="Ví dụ: Khi viết cho kênh này, mở đầu bằng hook 5s gây bất ngờ. Luôn xưng 'Mình' và gọi 'Các bạn', kèm CTA đăng ký kênh ở cuối..."
+                          class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed"></textarea>
+            </div>
+
+            <!-- Row 7: Tags & Mô tả -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Tag phân loại (cách nhau dấu phẩy)
+                    </label>
+                    <input type="text" id="form-prod-tags" placeholder="YouTube, BĐS, Video dài..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Ghi chú / Mục tiêu phát triển
+                    </label>
+                    <input type="text" id="form-prod-desc" placeholder="Mục tiêu đạt 100K sub trong năm nay..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeProductModal()"
+                        class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs sm:text-sm font-semibold transition cursor-pointer">
+                    Hủy bỏ
+                </button>
+                <button type="submit" id="btn-save-product"
+                        class="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition active:scale-95 cursor-pointer">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>Lưu sản phẩm / kênh</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL: XEM AI PROMPT RIÊNG CỦA SẢN PHẨM                                 -->
+<!-- ======================================================================= -->
+<div id="product-prompt-view-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="relative w-full max-w-lg rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden p-6 space-y-4 animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-slate-900 dark:text-white" id="product-prompt-modal-name">AI System Prompt Kênh</h4>
+                    <p class="text-[11px] text-slate-400">Chỉ thị định hướng phong cách khi sinh content cho kênh này</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeProductPromptModal()" class="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <div class="rounded-2xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200/60 dark:border-purple-900/50 p-4">
+            <p id="product-prompt-modal-content" class="text-xs sm:text-sm text-purple-950 dark:text-purple-200 leading-relaxed font-mono whitespace-pre-wrap"></p>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+            <span class="text-[11px] text-slate-400">Áp dụng tự động trong khâu AI sinh ý tưởng & bài viết</span>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="copyProductPrompt()" id="btn-copy-product-prompt"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                    <span id="copy-product-prompt-text">Sao chép</span>
+                </button>
+                <button type="button" onclick="editFromProductPromptModal()"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition cursor-pointer">
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                    <span>Chỉnh sửa Prompt</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL: XÁC NHẬN XÓA SẢN PHẨM                                            -->
+<!-- ======================================================================= -->
+<div id="delete-product-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="relative w-full max-w-md rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden p-6 space-y-4 animate-in fade-in zoom-in duration-200">
+        <div class="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+            <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+        </div>
+
+        <div class="text-center space-y-1.5">
+            <h4 class="text-base font-bold text-slate-900 dark:text-white">Xác nhận xóa sản phẩm / kênh?</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Bạn có chắc chắn muốn xóa kênh <strong id="delete-product-name" class="text-slate-900 dark:text-white"></strong>? Thao tác này sẽ gỡ bỏ liên kết phân loại nội dung cho kênh này.
+            </p>
+        </div>
+
+        <div class="flex items-center justify-center gap-3 pt-2">
+            <button type="button" onclick="closeDeleteProductModal()"
+                    class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs sm:text-sm font-semibold transition cursor-pointer">
+                Hủy bỏ
+            </button>
+            <button type="button" id="btn-confirm-delete-product" onclick="executeDeleteProduct()"
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-semibold shadow-xs transition active:scale-95 cursor-pointer">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                <span>Xác nhận xóa</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- TOAST NOTIFICATION                                                      -->
+<!-- ======================================================================= -->
+<div id="product-toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xl border border-slate-700/50 dark:border-slate-200">
+        <div id="product-toast-icon-wrap" class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 dark:text-emerald-600 flex items-center justify-center shrink-0">
+            <i data-lucide="check" class="w-4 h-4"></i>
+        </div>
+        <div>
+            <p id="product-toast-title" class="text-xs font-bold leading-tight">Thành công</p>
+            <p id="product-toast-desc" class="text-[11px] opacity-80 mt-0.5">Thao tác hoàn tất.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let activeProductPromptId = null;
+    let pendingDeleteProductId = null;
+
+    function showProductToast(title, desc, isError = false) {
+        const toast = document.getElementById('product-toast');
+        const tTitle = document.getElementById('product-toast-title');
+        const tDesc = document.getElementById('product-toast-desc');
+        const iconWrap = document.getElementById('product-toast-icon-wrap');
+
+        tTitle.textContent = title;
+        tDesc.textContent = desc;
+
+        if (isError) {
+            iconWrap.className = 'w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 dark:text-rose-600 flex items-center justify-center shrink-0';
+            iconWrap.innerHTML = '<i data-lucide="alert-circle" class="w-4 h-4"></i>';
+        } else {
+            iconWrap.className = 'w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 dark:text-emerald-600 flex items-center justify-center shrink-0';
+            iconWrap.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
+        }
+
+        if (window.lucide) window.lucide.createIcons();
+
+        toast.classList.remove('translate-y-24', 'opacity-0');
+        setTimeout(() => {
+            toast.classList.add('translate-y-24', 'opacity-0');
+        }, 3200);
+    }
+
+    function insertProductPromptTemplate(type) {
+        const promptArea = document.getElementById('form-prod-ai-prompt');
+        let text = '';
+        if (type === 'youtube') {
+            text = 'Kịch bản YouTube dài: 1. Hook 5s đầu khơi gợi tò mò hoặc tranh cãi, 2. Giới thiệu giá trị video trong 20s, 3. Thân bài 3 luận điểm có ví dụ thực tiễn, 4. CTA like & đăng ký kênh nhận file tài liệu.';
+        } else if (type === 'tiktok') {
+            text = 'Kịch bản TikTok ngắn 30-45s: Mở đầu bằng hành động hoặc câu nói gây sốc. Dùng ngôn từ bình dân, nhịp điệu nhanh. Đặt 1 câu hỏi thăm dò ở cuối để kéo comment tương tác.';
+        } else if (type === 'blog') {
+            text = 'Bài viết Blog chuẩn SEO E-E-A-T: Độ dài 1800-2200 từ, cấu trúc H2/H3 chặt chẽ, chèn bảng so sánh, phần FAQ 4 câu hỏi thường gặp và meta description dưới 160 ký tự.';
+        } else if (type === 'facebook') {
+            text = 'Status Facebook dạng Storytelling: Kể một câu chuyện thực tế hoặc tình huống sai lầm bài học. Định dạng thoáng mắt, ngắt dòng ngắn và khơi gợi độc giả chia sẻ góc nhìn dưới bình luận.';
+        } else if (type === 'instagram') {
+            text = 'Caption Instagram ngắn gọn, giàu cảm xúc và truyền cảm hứng sống đẹp. Kèm gợi ý hình ảnh carousel 8 slide và bộ 15 hashtag thịnh hành có tỷ lệ tương tác cao.';
+        }
+        promptArea.value = text;
+        promptArea.focus();
+    }
+
+    function openProductModal() {
+        document.getElementById('product-modal-title').textContent = 'Thêm Sản Phẩm / Kênh Mới';
+        document.getElementById('form-product-id').value = '';
+        document.getElementById('form-prod-name').value = '';
+        document.getElementById('form-prod-platform').value = 'youtube';
+        document.getElementById('form-prod-code').value = '';
+        document.getElementById('form-prod-url').value = '';
+        document.getElementById('form-prod-niche').value = '';
+        document.getElementById('form-prod-audience').value = '';
+        document.getElementById('form-prod-format').value = '';
+        document.getElementById('form-prod-frequency').value = 'Hàng tuần';
+        document.getElementById('form-prod-voice').value = '';
+        document.getElementById('form-prod-ai-prompt').value = '';
+        document.getElementById('form-prod-tags').value = '';
+        document.getElementById('form-prod-status').value = 'active';
+        document.getElementById('form-prod-followers').value = '';
+        document.getElementById('form-prod-desc').value = '';
+
+        document.getElementById('product-modal').classList.remove('hidden');
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function closeProductModal() {
+        document.getElementById('product-modal').classList.add('hidden');
+    }
+
+    async function openEditProductModal(id) {
+        try {
+            const resp = await fetch(`/api/products/${id}`);
+            const data = await resp.json();
+            if (!data.ok || !data.product) {
+                showProductToast('Lỗi', 'Không thể tải thông tin sản phẩm', true);
+                return;
+            }
+            const p = data.product;
+
+            document.getElementById('product-modal-title').textContent = 'Chỉnh Sửa Sản Phẩm #' + p.id;
+            document.getElementById('form-product-id').value = p.id;
+            document.getElementById('form-prod-name').value = p.name || '';
+            document.getElementById('form-prod-platform').value = p.platform || 'youtube';
+            document.getElementById('form-prod-code').value = p.code || '';
+            document.getElementById('form-prod-url').value = p.url || '';
+            document.getElementById('form-prod-niche').value = p.niche || '';
+            document.getElementById('form-prod-audience').value = p.target_audience || '';
+            document.getElementById('form-prod-format').value = p.content_format || '';
+            document.getElementById('form-prod-frequency').value = p.posting_frequency || 'Hàng tuần';
+            document.getElementById('form-prod-voice').value = p.brand_voice || '';
+            document.getElementById('form-prod-ai-prompt').value = p.ai_system_prompt || '';
+            document.getElementById('form-prod-tags').value = Array.isArray(p.tags) ? p.tags.join(', ') : (p.tags || '');
+            document.getElementById('form-prod-status').value = p.status || 'active';
+            document.getElementById('form-prod-followers').value = p.followers_metric || '';
+            document.getElementById('form-prod-desc').value = p.description || '';
+
+            document.getElementById('product-modal').classList.remove('hidden');
+            if (window.lucide) window.lucide.createIcons();
+        } catch (e) {
+            showProductToast('Lỗi', 'Không thể kết nối máy chủ', true);
+        }
+    }
+
+    async function saveProductForm(evt) {
+        evt.preventDefault();
+        const id = document.getElementById('form-product-id').value;
+        const btn = document.getElementById('btn-save-product');
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Đang lưu...</span>';
+        if (window.lucide) window.lucide.createIcons();
+
+        const formData = new FormData();
+        formData.append('name', document.getElementById('form-prod-name').value.trim());
+        formData.append('platform', document.getElementById('form-prod-platform').value);
+        formData.append('code', document.getElementById('form-prod-code').value.trim());
+        formData.append('url', document.getElementById('form-prod-url').value.trim());
+        formData.append('niche', document.getElementById('form-prod-niche').value.trim());
+        formData.append('target_audience', document.getElementById('form-prod-audience').value.trim());
+        formData.append('content_format', document.getElementById('form-prod-format').value.trim());
+        formData.append('posting_frequency', document.getElementById('form-prod-frequency').value.trim());
+        formData.append('brand_voice', document.getElementById('form-prod-voice').value.trim());
+        formData.append('ai_system_prompt', document.getElementById('form-prod-ai-prompt').value.trim());
+        formData.append('tags', document.getElementById('form-prod-tags').value.trim());
+        formData.append('status', document.getElementById('form-prod-status').value);
+        formData.append('followers_metric', document.getElementById('form-prod-followers').value.trim());
+        formData.append('description', document.getElementById('form-prod-desc').value.trim());
+
+        const url = id ? `/api/products/${id}/edit` : '/api/products';
+
+        try {
+            const resp = await fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
+            const res = await resp.json();
+            if (res.ok) {
+                closeProductModal();
+                showProductToast('Thành công', id ? 'Đã cập nhật thông tin sản phẩm!' : 'Đã thêm sản phẩm / kênh mới!');
+                setTimeout(() => window.location.reload(), 600);
+            } else {
+                showProductToast('Lỗi', res.error || 'Có lỗi khi lưu', true);
+            }
+        } catch (e) {
+            showProductToast('Lỗi', 'Không thể kết nối máy chủ', true);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i><span>Lưu sản phẩm / kênh</span>';
+            if (window.lucide) window.lucide.createIcons();
+        }
+    }
+
+    async function toggleProductStatus(id) {
+        const btn = document.getElementById(`btn-prod-toggle-${id}`);
+        const dot = document.getElementById(`prod-toggle-dot-${id}`);
+        const txt = document.getElementById(`prod-status-text-${id}`);
+
+        try {
+            const resp = await fetch(`/api/products/${id}/toggle-status`, { method: 'POST' });
+            const res = await resp.json();
+            if (res.ok && res.product) {
+                const p = res.product;
+                if (p.status === 'active') {
+                    btn.className = 'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-emerald-500';
+                    dot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-4';
+                    txt.className = 'text-[10px] font-semibold text-emerald-600 dark:text-emerald-400';
+                    txt.textContent = 'Đang hoạt động';
+                    showProductToast('Đã kích hoạt', `Kênh ${p.name} sẵn sàng nhận content.`);
+                } else {
+                    btn.className = 'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-slate-300 dark:bg-slate-700';
+                    dot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0';
+                    txt.className = 'text-[10px] font-semibold text-slate-400';
+                    txt.textContent = 'Tạm dừng sản xuất';
+                    showProductToast('Đã tạm dừng', `Kênh ${p.name} đã được tạm dừng.`);
+                }
+            }
+        } catch (e) {
+            showProductToast('Lỗi', 'Không thể chuyển đổi trạng thái', true);
+        }
+    }
+
+    async function triggerResetDemoProducts() {
+        if (!confirm('Khôi phục danh sách các kênh mẫu tiêu chuẩn (YouTube, TikTok, Web Blog, Facebook, Instagram, Pinterest)?')) return;
+        try {
+            const resp = await fetch('/api/products/reset-demo', { method: 'POST' });
+            const res = await resp.json();
+            if (res.ok) {
+                showProductToast('Khôi phục thành công', res.message);
+                setTimeout(() => window.location.reload(), 600);
+            }
+        } catch (e) {
+            showProductToast('Lỗi', 'Không thể khôi phục kênh mẫu', true);
+        }
+    }
+
+    function showProductPromptModal(id, name, prompt) {
+        activeProductPromptId = id;
+        document.getElementById('product-prompt-modal-name').textContent = name;
+        document.getElementById('product-prompt-modal-content').textContent = prompt;
+        document.getElementById('copy-product-prompt-text').textContent = 'Sao chép';
+        document.getElementById('product-prompt-view-modal').classList.remove('hidden');
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function closeProductPromptModal() {
+        document.getElementById('product-prompt-view-modal').classList.add('hidden');
+    }
+
+    function copyProductPrompt() {
+        const text = document.getElementById('product-prompt-modal-content').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            document.getElementById('copy-product-prompt-text').textContent = 'Đã sao chép!';
+            showProductToast('Đã sao chép', 'Đã lưu AI System Prompt vào bộ nhớ tạm.');
+            setTimeout(() => {
+                const btn = document.getElementById('copy-product-prompt-text');
+                if (btn) btn.textContent = 'Sao chép';
+            }, 2000);
+        });
+    }
+
+    function editFromProductPromptModal() {
+        const id = activeProductPromptId;
+        closeProductPromptModal();
+        if (id) openEditProductModal(id);
+    }
+
+    function confirmDeleteProduct(id, name) {
+        pendingDeleteProductId = id;
+        document.getElementById('delete-product-name').textContent = name;
+        document.getElementById('delete-product-modal').classList.remove('hidden');
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function closeDeleteProductModal() {
+        document.getElementById('delete-product-modal').classList.add('hidden');
+        pendingDeleteProductId = null;
+    }
+
+    async function executeDeleteProduct() {
+        if (!pendingDeleteProductId) return;
+        const btn = document.getElementById('btn-confirm-delete-product');
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Đang xóa...</span>';
+        if (window.lucide) window.lucide.createIcons();
+
+        try {
+            const resp = await fetch(`/api/products/${pendingDeleteProductId}/delete`, {
+                method: 'POST',
+                headers: { 'Accept': 'application/json' }
+            });
+            const res = await resp.json();
+            if (res.ok) {
+                closeDeleteProductModal();
+                showProductToast('Đã xóa', 'Sản phẩm đã được gỡ bỏ.');
+                const row = document.getElementById(`product-row-${pendingDeleteProductId}`);
+                if (row) row.remove();
+                setTimeout(() => window.location.reload(), 600);
+            } else {
+                showProductToast('Lỗi', res.error || 'Không thể xóa', true);
+            }
+        } catch (e) {
+            showProductToast('Lỗi', 'Không thể kết nối máy chủ', true);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4"></i><span>Xác nhận xóa</span>';
+            if (window.lucide) window.lucide.createIcons();
+        }
+    }
+</script>
+{% endblock %}

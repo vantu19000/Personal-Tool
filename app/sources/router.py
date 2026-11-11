@@ -33,11 +33,19 @@ CONTENT_IDEAS_MENUS = [
         "badge_color": "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
     },
     {
+        "id": "products",
+        "title": "Sản phẩm của tôi",
+        "icon": "layers",
+        "path": "/tools/content-ideas/products",
+        "badge": "Output",
+        "badge_color": "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
+    },
+    {
         "id": "sources",
-        "title": "Nguồn theo dõi",
+        "title": "Nguồn cào (Input)",
         "icon": "radio",
         "path": "/tools/content-ideas/sources",
-        "badge": "Source Mgt",
+        "badge": "9 loại",
         "badge_color": "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300",
     },
     {
