@@ -96,7 +96,7 @@ async def sources_page(
     province: str = "all",
     page: int = 1,
     page_size: int = 15,
-    sort_by: str = "priority",
+    sort_by: str = "updated_at",
     db: Any = Depends(get_db),
 ):
     """Render the comprehensive Source Management screen."""
@@ -154,7 +154,7 @@ async def api_list_sources(
     province: str = "all",
     page: int = 1,
     page_size: int = 20,
-    sort_by: str = "priority",
+    sort_by: str = "updated_at",
     db: Any = Depends(get_db),
 ):
     """Return JSON list of crawler sources."""

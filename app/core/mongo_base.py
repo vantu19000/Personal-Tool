@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 
 
 def current_timestamp_str() -> str:
-    """Return standard formatted timestamp."""
-    return datetime.now().strftime("%Y-%m-%d %H:%M")
+    """Return standard formatted timestamp with second precision for accurate chronological sorting."""
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 class BaseMongoRepository:
@@ -140,9 +140,12 @@ class BaseMongoRepository:
                 proj = projection if projection is not None else {"_id": 0}
                 cursor = col.find(query or {}, proj)
                 if sort_field:
-                    cursor = cursor.sort(sort_field, sort_dir)
+                    if sort_field != self.id_field:
+                        cursor = cursor.sort([(sort_field, sort_dir), (self.id_field, sort_dir)])
+                    else:
+                        cursor = cursor.sort(self.id_field, sort_dir)
                 else:
-                    cursor = cursor.sort(self.id_field, 1)
+                    cursor = cursor.sort(self.id_field, -1)
 
                 if skip > 0:
                     cursor = cursor.skip(skip)
@@ -160,9 +163,12 @@ class BaseMongoRepository:
         # Fallback to in-memory cache
         items = list(self._memory_cache)
         if sort_field:
-            items.sort(key=lambda x: x.get(sort_field) or 0, reverse=(sort_dir == -1))
+            items.sort(
+                key=lambda x: (str(x.get(sort_field) or ""), x.get(self.id_field) or 0),
+                reverse=(sort_dir == -1),
+            )
         else:
-            items.sort(key=lambda x: x.get(self.id_field) or 0)
+            items.sort(key=lambda x: x.get(self.id_field) or 0, reverse=True)
         return items, False
 
     async def find_paginated(
@@ -191,9 +197,12 @@ class BaseMongoRepository:
                 proj = projection if projection is not None else {"_id": 0}
                 cursor = col.find(clean_query, proj)
                 if sort_field:
-                    cursor = cursor.sort(sort_field, sort_dir)
+                    if sort_field != self.id_field:
+                        cursor = cursor.sort([(sort_field, sort_dir), (self.id_field, sort_dir)])
+                    else:
+                        cursor = cursor.sort(self.id_field, sort_dir)
                 else:
-                    cursor = cursor.sort(self.id_field, 1)
+                    cursor = cursor.sort(self.id_field, -1)
 
                 cursor = cursor.skip(skip).limit(meta.page_size)
                 items = await cursor.to_list(length=meta.page_size)
@@ -204,9 +213,12 @@ class BaseMongoRepository:
         # Fallback to in-memory cache
         filtered = list(self._memory_cache)
         if sort_field:
-            filtered.sort(key=lambda x: x.get(sort_field) or 0, reverse=(sort_dir == -1))
+            filtered.sort(
+                key=lambda x: (str(x.get(sort_field) or ""), x.get(self.id_field) or 0),
+                reverse=(sort_dir == -1),
+            )
         else:
-            filtered.sort(key=lambda x: x.get(self.id_field) or 0)
+            filtered.sort(key=lambda x: x.get(self.id_field) or 0, reverse=True)
 
         total_items = len(filtered)
         meta = PaginationMeta.create(page=page, page_size=page_size, total_items=total_items)
@@ -327,7 +339,7 @@ class BaseMongoRepository:
         clean_update = dict(update_data)
         clean_update.pop("_id", None)
         clean_update.pop(self.id_field, None)
-        clean_update["updated_at"] = current_timestamp_str()
+        clean_update["updated_at"] = update_data.get("updated_at") or current_timestamp_str()
 
         col = self.get_collection(db)
         if col is not None:

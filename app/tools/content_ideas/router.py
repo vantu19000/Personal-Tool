@@ -128,7 +128,7 @@ async def content_ideas_products(
     niche: str = "all",
     page: int = 1,
     page_size: int = 15,
-    sort_by: str = "id",
+    sort_by: str = "updated_at",
 ):
     """My Products & Publishing Channels management screen."""
     from app.core.database import get_mongo_database
@@ -156,7 +156,7 @@ async def content_ideas_sources(
     province: str = "all",
     page: int = 1,
     page_size: int = 15,
-    sort_by: str = "priority",
+    sort_by: str = "updated_at",
 ):
     """Monitored Sources management screen."""
     from app.core.database import get_mongo_database
@@ -188,7 +188,7 @@ async def content_ideas_articles(
     view_mode: str = "grid",
     page: int = 1,
     page_size: int = 6,
-    sort_by: str = "newest",
+    sort_by: str = "updated_at",
 ):
     """Crawled Articles feed and explorer backed by database."""
     from app.core.database import get_mongo_database
@@ -220,7 +220,7 @@ async def content_ideas_ideas(
     view_mode: str = "grid",
     page: int = 1,
     page_size: int = 6,
-    sort_by: str = "newest",
+    sort_by: str = "updated_at",
 ):
     """AI Generated Content Ideas list backed by database."""
     from app.core.database import get_mongo_database

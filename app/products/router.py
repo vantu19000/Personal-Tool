@@ -91,7 +91,7 @@ async def products_page(
     niche: str = "all",
     page: int = 1,
     page_size: int = 15,
-    sort_by: str = "id",
+    sort_by: str = "updated_at",
     db: Any = Depends(get_db),
 ):
     """Render the My Products / Channels Management screen."""
@@ -144,7 +144,7 @@ async def api_list_products(
     niche: str = "all",
     page: int = 1,
     page_size: int = 20,
-    sort_by: str = "id",
+    sort_by: str = "updated_at",
     db: Any = Depends(get_db),
 ):
     """Return JSON list of user products / channels with pagination."""

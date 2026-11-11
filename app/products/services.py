@@ -220,9 +220,9 @@ async def list_products(
     niche_filter: str = "all",
     page: int = 1,
     page_size: int = 20,
-    sort_by: str = "id",
+    sort_by: str = "updated_at",
 ) -> Dict[str, Any]:
-    """Retrieve filtered, paginated list of user products / channels."""
+    """Retrieve filtered, paginated list of user products / channels (default order: updated_at desc)."""
     await init_products_collection(db)
 
     query: Dict[str, Any] = {}
@@ -250,8 +250,9 @@ async def list_products(
             {"tags": regex_pattern},
         ]
 
-    sort_field = "id"
-    sort_dir = 1
+    # Sort logic: default updated_at desc
+    sort_field = "updated_at"
+    sort_dir = -1
     if sort_by == "name":
         sort_field = "name"
         sort_dir = 1
@@ -263,6 +264,12 @@ async def list_products(
         sort_dir = -1
     elif sort_by == "created_at":
         sort_field = "created_at"
+        sort_dir = -1
+    elif sort_by == "id":
+        sort_field = "id"
+        sort_dir = -1
+    else:  # "updated_at" or default
+        sort_field = "updated_at"
         sort_dir = -1
 
     page = max(1, page)
@@ -340,7 +347,7 @@ async def create_product(data: Dict[str, Any], db: Optional[Any] = None) -> Dict
     elif not isinstance(tags, list):
         tags = []
 
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     doc = {
         "id": highest_id,
@@ -376,7 +383,7 @@ async def update_product(product_id: int, data: Dict[str, Any], db: Optional[Any
         return None
 
     update_payload: Dict[str, Any] = {
-        "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M")
+        "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
     allowed_fields = [

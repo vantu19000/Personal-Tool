@@ -190,9 +190,10 @@
                     <select name="sort_by"
                             onchange="this.form.submit()"
                             class="grow px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer">
-                        <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Mới nhất</option>
+                        <option value="updated_at" {% if sort_by == 'updated_at' or not sort_by or sort_by == 'newest' %}selected{% endif %}>Cập nhật mới nhất</option>
                         <option value="viral" {% if sort_by == 'viral' %}selected{% endif %}>Viral cao nhất</option>
                         <option value="title" {% if sort_by == 'title' %}selected{% endif %}>Tiêu đề A-Z</option>
+                        <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Ngày tạo mới nhất</option>
                     </select>
 
                     <input type="hidden" name="view_mode" id="view-mode-input" value="{{ view_mode }}">

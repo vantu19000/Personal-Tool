@@ -101,7 +101,7 @@ async def ideas_page(
     view_mode: str = "grid",
     page: int = 1,
     page_size: int = 6,
-    sort_by: str = "newest",
+    sort_by: str = "updated_at",
     db: Any = Depends(get_db),
 ):
     """Render the AI Content Ideas screen backed by database with full filters and pagination."""
@@ -161,7 +161,7 @@ async def api_list_ideas(
     product: str = "all",
     page: int = 1,
     page_size: int = 20,
-    sort_by: str = "newest",
+    sort_by: str = "updated_at",
     db: Any = Depends(get_db),
 ):
     """Return JSON list of AI ideas matching filters and pagination."""
