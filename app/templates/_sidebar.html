@@ -90,15 +90,15 @@
                         <span class="text-[9px] font-bold px-1 rounded {% if in_content_ideas and (active_sub_menu == 'dashboard' or not active_sub_menu) %}bg-white/20 text-white{% else %}bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300{% endif %}">Live</span>
                     </a>
 
-                    <!-- 2. Nguồn theo dõi -->
+                    <!-- 2. Nguồn theo dõi (Source Management) -->
                     <a href="/tools/content-ideas/sources"
                        class="flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-medium transition
                               {% if in_content_ideas and active_sub_menu == 'sources' %}bg-violet-600 text-white font-semibold shadow-xs{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
                         <div class="flex items-center gap-2 truncate">
                             <i data-lucide="radio" class="w-3.5 h-3.5 shrink-0"></i>
-                            <span>Nguồn theo dõi</span>
+                            <span>Quản lý nguồn</span>
                         </div>
-                        <span class="text-[10px] font-mono text-slate-400">48</span>
+                        <span class="text-[9px] font-bold px-1 rounded {% if in_content_ideas and active_sub_menu == 'sources' %}bg-white/20 text-white{% else %}bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300{% endif %}">9 loại</span>
                     </a>
 
                     <!-- 3. Bài thu thập -->

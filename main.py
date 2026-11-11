@@ -21,6 +21,7 @@ from app.core.i18n import (
 from app.core.templates import templates
 from app.metadata import router as metadata_router
 from app.settings import router as settings_router
+from app.sources import router as sources_router
 from app.tools.content_ideas import router as content_ideas_router
 from app.tools.guid_generator import router as guid_generator_router
 from app.tools.hash_calculator import router as hash_calculator_router
@@ -133,6 +134,14 @@ def create_app() -> FastAPI:
 
     # Metadata suite router (Countries, etc.)
     app.include_router(metadata_router)
+
+    # Source Management router (Crawler Sources)
+    app.include_router(sources_router, tags=["crawler-sources"])
+
+    # Shortcut redirect for Crawler
+    @app.get("/crawler", include_in_schema=False)
+    async def redirect_crawler():
+        return RedirectResponse(url="/sources", status_code=307)
 
     # Database connection health check endpoint
     @app.get("/api/health/db", tags=["health"])

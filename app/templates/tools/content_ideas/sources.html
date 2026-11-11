@@ -1,87 +1,397 @@
 {% extends "base.html" %}
 
-{% block title %}Nguồn theo dõi · AI Content Ideas · {{ settings.APP_NAME }}{% endblock %}
-{% block page_title %}Nguồn theo dõi{% endblock %}
+{% block title %}Quản lý Nguồn Dữ liệu (Source Management) · AI Content Ideas · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}Quản lý Nguồn Dữ liệu (Source Management){% endblock %}
 
 {% block content %}
-<div class="space-y-7 w-full pb-10">
+<div class="space-y-6 w-full pb-12">
 
+    <!-- Suite Header Navigation -->
     {% include "tools/content_ideas/_header.html" %}
 
-    <!-- Top Action & Filter Bar -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <span>Quản lý Nguồn Quét & Kênh Theo Dõi</span>
-                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
-                    {{ sources|length }} Nguồn cấu hình
-                </span>
-            </h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Thiết lập danh sách báo điện tử, RSS feed, fanpage, tài khoản mạng xã hội cần bot cào dữ liệu định kỳ.
-            </p>
-        </div>
+    <!-- Top Action & Overview Banner -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0f172a] via-[#1e1b4b] to-[#0f172a] text-white p-6 sm:p-7 border border-indigo-950/70 shadow-xl">
+        <div class="absolute -top-20 -left-10 w-72 h-72 bg-violet-600/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-20 right-10 w-72 h-72 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
 
-        <button type="button" onclick="alert('Tính năng thêm nguồn đang kết nối vào cơ sở dữ liệu!')"
-                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition active:scale-95 cursor-pointer">
-            <i data-lucide="plus" class="w-4 h-4"></i>
-            <span>Thêm nguồn mới</span>
-        </button>
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div class="space-y-2">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                        <i data-lucide="radio" class="w-3.5 h-3.5"></i>
+                        <span>Source Management · Quản lý nguồn</span>
+                    </span>
+
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        <i data-lucide="layers" class="w-3 h-3"></i>
+                        <span>9 Loại Nguồn Crawl</span>
+                    </span>
+
+                    {% if db_connected %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>MongoDB: crawler_sources</span>
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span>Chế độ Demo Cục bộ</span>
+                    </span>
+                    {% endif %}
+                </div>
+
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                    <span>Quản lý Nguồn Dữ Liệu</span>
+                    <span class="text-xs sm:text-sm font-semibold px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-200 border border-violet-400/30">
+                        {{ total_count }} Nguồn
+                    </span>
+                </h1>
+
+                <p class="text-xs sm:text-sm text-slate-300/90 max-w-3xl leading-relaxed">
+                    Thiết lập danh mục nguồn thu thập thông tin tự động từ <strong>Website, RSS, Facebook, YouTube, TikTok, PDF, Google Drive, Manual, API</strong>. Phân tầng địa lý theo <strong>Tỉnh / Huyện / Xã</strong>, phân loại bằng <strong>Tags</strong>, lịch quét tự động, độ ưu tiên và chỉ thị <strong>AI Prompt riêng biệt</strong> cho từng kênh.
+                </p>
+            </div>
+
+            <!-- Header Action Buttons -->
+            <div class="shrink-0 flex items-center gap-2.5 flex-wrap">
+                <button type="button"
+                        onclick="triggerResetDemoSources()"
+                        class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold border border-white/20 backdrop-blur-sm transition active:scale-95 cursor-pointer"
+                        title="Khôi phục 9 nguồn mẫu tiêu chuẩn với đầy đủ Website, RSS, MXH, PDF, Drive, API">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4 text-violet-300"></i>
+                    <span>Khôi phục 9 nguồn mẫu</span>
+                </button>
+
+                <button type="button"
+                        onclick="openSourceModal()"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-violet-600/30 transition active:scale-95 cursor-pointer">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Thêm nguồn mới</span>
+                </button>
+            </div>
+        </div>
     </div>
 
-    <!-- Sources Grid / Table -->
+    <!-- 9 Loại Nguồn (Source Types Filter Tabs) -->
+    <div class="bg-white dark:bg-[#0f172a] rounded-2xl border border-slate-200/90 dark:border-slate-800/80 p-2 shadow-xs overflow-x-auto scrollbar-none">
+        <div class="flex items-center gap-2 min-w-max">
+            <!-- All types tab -->
+            <a href="?type=all{% if search %}&search={{ search }}{% endif %}{% if priority_filter != 'all' %}&priority={{ priority_filter }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if province_filter != 'all' %}&province={{ province_filter }}{% endif %}"
+               class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition {% if type_filter == 'all' or not type_filter %}bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
+                <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                <span>Tất cả loại nguồn</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded-md font-mono {% if type_filter == 'all' or not type_filter %}bg-white/20 dark:bg-black/10{% else %}bg-slate-100 dark:bg-slate-800{% endif %}">
+                    {{ stats.total_sources }}
+                </span>
+            </a>
+
+            <!-- 9 individual source type pills -->
+            {% for key, meta in source_types.items() %}
+            {% set is_curr_type = (type_filter == key) %}
+            <a href="?type={{ key }}{% if search %}&search={{ search }}{% endif %}{% if priority_filter != 'all' %}&priority={{ priority_filter }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if province_filter != 'all' %}&province={{ province_filter }}{% endif %}"
+               class="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition
+                      {% if is_curr_type %}bg-violet-600 text-white font-semibold shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                <i data-lucide="{{ meta.icon }}" class="w-3.5 h-3.5 shrink-0 {% if is_curr_type %}text-white{% else %}{{ meta.color_class }}{% endif %}"></i>
+                <span>{{ meta.label }}</span>
+                <span class="text-[10px] font-mono px-1.5 py-0.2 rounded-md {% if is_curr_type %}bg-white/20 text-white{% else %}bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400{% endif %}">
+                    {{ stats.type_counts.get(key, 0) }}
+                </span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- KPI Summary Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Card 1: Tổng nguồn -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tổng nguồn cấu hình</p>
+                <p class="text-2xl font-extrabold text-slate-900 dark:text-white font-mono mt-1">{{ stats.total_sources }}</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">9 nhóm kênh cào</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400 flex items-center justify-center">
+                <i data-lucide="radio" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Card 2: Đang hoạt động -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Đang hoạt động</p>
+                <p class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono mt-1">{{ stats.active_count }}</p>
+                <p class="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">Sẵn sàng cào tự động</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <i data-lucide="check-circle" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Card 3: Tạm dừng / Cảnh báo -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tạm dừng / Lỗi</p>
+                <p class="text-2xl font-extrabold text-amber-600 dark:text-amber-400 font-mono mt-1">{{ stats.paused_count + stats.error_count }}</p>
+                <p class="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-0.5">{{ stats.paused_count }} dừng · {{ stats.error_count }} lỗi</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                <i data-lucide="pause-circle" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Card 4: Tổng dữ liệu cào -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tổng dữ liệu đã cào</p>
+                <p class="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 font-mono mt-1">{{ stats.total_articles }}</p>
+                <p class="text-[11px] text-indigo-600/80 dark:text-indigo-400/80 mt-0.5">Bài viết & tài liệu</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <i data-lucide="database" class="w-5 h-5"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 sm:p-5 shadow-xs">
+        <form method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
+            <!-- Search Text -->
+            <div class="lg:col-span-4 relative">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text"
+                       name="search"
+                       value="{{ search }}"
+                       placeholder="Tìm theo tên nguồn, URL, tag, tỉnh thành, prompt..."
+                       class="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition">
+            </div>
+
+            <!-- Filter Type -->
+            <div class="lg:col-span-2">
+                <select name="type"
+                        class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500 transition cursor-pointer">
+                    <option value="all" {% if type_filter == 'all' or not type_filter %}selected{% endif %}>Tất cả loại (9 kênh)</option>
+                    {% for key, meta in source_types.items() %}
+                    <option value="{{ key }}" {% if type_filter == key %}selected{% endif %}>{{ meta.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filter Priority -->
+            <div class="lg:col-span-2">
+                <select name="priority"
+                        class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500 transition cursor-pointer">
+                    <option value="all" {% if priority_filter == 'all' or not priority_filter %}selected{% endif %}>Tất cả độ ưu tiên</option>
+                    {% for key, meta in priorities.items() %}
+                    <option value="{{ key }}" {% if priority_filter == key %}selected{% endif %}>Ưu tiên: {{ meta.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filter Province -->
+            <div class="lg:col-span-2">
+                <select name="province"
+                        class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500 transition cursor-pointer">
+                    <option value="all" {% if province_filter == 'all' or not province_filter %}selected{% endif %}>Tất cả địa bàn</option>
+                    <option value="Toàn quốc" {% if province_filter == 'Toàn quốc' %}selected{% endif %}>Toàn quốc</option>
+                    {% for p in provinces %}
+                    <option value="{{ p.name }}" {% if province_filter == p.name %}selected{% endif %}>{{ p.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="lg:col-span-2 flex items-center gap-2">
+                <button type="submit"
+                        class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs sm:text-sm font-semibold shadow-xs transition active:scale-95 cursor-pointer">
+                    <i data-lucide="filter" class="w-3.5 h-3.5"></i>
+                    <span>Lọc</span>
+                </button>
+                <a href="/tools/content-ideas/sources"
+                   class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                   title="Xóa bộ lọc">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sources Table Container -->
     <div class="rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 overflow-hidden shadow-xs">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs sm:text-sm border-collapse">
                 <thead>
                     <tr class="border-b border-slate-100 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
-                        <th class="p-4 pl-6">Nguồn theo dõi</th>
-                        <th class="p-4">Loại kênh</th>
-                        <th class="p-4">Chuyên mục</th>
-                        <th class="p-4">Tần suất quét</th>
-                        <th class="p-4">Bài hôm nay</th>
-                        <th class="p-4">Lần quét cuối</th>
-                        <th class="p-4">Trạng thái</th>
+                        <th class="p-4 pl-6">Nguồn & Loại kênh</th>
+                        <th class="p-4">Địa bàn (Tỉnh / Huyện / Xã)</th>
+                        <th class="p-4">Tag & AI Prompt</th>
+                        <th class="p-4">Lịch quét & Ưu tiên</th>
+                        <th class="p-4">Dữ liệu cào</th>
+                        <th class="p-4 text-center">Trạng thái</th>
                         <th class="p-4 pr-6 text-right">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80 text-slate-700 dark:text-slate-300">
                     {% for src in sources %}
-                    <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition">
-                        <td class="p-4 pl-6">
-                            <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
-                                    <i data-lucide="{{ src.icon }}" class="w-4 h-4"></i>
+                    <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition group" id="source-row-{{ src.id }}">
+                        <!-- Col 1: Name, Type, URL -->
+                        <td class="p-4 pl-6 max-w-xs">
+                            <div class="flex items-start gap-3">
+                                <div class="w-9 h-9 rounded-xl {{ src.type_bg_soft }} {{ src.type_color_class }} flex items-center justify-center shrink-0 mt-0.5 border border-slate-200/50 dark:border-slate-700/50">
+                                    <i data-lucide="{{ src.type_icon }}" class="w-4 h-4"></i>
                                 </div>
-                                <div class="min-w-0">
-                                    <p class="font-bold text-slate-900 dark:text-white truncate">{{ src.name }}</p>
-                                    <a href="{{ src.url }}" target="_blank" class="text-[11px] text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 truncate block">
-                                        {{ src.url }}
+                                <div class="min-w-0 space-y-1">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <p class="font-bold text-slate-900 dark:text-white truncate text-sm" title="{{ src.name }}">{{ src.name }}</p>
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border {{ src.type_badge_color }}">
+                                            {{ src.type_label }}
+                                        </span>
+                                    </div>
+                                    <a href="{{ src.url }}" target="_blank" rel="noopener noreferrer"
+                                       class="text-[11px] text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 truncate flex items-center gap-1 group-hover:underline"
+                                       title="{{ src.url }}">
+                                        <i data-lucide="external-link" class="w-3 h-3 shrink-0"></i>
+                                        <span class="truncate">{{ src.url }}</span>
                                     </a>
                                 </div>
                             </div>
                         </td>
+
+                        <!-- Col 2: Province, District, Ward -->
                         <td class="p-4">
-                            <span class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                                {{ src.type_label }}
-                            </span>
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-1.5 font-medium text-slate-800 dark:text-slate-200">
+                                    <i data-lucide="map-pin" class="w-3.5 h-3.5 text-violet-500 shrink-0"></i>
+                                    <span>{{ src.province or 'Toàn quốc' }}</span>
+                                </div>
+                                {% if src.district or src.ward %}
+                                <p class="text-[11px] text-slate-400 pl-5">
+                                    {% if src.ward %}{{ src.ward }}, {% endif %}{{ src.district }}
+                                </p>
+                                {% endif %}
+                            </div>
                         </td>
-                        <td class="p-4 text-xs">{{ src.category }}</td>
-                        <td class="p-4 text-xs font-mono text-slate-500">{{ src.scan_frequency }}</td>
-                        <td class="p-4 font-mono font-bold text-slate-900 dark:text-white">{{ src.articles_today }} bài</td>
-                        <td class="p-4 text-xs text-slate-400 font-mono">{{ src.last_crawled }}</td>
-                        <td class="p-4">
-                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold {{ src.badge_color }}">
-                                {{ src.status_label }}
-                            </span>
-                        </td>
-                        <td class="p-4 pr-6 text-right">
-                            <div class="flex items-center justify-end gap-2">
-                                <button type="button" title="Quét ngay" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white">
-                                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+
+                        <!-- Col 3: Tags & AI Prompt -->
+                        <td class="p-4 max-w-xs">
+                            <div class="space-y-1.5">
+                                <!-- Tags list -->
+                                <div class="flex items-center gap-1 flex-wrap">
+                                    {% for tag in src.tags %}
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/50 dark:border-slate-700/50">
+                                        #{{ tag }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-[10px] text-slate-400 italic">Chưa gắn tag</span>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- AI Prompt trigger pill -->
+                                {% if src.ai_prompt %}
+                                <button type="button"
+                                        onclick="showPromptModal({{ src.id }}, '{{ src.name|replace("'", "\\'") }}', '{{ src.ai_prompt|replace("'", "\\'")|replace('\n', ' ') }}')"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 transition cursor-pointer"
+                                        title="Bấm để xem toàn văn AI Prompt riêng của nguồn này">
+                                    <i data-lucide="sparkles" class="w-3 h-3 text-purple-500"></i>
+                                    <span>AI Prompt riêng</span>
                                 </button>
-                                <button type="button" title="Chỉnh sửa" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white">
+                                {% else %}
+                                <button type="button"
+                                        onclick="openEditSourceModal({{ src.id }})"
+                                        class="inline-flex items-center gap-1 text-[10px] text-slate-400 hover:text-violet-500 cursor-pointer">
+                                    <i data-lucide="plus-circle" class="w-3 h-3"></i>
+                                    <span>Thêm Prompt</span>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- Col 4: Schedule & Priority -->
+                        <td class="p-4">
+                            <div class="space-y-1.5">
+                                <div class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 font-mono">
+                                    <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-400"></i>
+                                    <span>{{ src.schedule_label }}</span>
+                                </div>
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border {{ src.priority_badge_color }}">
+                                    <i data-lucide="{{ src.priority_icon }}" class="w-2.5 h-2.5"></i>
+                                    <span>Ưu tiên: {{ src.priority_label }}</span>
+                                </span>
+                            </div>
+                        </td>
+
+                        <!-- Col 5: Data stats -->
+                        <td class="p-4">
+                            <div>
+                                <p class="font-mono font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
+                                    <span id="articles-count-{{ src.id }}">{{ src.articles_count }}</span> bài
+                                </p>
+                                <p class="text-[11px] text-slate-400 font-mono mt-0.5">
+                                    Quét: <span id="last-scanned-{{ src.id }}">{{ src.last_scanned_at or 'Chưa' }}</span>
+                                </p>
+                            </div>
+                        </td>
+
+                        <!-- Col 6: Status Toggle -->
+                        <td class="p-4 text-center">
+                            <div class="inline-flex flex-col items-center gap-1">
+                                <button type="button"
+                                        onclick="toggleSourceStatus({{ src.id }})"
+                                        id="btn-status-toggle-{{ src.id }}"
+                                        class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {% if src.status == 'active' %}bg-emerald-500{% else %}bg-slate-300 dark:bg-slate-700{% endif %}"
+                                        title="Bật/Tắt nguồn">
+                                    <span class="sr-only">Toggle status</span>
+                                    <span id="status-toggle-dot-{{ src.id }}"
+                                          class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {% if src.status == 'active' %}translate-x-4{% else %}translate-x-0{% endif %}"></span>
+                                </button>
+                                <span id="status-text-{{ src.id }}" class="text-[10px] font-semibold {% if src.status == 'active' %}text-emerald-600 dark:text-emerald-400{% else %}text-slate-400{% endif %}">
+                                    {{ src.status_label }}
+                                </span>
+                            </div>
+                        </td>
+
+                        <!-- Col 7: Actions -->
+                        <td class="p-4 pr-6 text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <!-- Trigger scan instant -->
+                                <button type="button"
+                                        onclick="triggerScanSingle({{ src.id }})"
+                                        id="btn-scan-{{ src.id }}"
+                                        title="Quét nguồn này ngay"
+                                        class="p-1.5 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-950/50 text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 transition cursor-pointer">
+                                    <i data-lucide="refresh-cw" id="scan-icon-{{ src.id }}" class="w-3.5 h-3.5"></i>
+                                </button>
+
+                                <!-- Edit Source -->
+                                <button type="button"
+                                        onclick="openEditSourceModal({{ src.id }})"
+                                        title="Chỉnh sửa cấu hình nguồn"
+                                        class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
                                     <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                </button>
+
+                                <!-- Delete Source -->
+                                <button type="button"
+                                        onclick="confirmDeleteSource({{ src.id }}, '{{ src.name|replace("'", "\\'") }}')"
+                                        title="Xóa nguồn"
+                                        class="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="p-12 text-center text-slate-400">
+                            <div class="max-w-sm mx-auto space-y-3">
+                                <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                                    <i data-lucide="inbox" class="w-6 h-6"></i>
+                                </div>
+                                <p class="text-sm font-semibold text-slate-600 dark:text-slate-300">Không tìm thấy nguồn dữ liệu nào phù hợp</p>
+                                <p class="text-xs text-slate-400">Thử thay đổi từ khóa tìm kiếm hoặc đặt lại các bộ lọc loại nguồn, độ ưu tiên.</p>
+                                <button type="button" onclick="triggerResetDemoSources()"
+                                        class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-violet-600 text-white text-xs font-semibold hover:bg-violet-500 transition">
+                                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                                    <span>Khôi phục 9 nguồn mẫu</span>
                                 </button>
                             </div>
                         </td>
@@ -90,7 +400,611 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Pagination -->
+        {% if pagination and pagination.total_pages > 1 %}
+        <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
+            {% include "_pagination.html" %}
+        </div>
+        {% endif %}
     </div>
 
 </div>
+
+<!-- ======================================================================= -->
+<!-- MODAL: THÊM / CHỈNH SỬA NGUỒN CÀO (SOURCE MODAL)                        -->
+<!-- ======================================================================= -->
+<div id="source-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="relative w-full max-w-2xl rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform animate-in fade-in zoom-in duration-200 my-8">
+        
+        <!-- Modal Header -->
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center">
+                    <i data-lucide="radio" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 id="modal-title" class="text-base font-bold text-slate-900 dark:text-white">Thêm Nguồn Dữ Liệu Mới</h3>
+                    <p class="text-xs text-slate-400">Cấu hình chi tiết thông số cào dữ liệu và AI Prompt phân tích</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeSourceModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Form Body -->
+        <form id="source-form" onsubmit="saveSourceForm(event)" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+            <input type="hidden" id="form-source-id" value="">
+
+            <!-- Row 1: Tên nguồn & Loại -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="sm:col-span-2 space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Tên nguồn <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" id="form-name" required placeholder="Ví dụ: VnExpress - Bất động sản, CafeF..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Loại nguồn <span class="text-rose-500">*</span>
+                    </label>
+                    <select id="form-type" required
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:outline-none cursor-pointer">
+                        <option value="website">Website</option>
+                        <option value="rss">RSS</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="youtube">Youtube</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="pdf">PDF</option>
+                        <option value="gdrive">Google Drive</option>
+                        <option value="manual">Manual</option>
+                        <option value="api">API</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 2: URL / Endpoint -->
+            <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Đường dẫn URL / Endpoint / Drive Link <span class="text-rose-500">*</span>
+                </label>
+                <input type="text" id="form-url" required placeholder="https://vnexpress.net/..., https://tuoitre.vn/rss/..., https://facebook.com/..."
+                       class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-violet-500 focus:outline-none">
+            </div>
+
+            <!-- Row 3: Địa bàn hành chính 3 cấp (Tỉnh - Huyện - Xã) -->
+            <div class="space-y-1.5 pt-1">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5 text-violet-500"></i>
+                    <span>Phạm vi địa bàn (Tỉnh / Huyện / Xã)</span>
+                </label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <select id="form-province"
+                                class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:outline-none cursor-pointer">
+                            <option value="Toàn quốc">Toàn quốc (Không giới hạn)</option>
+                            {% for p in provinces %}
+                            <option value="{{ p.name }}">{{ p.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <input type="text" id="form-district" placeholder="Huyện / Quận (vd: Cầu Giấy, Q.1)"
+                               class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <input type="text" id="form-ward" placeholder="Xã / Phường (vd: Dịch Vọng Hậu)"
+                               class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 4: Tag & Lịch quét & Độ ưu tiên & Trạng thái -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Tag -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Tag (phân cách bằng dấu phẩy)
+                    </label>
+                    <input type="text" id="form-tags" placeholder="Bất động sản, Quy hoạch, Giá đất, Kinh tế..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                </div>
+
+                <!-- Lịch quét -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Lịch quét định kỳ
+                    </label>
+                    <select id="form-schedule"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:outline-none cursor-pointer">
+                        <option value="15_min">15 phút/lần</option>
+                        <option value="30_min">30 phút/lần</option>
+                        <option value="1_hour" selected>1 giờ/lần</option>
+                        <option value="3_hours">3 giờ/lần</option>
+                        <option value="6_hours">6 giờ/lần</option>
+                        <option value="12_hours">12 giờ/lần</option>
+                        <option value="daily">Hàng ngày (06:00)</option>
+                        <option value="weekly">Hàng tuần</option>
+                        <option value="manual">Quét thủ công</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 5: Độ ưu tiên & Trạng thái -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Độ ưu tiên
+                    </label>
+                    <select id="form-priority"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:outline-none cursor-pointer">
+                        <option value="urgent">Khẩn cấp (P1 - Quét trước)</option>
+                        <option value="high">Cao (P2)</option>
+                        <option value="medium" selected>Trung bình (P3)</option>
+                        <option value="low">Thấp (P4)</option>
+                    </select>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Trạng thái ban đầu
+                    </label>
+                    <select id="form-status"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:outline-none cursor-pointer">
+                        <option value="active" selected>Đang hoạt động (Active)</option>
+                        <option value="paused">Tạm dừng (Paused)</option>
+                        <option value="pending">Chờ duyệt cấu hình (Pending)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 6: AI Prompt Riêng -->
+            <div class="space-y-2 pt-1">
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-500"></i>
+                        <span>AI Prompt riêng cho nguồn này</span>
+                    </label>
+                    <span class="text-[11px] text-slate-400">Chỉ thị cho AI khi phân tích & trích xuất tin</span>
+                </div>
+
+                <!-- Quick AI Prompt Templates pills -->
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] text-slate-400 font-medium">Gợi ý mẫu:</span>
+                    <button type="button" onclick="insertPromptTemplate('bds')"
+                            class="px-2 py-0.5 rounded-md text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-950/60 text-slate-600 dark:text-slate-400 hover:text-purple-600 transition cursor-pointer">
+                        + BĐS & Giá đất
+                    </button>
+                    <button type="button" onclick="insertPromptTemplate('vimo')"
+                            class="px-2 py-0.5 rounded-md text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-950/60 text-slate-600 dark:text-slate-400 hover:text-purple-600 transition cursor-pointer">
+                        + Tóm tắt vĩ mô
+                    </button>
+                    <button type="button" onclick="insertPromptTemplate('tiktok')"
+                            class="px-2 py-0.5 rounded-md text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-950/60 text-slate-600 dark:text-slate-400 hover:text-purple-600 transition cursor-pointer">
+                        + Video Hook Viral
+                    </button>
+                    <button type="button" onclick="insertPromptTemplate('pdf')"
+                            class="px-2 py-0.5 rounded-md text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-950/60 text-slate-600 dark:text-slate-400 hover:text-purple-600 transition cursor-pointer">
+                        + OCR Văn bản PDF
+                    </button>
+                </div>
+
+                <textarea id="form-ai-prompt" rows="3"
+                          placeholder="Ví dụ: Trích xuất tiêu đề chính, phân tích 3 biến động giá đất nổi bật và đề xuất 2 góc viết nội dung cho nhà đầu tư cá nhân..."
+                          class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:outline-none leading-relaxed"></textarea>
+            </div>
+
+            <!-- Row 7: Ghi chú / Mô tả -->
+            <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Ghi chú / Mô tả nguồn
+                </label>
+                <textarea id="form-description" rows="2" placeholder="Ghi chú thêm về tần suất, tài khoản hoặc đặc thù nguồn..."
+                          class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:outline-none"></textarea>
+            </div>
+
+            <!-- Modal Footer Actions -->
+            <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeSourceModal()"
+                        class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs sm:text-sm font-semibold transition cursor-pointer">
+                    Hủy bỏ
+                </button>
+                <button type="submit" id="btn-save-source"
+                        class="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition active:scale-95 cursor-pointer">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>Lưu cấu hình nguồn</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL: XEM TOÀN VĂN AI PROMPT RIÊNG                                     -->
+<!-- ======================================================================= -->
+<div id="prompt-view-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="relative w-full max-w-lg rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden p-6 space-y-4 animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-slate-900 dark:text-white" id="prompt-modal-source-name">AI Prompt Riêng</h4>
+                    <p class="text-[11px] text-slate-400">Chỉ thị tùy biến áp dụng cho nguồn crawl này</p>
+                </div>
+            </div>
+            <button type="button" onclick="closePromptModal()" class="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <div class="rounded-2xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200/60 dark:border-purple-900/50 p-4">
+            <p id="prompt-modal-content" class="text-xs sm:text-sm text-purple-950 dark:text-purple-200 leading-relaxed font-mono whitespace-pre-wrap"></p>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+            <span class="text-[11px] text-slate-400">Có hiệu lực khi AI Agent xử lý bài thu thập</span>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="copyPromptToClipboard()" id="btn-copy-prompt"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                    <span id="copy-prompt-text">Sao chép</span>
+                </button>
+                <button type="button" onclick="editFromPromptModal()"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition cursor-pointer">
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                    <span>Chỉnh sửa Prompt</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL: XÁC NHẬN XÓA NGUỒN                                               -->
+<!-- ======================================================================= -->
+<div id="delete-source-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="relative w-full max-w-md rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden p-6 space-y-4 animate-in fade-in zoom-in duration-200">
+        <div class="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+            <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+        </div>
+
+        <div class="text-center space-y-1.5">
+            <h4 class="text-base font-bold text-slate-900 dark:text-white">Xác nhận xóa nguồn cào?</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Bạn có chắc chắn muốn xóa nguồn <strong id="delete-source-name" class="text-slate-900 dark:text-white"></strong>? Thao tác này sẽ dừng cào dữ liệu từ kênh này.
+            </p>
+        </div>
+
+        <div class="flex items-center justify-center gap-3 pt-2">
+            <button type="button" onclick="closeDeleteModal()"
+                    class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs sm:text-sm font-semibold transition cursor-pointer">
+                Hủy bỏ
+            </button>
+            <button type="button" id="btn-confirm-delete" onclick="executeDeleteSource()"
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-semibold shadow-xs transition active:scale-95 cursor-pointer">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                <span>Xác nhận xóa</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- TOAST NOTIFICATION                                                      -->
+<!-- ======================================================================= -->
+<div id="source-toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xl border border-slate-700/50 dark:border-slate-200">
+        <div id="source-toast-icon-wrap" class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 dark:text-emerald-600 flex items-center justify-center shrink-0">
+            <i data-lucide="check" class="w-4 h-4"></i>
+        </div>
+        <div>
+            <p id="source-toast-title" class="text-xs font-bold leading-tight">Thành công</p>
+            <p id="source-toast-desc" class="text-[11px] opacity-80 mt-0.5">Thao tác hoàn tất.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let activePromptSourceId = null;
+    let pendingDeleteId = null;
+
+    // Toast helper
+    function showSourceToast(title, desc, isError = false) {
+        const toast = document.getElementById('source-toast');
+        const tTitle = document.getElementById('source-toast-title');
+        const tDesc = document.getElementById('source-toast-desc');
+        const iconWrap = document.getElementById('source-toast-icon-wrap');
+
+        tTitle.textContent = title;
+        tDesc.textContent = desc;
+
+        if (isError) {
+            iconWrap.className = 'w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 dark:text-rose-600 flex items-center justify-center shrink-0';
+            iconWrap.innerHTML = '<i data-lucide="alert-circle" class="w-4 h-4"></i>';
+        } else {
+            iconWrap.className = 'w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 dark:text-emerald-600 flex items-center justify-center shrink-0';
+            iconWrap.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
+        }
+
+        if (window.lucide) window.lucide.createIcons();
+
+        toast.classList.remove('translate-y-24', 'opacity-0');
+        setTimeout(() => {
+            toast.classList.add('translate-y-24', 'opacity-0');
+        }, 3200);
+    }
+
+    // AI Prompt templates insert
+    function insertPromptTemplate(type) {
+        const promptArea = document.getElementById('form-ai-prompt');
+        let text = '';
+        if (type === 'bds') {
+            text = 'Trích xuất tiêu đề chính, phân tích 3 biến động giá đất nổi bật và đề xuất 2 góc viết nội dung cho nhà đầu tư cá nhân.';
+        } else if (type === 'vimo') {
+            text = 'Bóc tách các chỉ số kinh tế vĩ mô, lãi suất và nhận định tác động tới các doanh nghiệp sản xuất trong quý tới.';
+        } else if (type === 'tiktok') {
+            text = 'Lấy transcript, tóm tắt bản tin 60 giây và gợi ý 3 hook câu mở đầu hấp dẫn, viral cho video ngắn TikTok/Reels.';
+        } else if (type === 'pdf') {
+            text = 'Đọc và bóc tách bảng số liệu quy hoạch, diện tích, chỉ tiêu tầng cao, căn cứ pháp lý và đơn vị phê duyệt đồ án.';
+        }
+        promptArea.value = text;
+        promptArea.focus();
+    }
+
+    // Open Modal Add
+    function openSourceModal() {
+        document.getElementById('modal-title').textContent = 'Thêm Nguồn Dữ Liệu Mới';
+        document.getElementById('form-source-id').value = '';
+        document.getElementById('form-name').value = '';
+        document.getElementById('form-type').value = 'website';
+        document.getElementById('form-url').value = '';
+        document.getElementById('form-province').value = 'Toàn quốc';
+        document.getElementById('form-district').value = '';
+        document.getElementById('form-ward').value = '';
+        document.getElementById('form-tags').value = '';
+        document.getElementById('form-schedule').value = '1_hour';
+        document.getElementById('form-priority').value = 'medium';
+        document.getElementById('form-status').value = 'active';
+        document.getElementById('form-ai-prompt').value = '';
+        document.getElementById('form-description').value = '';
+
+        document.getElementById('source-modal').classList.remove('hidden');
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function closeSourceModal() {
+        document.getElementById('source-modal').classList.add('hidden');
+    }
+
+    // Open Modal Edit
+    async function openEditSourceModal(id) {
+        try {
+            const resp = await fetch(`/api/sources/${id}`);
+            const data = await resp.json();
+            if (!data.ok || !data.source) {
+                showSourceToast('Lỗi', 'Không thể tải thông tin nguồn', true);
+                return;
+            }
+            const src = data.source;
+
+            document.getElementById('modal-title').textContent = 'Chỉnh Sửa Cấu Hình Nguồn #' + src.id;
+            document.getElementById('form-source-id').value = src.id;
+            document.getElementById('form-name').value = src.name || '';
+            document.getElementById('form-type').value = src.type || 'website';
+            document.getElementById('form-url').value = src.url || '';
+            document.getElementById('form-province').value = src.province || 'Toàn quốc';
+            document.getElementById('form-district').value = src.district || '';
+            document.getElementById('form-ward').value = src.ward || '';
+            document.getElementById('form-tags').value = Array.isArray(src.tags) ? src.tags.join(', ') : (src.tags || '');
+            document.getElementById('form-schedule').value = src.schedule || '1_hour';
+            document.getElementById('form-priority').value = src.priority || 'medium';
+            document.getElementById('form-status').value = src.status || 'active';
+            document.getElementById('form-ai-prompt').value = src.ai_prompt || '';
+            document.getElementById('form-description').value = src.description || '';
+
+            document.getElementById('source-modal').classList.remove('hidden');
+            if (window.lucide) window.lucide.createIcons();
+        } catch (e) {
+            showSourceToast('Lỗi', 'Không thể kết nối đến máy chủ', true);
+        }
+    }
+
+    // Save Source Form (Add or Edit)
+    async function saveSourceForm(evt) {
+        evt.preventDefault();
+        const id = document.getElementById('form-source-id').value;
+        const btn = document.getElementById('btn-save-source');
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Đang lưu...</span>';
+        if (window.lucide) window.lucide.createIcons();
+
+        const formData = new FormData();
+        formData.append('name', document.getElementById('form-name').value.trim());
+        formData.append('type', document.getElementById('form-type').value);
+        formData.append('url', document.getElementById('form-url').value.trim());
+        formData.append('province', document.getElementById('form-province').value);
+        formData.append('district', document.getElementById('form-district').value.trim());
+        formData.append('ward', document.getElementById('form-ward').value.trim());
+        formData.append('tags', document.getElementById('form-tags').value.trim());
+        formData.append('schedule', document.getElementById('form-schedule').value);
+        formData.append('priority', document.getElementById('form-priority').value);
+        formData.append('status', document.getElementById('form-status').value);
+        formData.append('ai_prompt', document.getElementById('form-ai-prompt').value.trim());
+        formData.append('description', document.getElementById('form-description').value.trim());
+
+        const url = id ? `/api/sources/${id}/edit` : '/api/sources';
+
+        try {
+            const resp = await fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
+            const res = await resp.json();
+            if (res.ok) {
+                closeSourceModal();
+                showSourceToast('Thành công', id ? 'Đã cập nhật nguồn thành công!' : 'Đã thêm nguồn dữ liệu mới!');
+                setTimeout(() => window.location.reload(), 600);
+            } else {
+                showSourceToast('Lỗi', res.error || 'Có lỗi khi lưu', true);
+            }
+        } catch (err) {
+            showSourceToast('Lỗi', 'Không thể kết nối máy chủ', true);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i><span>Lưu cấu hình nguồn</span>';
+            if (window.lucide) window.lucide.createIcons();
+        }
+    }
+
+    // Toggle Status
+    async function toggleSourceStatus(id) {
+        const btn = document.getElementById(`btn-status-toggle-${id}`);
+        const dot = document.getElementById(`status-toggle-dot-${id}`);
+        const txt = document.getElementById(`status-text-${id}`);
+
+        try {
+            const resp = await fetch(`/api/sources/${id}/toggle-status`, { method: 'POST' });
+            const res = await resp.json();
+            if (res.ok && res.source) {
+                const s = res.source;
+                if (s.status === 'active') {
+                    btn.className = 'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-emerald-500';
+                    dot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-4';
+                    txt.className = 'text-[10px] font-semibold text-emerald-600 dark:text-emerald-400';
+                    txt.textContent = 'Đang hoạt động';
+                    showSourceToast('Đã kích hoạt', `Nguồn ${s.name} đã sẵn sàng cào.`);
+                } else {
+                    btn.className = 'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-slate-300 dark:bg-slate-700';
+                    dot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0';
+                    txt.className = 'text-[10px] font-semibold text-slate-400';
+                    txt.textContent = 'Tạm dừng';
+                    showSourceToast('Đã tạm dừng', `Nguồn ${s.name} đã được tạm dừng.`);
+                }
+            }
+        } catch (e) {
+            showSourceToast('Lỗi', 'Không thể chuyển đổi trạng thái', true);
+        }
+    }
+
+    // Trigger Instant Scan
+    async function triggerScanSingle(id) {
+        const icon = document.getElementById(`scan-icon-${id}`);
+        if (icon) icon.classList.add('animate-spin');
+
+        try {
+            const resp = await fetch(`/api/sources/${id}/scan`, { method: 'POST' });
+            const res = await resp.json();
+            if (res.ok && res.source) {
+                const countEl = document.getElementById(`articles-count-${id}`);
+                const lastEl = document.getElementById(`last-scanned-${id}`);
+                if (countEl) countEl.textContent = res.source.articles_count;
+                if (lastEl) lastEl.textContent = res.source.last_scanned_at;
+                showSourceToast('Quét hoàn tất', res.message || 'Đã thu thập dữ liệu mới!');
+            } else {
+                showSourceToast('Lỗi quét', res.error || 'Quét thất bại', true);
+            }
+        } catch (e) {
+            showSourceToast('Lỗi', 'Không thể gửi lệnh quét', true);
+        } finally {
+            if (icon) icon.classList.remove('animate-spin');
+        }
+    }
+
+    // Reset Demo Sources
+    async function triggerResetDemoSources() {
+        if (!confirm('Khôi phục lại danh sách 9 nguồn mẫu tiêu chuẩn (Website, RSS, Facebook, Youtube, TikTok, PDF, Google Drive, Manual, API)?')) return;
+        try {
+            const resp = await fetch('/api/sources/reset-demo', { method: 'POST' });
+            const res = await resp.json();
+            if (res.ok) {
+                showSourceToast('Khôi phục thành công', res.message);
+                setTimeout(() => window.location.reload(), 600);
+            }
+        } catch (e) {
+            showSourceToast('Lỗi', 'Không thể khôi phục nguồn mẫu', true);
+        }
+    }
+
+    // AI Prompt View Modal
+    function showPromptModal(id, name, prompt) {
+        activePromptSourceId = id;
+        document.getElementById('prompt-modal-source-name').textContent = name;
+        document.getElementById('prompt-modal-content').textContent = prompt;
+        document.getElementById('copy-prompt-text').textContent = 'Sao chép';
+        document.getElementById('prompt-view-modal').classList.remove('hidden');
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function closePromptModal() {
+        document.getElementById('prompt-view-modal').classList.add('hidden');
+    }
+
+    function copyPromptToClipboard() {
+        const text = document.getElementById('prompt-modal-content').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            document.getElementById('copy-prompt-text').textContent = 'Đã sao chép!';
+            showSourceToast('Đã sao chép', 'Đã lưu AI Prompt vào bộ nhớ tạm.');
+            setTimeout(() => {
+                const btn = document.getElementById('copy-prompt-text');
+                if (btn) btn.textContent = 'Sao chép';
+            }, 2000);
+        });
+    }
+
+    function editFromPromptModal() {
+        const id = activePromptSourceId;
+        closePromptModal();
+        if (id) openEditSourceModal(id);
+    }
+
+    // Delete Modal
+    function confirmDeleteSource(id, name) {
+        pendingDeleteId = id;
+        document.getElementById('delete-source-name').textContent = name;
+        document.getElementById('delete-source-modal').classList.remove('hidden');
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('delete-source-modal').classList.add('hidden');
+        pendingDeleteId = null;
+    }
+
+    async function executeDeleteSource() {
+        if (!pendingDeleteId) return;
+        const btn = document.getElementById('btn-confirm-delete');
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Đang xóa...</span>';
+        if (window.lucide) window.lucide.createIcons();
+
+        try {
+            const resp = await fetch(`/api/sources/${pendingDeleteId}/delete`, {
+                method: 'POST',
+                headers: { 'Accept': 'application/json' }
+            });
+            const res = await resp.json();
+            if (res.ok) {
+                closeDeleteModal();
+                showSourceToast('Đã xóa', 'Nguồn cào dữ liệu đã được gỡ bỏ.');
+                const row = document.getElementById(`source-row-${pendingDeleteId}`);
+                if (row) row.remove();
+                setTimeout(() => window.location.reload(), 600);
+            } else {
+                showSourceToast('Lỗi', res.error || 'Không thể xóa', true);
+            }
+        } catch (e) {
+            showSourceToast('Lỗi', 'Không thể kết nối máy chủ', true);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4"></i><span>Xác nhận xóa</span>';
+            if (window.lucide) window.lucide.createIcons();
+        }
+    }
+</script>
 {% endblock %}

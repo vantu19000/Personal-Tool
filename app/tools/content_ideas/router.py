@@ -112,18 +112,31 @@ async def content_ideas_dashboard(request: Request):
 
 
 @router.get("/content-ideas/sources", name="content-ideas-sources")
-async def content_ideas_sources(request: Request):
-    """Monitored Sources management."""
-    return templates.TemplateResponse(
-        request,
-        "tools/content_ideas/sources.html",
-        {
-            "active_tool": "content-ideas",
-            "active_sub_menu": "sources",
-            "sub_menus": CONTENT_IDEAS_MENUS,
-            "sources": MONITORED_SOURCES,
-            "metrics": OVERVIEW_METRICS,
-        },
+async def content_ideas_sources(
+    request: Request,
+    search: str = "",
+    type: str = "all",
+    priority: str = "all",
+    status: str = "all",
+    province: str = "all",
+    page: int = 1,
+    page_size: int = 15,
+    sort_by: str = "priority",
+):
+    """Monitored Sources management screen."""
+    from app.core.database import get_mongo_database
+    from app.sources.router import sources_page
+    return await sources_page(
+        request=request,
+        search=search,
+        type=type,
+        priority=priority,
+        status=status,
+        province=province,
+        page=page,
+        page_size=page_size,
+        sort_by=sort_by,
+        db=get_mongo_database(),
     )
 
 
