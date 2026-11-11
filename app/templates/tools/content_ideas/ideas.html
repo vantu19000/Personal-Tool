@@ -1,81 +1,399 @@
 {% extends "base.html" %}
 
 {% block title %}Ý tưởng AI · AI Content Ideas · {{ settings.APP_NAME }}{% endblock %}
-{% block page_title %}Ý tưởng AI{% endblock %}
+{% block page_title %}Kho Ý Tưởng AI (AI Ideas){% endblock %}
 
 {% block content %}
-<div class="space-y-7 w-full pb-10">
+<div class="space-y-6 w-full pb-12">
 
+    <!-- Suite Header Navigation -->
     {% include "tools/content_ideas/_header.html" %}
 
-    <!-- Top Action Bar -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <span>Kho Ý Tưởng Nội Dung Đã Trích Xuất (AI Ideas)</span>
-                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
-                    {{ ideas|length }} Ý tưởng
-                </span>
-            </h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Các góc tiếp cận độc đáo, tiêu đề hút click và dàn ý bài viết do AI gợi ý từ dữ liệu quét thời gian thực.
-            </p>
-        </div>
+    <!-- Top Action & Overview Banner -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#170e30] via-[#221245] to-[#120826] text-white p-6 sm:p-7 border border-purple-950/70 shadow-xl">
+        <div class="absolute -top-20 -left-10 w-72 h-72 bg-purple-600/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-20 right-10 w-72 h-72 bg-violet-600/15 rounded-full blur-3xl pointer-events-none"></div>
 
-        <button type="button" onclick="alert('Tính năng sinh ý tưởng theo prompt tùy chỉnh đang được khởi tạo!')"
-                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition active:scale-95 cursor-pointer">
-            <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
-            <span>Sinh ý tưởng mới</span>
-        </button>
-    </div>
-
-    <!-- Ideas Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {% for idea in ideas %}
-        <div class="rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 shadow-xs flex flex-col justify-between space-y-4 hover:border-violet-500/50 hover:shadow-md transition">
-            <div class="space-y-3">
-                <div class="flex items-center justify-between gap-2">
-                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-md {{ idea.status_color }}">
-                        {{ idea.status_label }}
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div class="space-y-2">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i>
+                        <span>AI Content Ideas · Kho Ý Tưởng Sáng Tạo</span>
                     </span>
 
-                    <div class="flex items-center gap-1 text-xs">
-                        <span class="text-slate-400 text-[10px] uppercase font-bold">Viral Score:</span>
-                        <span class="font-mono font-extrabold text-violet-600 dark:text-violet-400 text-sm">{{ idea.viral_score }}</span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                        <i data-lucide="layers" class="w-3 h-3"></i>
+                        <span>Đa kênh & Đa định dạng</span>
+                    </span>
+
+                    {% if db_connected %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>MongoDB: ai_ideas</span>
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span>Chế độ Demo Cục bộ</span>
+                    </span>
+                    {% endif %}
+                </div>
+
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                    <span>Kho Ý Tưởng Nội Dung Đã Trích Xuất</span>
+                    <span class="text-xs sm:text-sm font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-200 border border-purple-400/30">
+                        {{ total_count }} Ý tưởng trong DB
+                    </span>
+                </h1>
+
+                <p class="text-xs sm:text-sm text-slate-300/90 max-w-3xl leading-relaxed">
+                    Các góc nhìn độc đáo, kịch bản video ngắn, tiêu đề hút click và dàn ý chi tiết do AI phân tích tự động từ dữ liệu quét thời gian thực. Sẵn sàng điều hướng xuất bản tới các kênh YouTube, TikTok, Blog, Fanpage của bạn.
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="shrink-0 flex items-center gap-2.5 flex-wrap">
+                <button type="button"
+                        onclick="triggerResetDemoIdeas()"
+                        class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold border border-white/20 backdrop-blur-sm transition active:scale-95 cursor-pointer"
+                        title="Khôi phục lại danh sách ý tưởng mẫu trong DB">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4 text-purple-300"></i>
+                    <span>Khôi phục mẫu</span>
+                </button>
+
+                <button type="button"
+                        onclick="openGenerateIdeaModal()"
+                        class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-purple-500/25 hover:bg-purple-500/35 text-purple-200 text-xs sm:text-sm font-semibold border border-purple-400/30 transition active:scale-95 cursor-pointer">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+                    <span>AI Sinh ý tưởng</span>
+                </button>
+
+                <button type="button"
+                        onclick="openIdeaModal()"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-purple-600/30 transition active:scale-95 cursor-pointer">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Thêm ý tưởng mới</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Summary Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Card 1: Tổng ý tưởng -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tổng ý tưởng AI</p>
+                <p class="text-2xl font-extrabold text-slate-900 dark:text-white font-mono mt-1">{{ stats.total_ideas }}</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">Trong kho dữ liệu</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                <i data-lucide="lightbulb" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Card 2: Sẵn sàng viết -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sẵn sàng viết</p>
+                <p class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono mt-1">{{ stats.ready_count }}</p>
+                <p class="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">Đã có dàn ý đầy đủ</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <i data-lucide="check-circle" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Card 3: Đang viết nháp -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Đang viết nháp</p>
+                <p class="text-2xl font-extrabold text-amber-600 dark:text-amber-400 font-mono mt-1">{{ stats.drafting_count }}</p>
+                <p class="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-0.5">Đang trong tiến độ</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                <i data-lucide="edit-3" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Card 4: Tiềm năng Viral cao -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Viral Score cao (≥90)</p>
+                <p class="text-2xl font-extrabold text-rose-600 dark:text-rose-400 font-mono mt-1">{{ stats.high_viral_count }}</p>
+                <p class="text-[11px] text-rose-600/80 dark:text-rose-400/80 mt-0.5">Khả năng tiếp cận cao</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                <i data-lucide="flame" class="w-5 h-5"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs">
+        <form id="filter-form" method="get" action="/tools/content-ideas/ideas" class="space-y-3.5">
+            <!-- Row 1: Search, Filter Trạng thái, Định dạng, Kênh, Sort -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
+                <!-- Search input -->
+                <div class="lg:col-span-4 relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </div>
+                    <input type="text"
+                           name="search"
+                           value="{{ search }}"
+                           placeholder="Tìm ý tưởng, góc tiếp cận, hashtag, từ khóa..."
+                           class="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+
+                <!-- Status Filter -->
+                <div class="lg:col-span-2">
+                    <select name="status"
+                            onchange="this.form.submit()"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>Tất cả trạng thái</option>
+                        <option value="ready" {% if status_filter == 'ready' %}selected{% endif %}>Sẵn sàng viết</option>
+                        <option value="drafting" {% if status_filter == 'drafting' %}selected{% endif %}>Đang viết nháp</option>
+                        <option value="reviewing" {% if status_filter == 'reviewing' %}selected{% endif %}>Chờ duyệt</option>
+                        <option value="published" {% if status_filter == 'published' %}selected{% endif %}>Đã xuất bản</option>
+                        <option value="archived" {% if status_filter == 'archived' %}selected{% endif %}>Đã lưu trữ</option>
+                    </select>
+                </div>
+
+                <!-- Format Filter -->
+                <div class="lg:col-span-2">
+                    <select name="format"
+                            onchange="this.form.submit()"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer">
+                        <option value="all" {% if format_filter == 'all' %}selected{% endif %}>Tất cả định dạng</option>
+                        {% for fmt in formats_list %}
+                        <option value="{{ fmt.value }}" {% if format_filter == fmt.value %}selected{% endif %}>{{ fmt.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Target Product Filter -->
+                <div class="lg:col-span-2">
+                    <select name="product"
+                            onchange="this.form.submit()"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer">
+                        <option value="all" {% if product_filter == 'all' %}selected{% endif %}>Tất cả kênh sản phẩm</option>
+                        {% for p in products_list %}
+                        <option value="{{ p.id }}" {% if product_filter == p.id|string %}selected{% endif %}>{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Sort & View Controls -->
+                <div class="lg:col-span-2 flex items-center gap-2">
+                    <select name="sort_by"
+                            onchange="this.form.submit()"
+                            class="grow px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer">
+                        <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Mới nhất</option>
+                        <option value="viral" {% if sort_by == 'viral' %}selected{% endif %}>Viral cao nhất</option>
+                        <option value="title" {% if sort_by == 'title' %}selected{% endif %}>Tiêu đề A-Z</option>
+                    </select>
+
+                    <input type="hidden" name="view_mode" id="view-mode-input" value="{{ view_mode }}">
+
+                    <!-- View Switcher -->
+                    <div class="flex items-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 p-0.5 shrink-0">
+                        <button type="button"
+                                onclick="setViewMode('grid')"
+                                class="p-1.5 rounded-lg transition {% if view_mode == 'grid' %}bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-xs{% else %}text-slate-400 hover:text-slate-600 dark:hover:text-slate-300{% endif %}"
+                                title="Chế độ lưới thẻ (Grid)">
+                            <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                        </button>
+                        <button type="button"
+                                onclick="setViewMode('table')"
+                                class="p-1.5 rounded-lg transition {% if view_mode == 'table' %}bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-xs{% else %}text-slate-400 hover:text-slate-600 dark:hover:text-slate-300{% endif %}"
+                                title="Chế độ bảng danh sách (Table)">
+                            <i data-lucide="list" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active filter chips & Reset -->
+            {% if search or status_filter != 'all' or format_filter != 'all' or product_filter != 'all' %}
+            <div class="flex items-center gap-2 flex-wrap pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                <span class="text-slate-400 text-[11px] font-medium">Bộ lọc đang áp dụng:</span>
+                {% if search %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                    Từ khóa: "{{ search }}"
+                </span>
+                {% endif %}
+                {% if status_filter != 'all' %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    Trạng thái: {{ status_filter }}
+                </span>
+                {% endif %}
+                {% if format_filter != 'all' %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    Định dạng: {{ format_filter }}
+                </span>
+                {% endif %}
+                <a href="/tools/content-ideas/ideas" class="text-purple-600 dark:text-purple-400 hover:underline font-semibold text-[11px] ml-1">
+                    Xóa tất cả bộ lọc
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- MAIN CONTENT VIEW -->
+    {% if ideas|length == 0 %}
+    <!-- Empty State -->
+    <div class="rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-12 text-center shadow-xs space-y-4">
+        <div class="w-16 h-16 rounded-3xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto">
+            <i data-lucide="sparkles" class="w-8 h-8"></i>
+        </div>
+        <div class="space-y-1">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Không tìm thấy ý tưởng AI nào phù hợp</h3>
+            <p class="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
+                Hãy thử nới lỏng bộ lọc tìm kiếm hoặc kích hoạt tính năng sinh ý tưởng tự động từ kho bài viết thu thập.
+            </p>
+        </div>
+        <div class="flex items-center justify-center gap-3 pt-2">
+            <a href="/tools/content-ideas/ideas" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 transition">
+                Xóa bộ lọc
+            </a>
+            <button type="button" onclick="openIdeaModal()" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-xs transition">
+                Tạo ý tưởng mới
+            </button>
+        </div>
+    </div>
+    {% elif view_mode == 'grid' %}
+    <!-- GRID VIEW -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {% for idea in ideas %}
+        <div class="group rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs hover:shadow-lg hover:border-purple-500/40 transition-all flex flex-col justify-between space-y-4 relative">
+            <div class="space-y-3.5">
+                <!-- Top Meta Bar -->
+                <div class="flex items-center justify-between gap-2">
+                    <span class="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border {{ idea.status_color }}">
+                        <span class="w-1.5 h-1.5 rounded-full {{ idea.dot_color }}"></span>
+                        <span>{{ idea.status_label }}</span>
+                    </span>
+
+                    <div class="flex items-center gap-1.5">
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                            {{ idea.recommended_format }}
+                        </span>
+                        <div class="flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60"
+                             title="Điểm tiềm năng Viral dự đoán">
+                            <i data-lucide="flame" class="w-3 h-3 text-amber-500"></i>
+                            <span class="font-mono font-extrabold text-xs">{{ idea.viral_score }}</span>
+                        </div>
                     </div>
                 </div>
 
-                <h3 class="text-base font-bold text-slate-900 dark:text-white leading-snug">
-                    {{ idea.title }}
-                </h3>
-
-                <div class="space-y-1.5 text-xs text-slate-600 dark:text-slate-300 bg-slate-50/70 dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
-                    <p><strong class="text-slate-900 dark:text-white">Góc khai thác:</strong> {{ idea.angle }}</p>
-                    <p><strong class="text-slate-900 dark:text-white">Đối tượng đọc:</strong> {{ idea.target_audience }}</p>
-                    <p><strong class="text-slate-900 dark:text-white">Định dạng đề xuất:</strong> {{ idea.recommended_format }}</p>
+                <!-- Idea Title -->
+                <div>
+                    <h3 onclick="openIdeaReader({{ idea.id }})"
+                        class="text-base font-bold text-slate-900 dark:text-white leading-snug group-hover:text-purple-600 dark:group-hover:text-purple-400 transition cursor-pointer">
+                        {{ idea.title }}
+                    </h3>
                 </div>
 
-                <!-- Keywords -->
-                <div class="flex items-center gap-1.5 flex-wrap pt-1">
+                <!-- Angle & Audience Highlight Box -->
+                <div class="space-y-2 text-xs bg-slate-50/70 dark:bg-slate-900/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/80">
+                    <div>
+                        <span class="font-semibold text-slate-700 dark:text-slate-300 block">Góc khai thác:</span>
+                        <p class="text-slate-600 dark:text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">{{ idea.angle }}</p>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-slate-700 dark:text-slate-300 block">Đối tượng đọc:</span>
+                        <p class="text-slate-500 dark:text-slate-400 mt-0.5 truncate">{{ idea.target_audience }}</p>
+                    </div>
+
+                    <!-- Target Product Channel -->
+                    <div class="pt-1.5 border-t border-slate-200/50 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                        <span class="text-slate-400">Kênh mục tiêu:</span>
+                        {% if idea.target_product_name %}
+                        <span class="font-semibold text-purple-600 dark:text-purple-400 truncate max-w-[170px]" title="{{ idea.target_product_name }}">
+                            {{ idea.target_product_name }}
+                        </span>
+                        {% else %}
+                        <button type="button"
+                                onclick="openAssignProductModal({{ idea.id }}, '{{ idea.target_product_id or '' }}')"
+                                class="text-amber-600 dark:text-amber-400 hover:underline font-semibold flex items-center gap-1">
+                            <i data-lucide="plus-circle" class="w-3 h-3"></i>
+                            <span>Chưa gán kênh</span>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Outline Preview Snippet -->
+                {% if idea.outline %}
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-900/30 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/60 font-mono leading-relaxed line-clamp-2">
+                    {{ idea.outline }}
+                </div>
+                {% endif %}
+
+                <!-- Keywords / Tags -->
+                <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
                     {% for kw in idea.keywords %}
-                    <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-300">
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-900/40">
                         #{{ kw }}
                     </span>
                     {% endfor %}
                 </div>
             </div>
 
-            <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
-                <span class="text-slate-400 text-[11px] truncate max-w-[200px]" title="{{ idea.source_article }}">
-                    Từ: {{ idea.source_article }}
+            <!-- Card Bottom Bar -->
+            <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs gap-2">
+                <span class="text-slate-400 text-[11px] truncate max-w-[140px]" title="Từ nguồn: {{ idea.source_article }}">
+                    {% if idea.source_article %}Từ: {{ idea.source_article }}{% else %}Ý tưởng tự tạo{% endif %}
                 </span>
 
-                <div class="flex items-center gap-2">
-                    <button type="button" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium text-slate-700 dark:text-slate-200 text-xs">
-                        Lưu nháp
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button"
+                            onclick="openIdeaReader({{ idea.id }})"
+                            class="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-xs transition"
+                            title="Đọc toàn bộ dàn ý chi tiết">
+                        <i data-lucide="book-open" class="w-3.5 h-3.5 inline mr-1"></i>
+                        <span>Dàn ý</span>
                     </button>
-                    <button type="button" class="px-3 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs shadow-xs">
-                        Viết bài ngay
+
+                    {% if idea.status == 'ready' %}
+                    <button type="button"
+                            onclick="quickUpdateStatus({{ idea.id }}, 'drafting')"
+                            class="px-2.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-xs transition active:scale-95"
+                            title="Chuyển trạng thái sang Đang viết nháp">
+                        <span>Viết bài</span>
+                    </button>
+                    {% elif idea.status == 'drafting' %}
+                    <button type="button"
+                            onclick="quickUpdateStatus({{ idea.id }}, 'reviewing')"
+                            class="px-2.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-xs transition active:scale-95"
+                            title="Gửi chờ duyệt">
+                        <span>Duyệt</span>
+                    </button>
+                    {% elif idea.status == 'reviewing' %}
+                    <button type="button"
+                            onclick="quickUpdateStatus({{ idea.id }}, 'published')"
+                            class="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-xs transition active:scale-95"
+                            title="Xác nhận đã xuất bản bài">
+                        <span>Xuất bản</span>
+                    </button>
+                    {% endif %}
+
+                    <!-- Edit / Delete Dropdown Buttons -->
+                    <button type="button"
+                            onclick="openIdeaModal({{ idea.id }})"
+                            class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                            title="Chỉnh sửa ý tưởng">
+                        <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                    </button>
+
+                    <button type="button"
+                            onclick="deleteIdea({{ idea.id }}, '{{ idea.title|escape }}')"
+                            class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition"
+                            title="Xóa ý tưởng này">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                     </button>
                 </div>
             </div>
@@ -83,5 +401,834 @@
         {% endfor %}
     </div>
 
+    {% else %}
+    <!-- TABLE VIEW -->
+    <div class="rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
+                        <th class="py-3.5 px-4 w-12 text-center">ID</th>
+                        <th class="py-3.5 px-4 min-w-[280px]">Tiêu đề & Góc khai thác</th>
+                        <th class="py-3.5 px-4 min-w-[160px]">Định dạng đề xuất</th>
+                        <th class="py-3.5 px-4 min-w-[180px]">Kênh / Sản phẩm</th>
+                        <th class="py-3.5 px-4 w-28 text-center">Viral Score</th>
+                        <th class="py-3.5 px-4 w-32">Trạng thái</th>
+                        <th class="py-3.5 px-4 w-32 text-right">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80">
+                    {% for idea in ideas %}
+                    <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition">
+                        <td class="py-3.5 px-4 text-center font-mono text-slate-400 font-bold">#{{ idea.id }}</td>
+                        <td class="py-3.5 px-4">
+                            <div class="font-bold text-slate-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer"
+                                 onclick="openIdeaReader({{ idea.id }})">
+                                {{ idea.title }}
+                            </div>
+                            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                                {{ idea.angle }}
+                            </div>
+                            <div class="flex items-center gap-1 mt-1 flex-wrap">
+                                {% for kw in idea.keywords[:3] %}
+                                <span class="text-[10px] text-purple-600 dark:text-purple-400 font-medium">#{{ kw }}</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                {{ idea.recommended_format }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            {% if idea.target_product_name %}
+                            <div class="font-semibold text-slate-800 dark:text-slate-200 text-xs">{{ idea.target_product_name }}</div>
+                            <div class="text-[10px] text-purple-600 dark:text-purple-400 uppercase font-mono">{{ idea.target_platform or 'Đa nền tảng' }}</div>
+                            {% else %}
+                            <button type="button"
+                                    onclick="openAssignProductModal({{ idea.id }}, '')"
+                                    class="text-amber-600 dark:text-amber-400 hover:underline text-xs flex items-center gap-1 font-medium">
+                                <i data-lucide="plus-circle" class="w-3 h-3"></i>
+                                <span>Chưa gán</span>
+                            </button>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 font-mono font-bold text-xs">
+                                <i data-lucide="flame" class="w-3 h-3 text-amber-500"></i>
+                                <span>{{ idea.viral_score }}</span>
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md border {{ idea.status_color }}">
+                                <span class="w-1.5 h-1.5 rounded-full {{ idea.dot_color }}"></span>
+                                <span>{{ idea.status_label }}</span>
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <button type="button"
+                                        onclick="openIdeaReader({{ idea.id }})"
+                                        class="p-1.5 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                                        title="Đọc dàn ý">
+                                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                                </button>
+                                <button type="button"
+                                        onclick="openIdeaModal({{ idea.id }})"
+                                        class="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                                        title="Chỉnh sửa">
+                                    <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                </button>
+                                <button type="button"
+                                        onclick="deleteIdea({{ idea.id }}, '{{ idea.title|escape }}')"
+                                        class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition"
+                                        title="Xóa ý tưởng">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pagination Section -->
+    {% if pagination and pagination.total_items > 0 %}
+    <div class="mt-4 rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+        {% include "_pagination.html" %}
+    </div>
+    {% endif %}
+
 </div>
+
+<!-- ======================================================================= -->
+<!-- MODAL 1: XEM CHI TIẾT & ĐỌC DÀN Ý Ý TƯỞNG (FULL IDEA READER MODAL)      -->
+<!-- ======================================================================= -->
+<div id="idea-reader-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="relative w-full max-w-3xl rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform animate-in fade-in zoom-in duration-200 my-8">
+        
+        <!-- Header -->
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-amber-500"></i>
+                </div>
+                <div class="min-w-0">
+                    <span id="reader-format-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-300"></span>
+                    <h3 id="reader-title" class="text-base font-bold text-slate-900 dark:text-white truncate mt-0.5"></h3>
+                </div>
+            </div>
+            <button type="button" onclick="closeIdeaReader()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="p-6 space-y-5 max-h-[70vh] overflow-y-auto text-xs sm:text-sm">
+            <!-- Top Badges & Meta -->
+            <div class="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex-wrap">
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-400">Trạng thái:</span>
+                    <span id="reader-status-pill" class="px-2.5 py-0.5 rounded-lg font-bold text-xs border"></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-400">Viral Score:</span>
+                    <span id="reader-viral-score" class="font-mono font-extrabold text-sm text-purple-600 dark:text-purple-400"></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-400">Kênh mục tiêu:</span>
+                    <span id="reader-target-product" class="font-semibold text-slate-800 dark:text-slate-200"></span>
+                </div>
+            </div>
+
+            <!-- Angle & Target Audience Box -->
+            <div class="space-y-3 bg-purple-50/50 dark:bg-purple-950/20 p-4 rounded-2xl border border-purple-100 dark:border-purple-900/40">
+                <div>
+                    <h4 class="font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wide text-[11px]">Góc tiếp cận độc đáo:</h4>
+                    <p id="reader-angle" class="mt-1 text-slate-700 dark:text-slate-300 leading-relaxed"></p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wide text-[11px]">Đối tượng độc giả mục tiêu:</h4>
+                    <p id="reader-target-audience" class="mt-1 text-slate-700 dark:text-slate-300 leading-relaxed"></p>
+                </div>
+            </div>
+
+            <!-- Full Outline Box -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <h4 class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                        <i data-lucide="list-ordered" class="w-3.5 h-3.5 text-purple-500"></i>
+                        <span>Dàn ý chi tiết bài viết (AI Outline):</span>
+                    </h4>
+                    <button type="button"
+                            onclick="copyOutlineText()"
+                            class="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1 transition">
+                        <i data-lucide="copy" class="w-3 h-3"></i>
+                        <span id="copy-btn-text">Sao chép dàn ý</span>
+                    </button>
+                </div>
+                <div id="reader-outline"
+                     class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs font-mono text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto">
+                </div>
+            </div>
+
+            <!-- Keywords & Source Article -->
+            <div class="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-slate-400 text-xs font-semibold">Hashtags gợi ý:</span>
+                    <div id="reader-keywords" class="flex items-center gap-1.5 flex-wrap"></div>
+                </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">
+                    <span class="font-semibold">Nguồn cảm hứng: </span>
+                    <span id="reader-source-article"></span>
+                </div>
+                <div id="reader-notes-wrapper" class="text-xs text-slate-500 dark:text-slate-400 italic">
+                    <span class="font-semibold">Ghi chú biên tập: </span>
+                    <span id="reader-notes"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between gap-3">
+            <button type="button"
+                    onclick="closeIdeaReader()"
+                    class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold transition">
+                Đóng
+            </button>
+
+            <div class="flex items-center gap-2">
+                <button type="button"
+                        id="reader-edit-btn"
+                        class="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold transition flex items-center gap-1.5">
+                    <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                    <span>Chỉnh sửa</span>
+                </button>
+                <button type="button"
+                        id="reader-status-action-btn"
+                        class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-xs transition active:scale-95 flex items-center gap-1.5">
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                    <span>Chuyển sang viết nháp</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL 2: THÊM / CHỈNH SỬA Ý TƯỞNG AI (CREATE / EDIT MODAL)              -->
+<!-- ======================================================================= -->
+<div id="idea-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="relative w-full max-w-2xl rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform animate-in fade-in zoom-in duration-200 my-8">
+        
+        <!-- Modal Header -->
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                    <i data-lucide="lightbulb" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 id="idea-modal-title" class="text-base font-bold text-slate-900 dark:text-white">Thêm Ý Tưởng AI Mới</h3>
+                    <p class="text-xs text-slate-400">Gợi ý góc tiếp cận, kịch bản và dàn ý bài viết sáng tạo</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeIdeaModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Form Body -->
+        <form id="idea-form" onsubmit="saveIdeaForm(event)" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs sm:text-sm">
+            <input type="hidden" id="form-idea-id" value="">
+
+            <!-- Row 1: Tiêu đề ý tưởng -->
+            <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Tiêu đề ý tưởng AI <span class="text-rose-500">*</span>
+                </label>
+                <input type="text" id="form-title" required placeholder="Ví dụ: Hướng dẫn SMB tự setup AI Agent CSKH 0 đồng..."
+                       class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none">
+            </div>
+
+            <!-- Row 2: Góc khai thác (Angle) & Đối tượng độc giả -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Góc khai thác độc đáo (Angle) <span class="text-rose-500">*</span>
+                    </label>
+                    <textarea id="form-angle" rows="2" required placeholder="Ví dụ: Thực hành cầm tay chỉ việc, cảnh báo rủi ro, phân tích số liệu..."
+                              class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none"></textarea>
+                </div>
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Đối tượng độc giả mục tiêu
+                    </label>
+                    <textarea id="form-target-audience" rows="2" placeholder="Ví dụ: Chủ shop online, Người mua chung cư lần đầu, Dân văn phòng Gen Z..."
+                              class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none"></textarea>
+                </div>
+            </div>
+
+            <!-- Row 3: Định dạng đề xuất, Viral Score & Trạng thái -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Định dạng đề xuất
+                    </label>
+                    <select id="form-recommended-format"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none cursor-pointer">
+                        {% for fmt in formats_list %}
+                        <option value="{{ fmt.value }}">{{ fmt.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Viral Score (0 - 100)
+                    </label>
+                    <input type="number" id="form-viral-score" min="0" max="100" value="85"
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Trạng thái tiến độ
+                    </label>
+                    <select id="form-status"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none cursor-pointer">
+                        <option value="ready">Sẵn sàng viết</option>
+                        <option value="drafting">Đang viết nháp</option>
+                        <option value="reviewing">Chờ duyệt</option>
+                        <option value="published">Đã xuất bản</option>
+                        <option value="archived">Đã lưu trữ</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 4: Kênh xuất bản mục tiêu & Bài viết gốc liên kết -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Gán cho Sản phẩm / Kênh của tôi
+                    </label>
+                    <select id="form-target-product-id"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none cursor-pointer">
+                        <option value="">-- Chưa gán kênh nào --</option>
+                        {% for p in products_list %}
+                        <option value="{{ p.id }}">{{ p.name }} ({{ p.platform_label }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Nguồn bài viết gốc thu thập
+                    </label>
+                    <input type="text" id="form-source-article" placeholder="Nhập tên bài hoặc URL gốc nếu có..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Row 5: Dàn ý chi tiết bài viết (Outline) -->
+            <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Dàn ý chi tiết bài viết (Heading, Key Points, Call to Action)
+                </label>
+                <textarea id="form-outline" rows="6" placeholder="1. Mở đầu: Hook cuốn hút...
+2. Thân bài: Các luận điểm chính...
+3. Kết luận: Kêu gọi tương tác..."
+                          class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"></textarea>
+            </div>
+
+            <!-- Row 6: Hashtags / Keywords & Ghi chú -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Từ khóa / Hashtag gợi ý (cách nhau bởi dấu phẩy)
+                    </label>
+                    <input type="text" id="form-keywords" placeholder="AI Agent, SMB, Ollama, Tiết kiệm..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Ghi chú biên tập
+                    </label>
+                    <input type="text" id="form-notes" placeholder="Ghi chú thêm về thumbnail, deadline..."
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeIdeaModal()"
+                        class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold transition">
+                    Hủy bỏ
+                </button>
+                <button type="submit"
+                        class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-xs transition active:scale-95">
+                    Lưu ý tưởng vào DB
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL 3: GÁN KÊNH SẢN PHẨM MỤC TIÊU (ASSIGN PRODUCT MODAL)              -->
+<!-- ======================================================================= -->
+<div id="assign-product-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="relative w-full max-w-md rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform animate-in fade-in zoom-in duration-200 my-8">
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                    <i data-lucide="layers" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Gán Kênh Xuất Bản Mục Tiêu</h3>
+                    <p class="text-xs text-slate-400">Chọn kênh / sản phẩm bạn muốn xuất bản nội dung này</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeAssignProductModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form id="assign-product-form" onsubmit="saveAssignProductForm(event)" class="p-6 space-y-4">
+            <input type="hidden" id="assign-idea-id" value="">
+
+            <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Chọn Sản phẩm / Kênh của tôi <span class="text-rose-500">*</span>
+                </label>
+                <select id="assign-product-select" required
+                        class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer">
+                    <option value="">-- Chọn kênh --</option>
+                    {% for p in products_list %}
+                    <option value="{{ p.id }}" data-name="{{ p.name }}" data-platform="{{ p.platform }}">{{ p.name }} ({{ p.platform_label }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeAssignProductModal()"
+                        class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold transition">
+                    Hủy
+                </button>
+                <button type="submit"
+                        class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-xs transition active:scale-95">
+                    Xác nhận gán
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL 4: SINH Ý TƯỞNG TỰ ĐỘNG BẰNG AI (AI GENERATOR MODAL)              -->
+<!-- ======================================================================= -->
+<div id="generate-idea-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="relative w-full max-w-lg rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform animate-in fade-in zoom-in duration-200 my-8">
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-purple-50/50 dark:bg-purple-950/30">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-xs">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Sinh Ý Tưởng AI Tự Động</h3>
+                    <p class="text-xs text-slate-400">Chọn bài viết thu thập để AI tự động trích xuất góc nhìn & dàn ý</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeGenerateIdeaModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form id="generate-idea-form" onsubmit="triggerGenerateIdea(event)" class="p-6 space-y-4 text-xs sm:text-sm">
+            <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Chọn bài viết thu thập trong Database <span class="text-rose-500">*</span>
+                </label>
+                <select id="generate-article-select" required
+                        class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none cursor-pointer">
+                    <option value="">-- Chọn bài viết từ kho dữ liệu --</option>
+                    {% for a in articles_list %}
+                    <option value="{{ a.id }}">#{{ a.id }} - {{ a.title }} ({{ a.source }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="p-3 rounded-xl bg-purple-50/60 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/40 text-xs text-purple-800 dark:text-purple-300 leading-relaxed">
+                <i data-lucide="info" class="w-3.5 h-3.5 inline mr-1 text-purple-600"></i>
+                AI sẽ phân tích toàn văn bài viết, nhận diện thực thể chính, tạo góc tiếp cận độc đáo, tính điểm Viral và xuất bản trực tiếp vào Kho ý tưởng này.
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeGenerateIdeaModal()"
+                        class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold transition">
+                    Hủy
+                </button>
+                <button type="submit" id="generate-submit-btn"
+                        class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-xs transition active:scale-95 flex items-center gap-1.5">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i>
+                    <span>Tạo ý tưởng ngay</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- JAVASCRIPT LOGIC & HANDLERS                                             -->
+<!-- ======================================================================= -->
+<script>
+    // View mode switch
+    function setViewMode(mode) {
+        document.getElementById('view-mode-input').value = mode;
+        document.getElementById('filter-form').submit();
+    }
+
+    // Modal 1: Reader Modal
+    let currentReaderIdea = null;
+
+    async function openIdeaReader(id) {
+        try {
+            const resp = await fetch(`/api/ideas/${id}`);
+            const data = await resp.json();
+            if (!data.ok || !data.idea) {
+                alert('Không thể tải thông tin ý tưởng.');
+                return;
+            }
+            const idea = data.idea;
+            currentReaderIdea = idea;
+
+            document.getElementById('reader-title').textContent = idea.title;
+            document.getElementById('reader-format-badge').textContent = idea.recommended_format || 'Ý tưởng';
+            document.getElementById('reader-status-pill').textContent = idea.status_label || idea.status;
+            document.getElementById('reader-status-pill').className = `px-2.5 py-0.5 rounded-lg font-bold text-xs border ${idea.status_color || ''}`;
+            document.getElementById('reader-viral-score').textContent = idea.viral_score;
+            document.getElementById('reader-target-product').textContent = idea.target_product_name || 'Chưa gán kênh';
+            document.getElementById('reader-angle').textContent = idea.angle || 'Chưa có góc tiếp cận';
+            document.getElementById('reader-target-audience').textContent = idea.target_audience || 'Độc giả chung';
+            document.getElementById('reader-outline').textContent = idea.outline || '(Chưa có dàn ý chi tiết)';
+            document.getElementById('reader-source-article').textContent = idea.source_article || 'Tự tạo';
+            
+            const notesWrapper = document.getElementById('reader-notes-wrapper');
+            if (idea.notes) {
+                document.getElementById('reader-notes').textContent = idea.notes;
+                notesWrapper.classList.remove('hidden');
+            } else {
+                notesWrapper.classList.add('hidden');
+            }
+
+            // Render keywords
+            const kwContainer = document.getElementById('reader-keywords');
+            kwContainer.innerHTML = '';
+            if (idea.keywords && Array.isArray(idea.keywords)) {
+                idea.keywords.forEach(k => {
+                    const pill = document.createElement('span');
+                    pill.className = 'px-2 py-0.5 rounded-md text-[10px] font-medium bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-900/40';
+                    pill.textContent = `#${k}`;
+                    kwContainer.appendChild(pill);
+                });
+            }
+
+            // Edit button handler
+            document.getElementById('reader-edit-btn').onclick = function() {
+                closeIdeaReader();
+                openIdeaModal(idea.id);
+            };
+
+            // Status action button
+            const statusBtn = document.getElementById('reader-status-action-btn');
+            if (idea.status === 'ready') {
+                statusBtn.innerHTML = '<i data-lucide="edit-3" class="w-3.5 h-3.5"></i><span>Chuyển sang viết nháp</span>';
+                statusBtn.className = 'px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-xs transition active:scale-95 flex items-center gap-1.5';
+                statusBtn.onclick = () => { quickUpdateStatus(idea.id, 'drafting'); closeIdeaReader(); };
+                statusBtn.classList.remove('hidden');
+            } else if (idea.status === 'drafting') {
+                statusBtn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Gửi chờ duyệt</span>';
+                statusBtn.className = 'px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-xs transition active:scale-95 flex items-center gap-1.5';
+                statusBtn.onclick = () => { quickUpdateStatus(idea.id, 'reviewing'); closeIdeaReader(); };
+                statusBtn.classList.remove('hidden');
+            } else if (idea.status === 'reviewing') {
+                statusBtn.innerHTML = '<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i><span>Xác nhận xuất bản</span>';
+                statusBtn.className = 'px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-xs transition active:scale-95 flex items-center gap-1.5';
+                statusBtn.onclick = () => { quickUpdateStatus(idea.id, 'published'); closeIdeaReader(); };
+                statusBtn.classList.remove('hidden');
+            } else {
+                statusBtn.classList.add('hidden');
+            }
+
+            document.getElementById('idea-reader-modal').classList.remove('hidden');
+            if (window.lucide) window.lucide.createIcons();
+        } catch (err) {
+            console.error('Error fetching idea:', err);
+            alert('Lỗi kết nối máy chủ.');
+        }
+    }
+
+    function closeIdeaReader() {
+        document.getElementById('idea-reader-modal').classList.add('hidden');
+    }
+
+    function copyOutlineText() {
+        if (!currentReaderIdea || !currentReaderIdea.outline) return;
+        navigator.clipboard.writeText(currentReaderIdea.outline).then(() => {
+            const btnText = document.getElementById('copy-btn-text');
+            const old = btnText.textContent;
+            btnText.textContent = 'Đã sao chép!';
+            setTimeout(() => { btnText.textContent = old; }, 2000);
+        });
+    }
+
+    // Modal 2: Create / Edit Modal
+    async function openIdeaModal(id = null) {
+        const form = document.getElementById('idea-form');
+        form.reset();
+        document.getElementById('form-idea-id').value = '';
+
+        if (id) {
+            document.getElementById('idea-modal-title').textContent = 'Chỉnh Sửa Ý Tưởng AI #' + id;
+            try {
+                const resp = await fetch(`/api/ideas/${id}`);
+                const data = await resp.json();
+                if (!data.ok || !data.idea) return;
+                const i = data.idea;
+                document.getElementById('form-idea-id').value = i.id;
+                document.getElementById('form-title').value = i.title || '';
+                document.getElementById('form-angle').value = i.angle || '';
+                document.getElementById('form-target-audience').value = i.target_audience || '';
+                document.getElementById('form-recommended-format').value = i.recommended_format || 'Bài viết dài (Blog / Website)';
+                document.getElementById('form-viral-score').value = i.viral_score || 85;
+                document.getElementById('form-status').value = i.status || 'ready';
+                document.getElementById('form-target-product-id').value = i.target_product_id || '';
+                document.getElementById('form-source-article').value = i.source_article || '';
+                document.getElementById('form-outline').value = i.outline || '';
+                document.getElementById('form-keywords').value = (i.keywords || []).join(', ');
+                document.getElementById('form-notes').value = i.notes || '';
+            } catch (err) {
+                console.error(err);
+            }
+        } else {
+            document.getElementById('idea-modal-title').textContent = 'Thêm Ý Tưởng AI Mới';
+        }
+
+        document.getElementById('idea-modal').classList.remove('hidden');
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function closeIdeaModal() {
+        document.getElementById('idea-modal').classList.add('hidden');
+    }
+
+    async function saveIdeaForm(event) {
+        event.preventDefault();
+        const id = document.getElementById('form-idea-id').value;
+        const formData = new FormData();
+
+        formData.append('title', document.getElementById('form-title').value);
+        formData.append('angle', document.getElementById('form-angle').value);
+        formData.append('target_audience', document.getElementById('form-target-audience').value);
+        formData.append('recommended_format', document.getElementById('form-recommended-format').value);
+        formData.append('viral_score', document.getElementById('form-viral-score').value);
+        formData.append('status', document.getElementById('form-status').value);
+
+        const prodSelect = document.getElementById('form-target-product-id');
+        const selectedProdId = prodSelect.value;
+        if (selectedProdId) {
+            formData.append('target_product_id', selectedProdId);
+            const selectedOpt = prodSelect.options[prodSelect.selectedIndex];
+            formData.append('target_product_name', selectedOpt.text.split(' (')[0]);
+        }
+
+        formData.append('source_article', document.getElementById('form-source-article').value);
+        formData.append('outline', document.getElementById('form-outline').value);
+        formData.append('keywords', document.getElementById('form-keywords').value);
+        formData.append('notes', document.getElementById('form-notes').value);
+
+        const url = id ? `/api/ideas/${id}/edit` : '/api/ideas';
+
+        try {
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Accept': 'application/json' },
+                body: formData,
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                window.location.reload();
+            } else {
+                alert(data.detail || 'Có lỗi xảy ra khi lưu ý tưởng.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Lỗi kết nối máy chủ.');
+        }
+    }
+
+    // Modal 3: Assign Product Modal
+    function openAssignProductModal(ideaId, currentProductId = '') {
+        document.getElementById('assign-idea-id').value = ideaId;
+        document.getElementById('assign-product-select').value = currentProductId;
+        document.getElementById('assign-product-modal').classList.remove('hidden');
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function closeAssignProductModal() {
+        document.getElementById('assign-product-modal').classList.add('hidden');
+    }
+
+    async function saveAssignProductForm(event) {
+        event.preventDefault();
+        const ideaId = document.getElementById('assign-idea-id').value;
+        const select = document.getElementById('assign-product-select');
+        const opt = select.options[select.selectedIndex];
+        const productId = select.value;
+        const productName = opt.getAttribute('data-name');
+        const platform = opt.getAttribute('data-platform');
+
+        if (!productId) {
+            alert('Vui lòng chọn sản phẩm / kênh.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('product_id', productId);
+        formData.append('product_name', productName);
+        if (platform) formData.append('platform', platform);
+
+        try {
+            const resp = await fetch(`/api/ideas/${ideaId}/assign-product`, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                window.location.reload();
+            } else {
+                alert('Không thể gán sản phẩm.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Lỗi kết nối máy chủ.');
+        }
+    }
+
+    // Modal 4: AI Generate Idea Modal
+    function openGenerateIdeaModal() {
+        document.getElementById('generate-idea-modal').classList.remove('hidden');
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function closeGenerateIdeaModal() {
+        document.getElementById('generate-idea-modal').classList.add('hidden');
+    }
+
+    async function triggerGenerateIdea(event) {
+        event.preventDefault();
+        const select = document.getElementById('generate-article-select');
+        const articleId = select.value;
+        if (!articleId) {
+            alert('Vui lòng chọn bài viết thu thập.');
+            return;
+        }
+
+        const btn = document.getElementById('generate-submit-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="inline-block animate-spin mr-1">⌛</span> Đang phân tích & sinh ý tưởng...';
+
+        try {
+            const resp = await fetch(`/api/ideas/generate-from-article/${articleId}`, {
+                method: 'POST',
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                window.location.reload();
+            } else {
+                alert(data.detail || 'Không thể sinh ý tưởng.');
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i><span>Tạo ý tưởng ngay</span>';
+                if (window.lucide) window.lucide.createIcons();
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Lỗi kết nối máy chủ.');
+            btn.disabled = false;
+            btn.innerHTML = '<span>Tạo ý tưởng ngay</span>';
+        }
+    }
+
+    // Quick Status Update
+    async function quickUpdateStatus(ideaId, newStatus) {
+        const formData = new FormData();
+        formData.append('status', newStatus);
+
+        try {
+            const resp = await fetch(`/api/ideas/${ideaId}/status`, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                window.location.reload();
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    // Delete Idea
+    async function deleteIdea(id, title) {
+        if (!confirm(`Bạn có chắc chắn muốn xóa ý tưởng "${title}" khỏi cơ sở dữ liệu?`)) {
+            return;
+        }
+
+        try {
+            const resp = await fetch(`/api/ideas/${id}/delete`, {
+                method: 'POST',
+                headers: { 'Accept': 'application/json' },
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                window.location.reload();
+            } else {
+                alert('Không thể xóa ý tưởng.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Lỗi kết nối máy chủ.');
+        }
+    }
+
+    // Reset Demo Ideas
+    async function triggerResetDemoIdeas() {
+        if (!confirm('Khôi phục lại danh sách các ý tưởng AI mẫu mặc định trong Database? Dữ liệu thêm mới có thể bị ghi đè.')) {
+            return;
+        }
+        try {
+            const resp = await fetch('/api/ideas/reset-demo', { method: 'POST' });
+            const data = await resp.json();
+            if (data.ok) {
+                window.location.reload();
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Lỗi kết nối máy chủ.');
+        }
+    }
+
+    // Escape key closes open modals
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeIdeaReader();
+            closeIdeaModal();
+            closeAssignProductModal();
+            closeGenerateIdeaModal();
+        }
+    });
+</script>
 {% endblock %}

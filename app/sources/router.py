@@ -312,11 +312,29 @@ async def api_toggle_status(source_id: int, db: Any = Depends(get_db)):
 
 @router.post("/api/sources/{source_id}/scan", name="api-scan-source")
 async def api_scan_source(source_id: int, db: Any = Depends(get_db)):
-    """Trigger an instant crawl simulation for this source."""
-    updated = await services.trigger_scan(source_id, db=db)
-    if not updated:
-        return JSONResponse({"ok": False, "error": "Nguồn không tồn tại"}, status_code=404)
-    return JSONResponse({"ok": True, "source": updated, "message": f"Đã quét thành công nguồn {updated['name']}!"})
+    """Trigger an instant crawl on this source, deduplicate, and persist to crawled_articles."""
+    from app.sources.crawler import crawl_source_and_save
+    result = await crawl_source_and_save(source_id, db=db)
+    if not result.get("ok"):
+        return JSONResponse({"ok": False, "error": result.get("error", "Nguồn không tồn tại")}, status_code=404)
+
+    updated_source = await services.get_source_by_id(source_id, db=db)
+    return JSONResponse({
+        "ok": True,
+        "source": updated_source,
+        "scanned_count": result.get("scanned_count", 0),
+        "new_count": result.get("new_count", 0),
+        "duplicate_count": result.get("duplicate_count", 0),
+        "message": result.get("message"),
+    })
+
+
+@router.post("/api/sources/scan-all", name="api-scan-all-sources")
+async def api_scan_all_sources(db: Any = Depends(get_db)):
+    """Trigger crawl on all active sources, deduplicate, and persist to crawled_articles."""
+    from app.sources.crawler import crawl_all_active_sources
+    result = await crawl_all_active_sources(db=db)
+    return JSONResponse(result)
 
 
 @router.post("/api/sources/reset-demo", name="api-reset-demo-sources")

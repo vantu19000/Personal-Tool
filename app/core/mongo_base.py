@@ -256,6 +256,16 @@ class BaseMongoRepository:
             except Exception as exc:
                 logger.warning(f"MongoDB find_one on '{self.collection_name}' failed: {exc}")
 
+        # Fallback to in-memory cache
+        for item in self._memory_cache:
+            match = True
+            for k, v in query.items():
+                if item.get(k) != v:
+                    match = False
+                    break
+            if match:
+                return dict(item)
+
         return None
 
     async def get_next_id(self, db: Optional[Any] = None) -> int:

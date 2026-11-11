@@ -470,6 +470,7 @@ async def update_source(source_id: int, data: Dict[str, Any], db: Optional[Any] 
     allowed_fields = [
         "name", "type", "url", "province", "district", "ward",
         "schedule", "priority", "status", "ai_prompt", "description",
+        "last_scanned_at", "articles_count", "success_rate",
     ]
 
     for field in allowed_fields:
@@ -508,20 +509,15 @@ async def toggle_status(source_id: int, db: Optional[Any] = None) -> Optional[Di
 
 
 async def trigger_scan(source_id: int, db: Optional[Any] = None) -> Optional[Dict[str, Any]]:
-    """Simulate triggering an instant crawl on this source."""
-    src = await _repo.find_by_id(source_id, db=db)
-    if not src:
+    """Execute real crawl on this source, deduplicate, and persist into crawled_articles."""
+    from app.sources.crawler import crawl_source_and_save
+    result = await crawl_source_and_save(source_id, db=db)
+    if not result.get("ok"):
         return None
-    new_articles = int(src.get("articles_count", 0)) + 3
-    updated_payload = {
-        "last_scanned_at": "Vừa xong",
-        "articles_count": new_articles,
-        "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-    }
-    updated = await _repo.update(source_id, updated_payload, db=db)
+    updated = await get_source_by_id(source_id, db=db)
     if updated:
-        return format_source_display(updated)
-    return None
+        updated["_crawl_result"] = result
+    return updated
 
 
 async def reset_demo_sources(db: Optional[Any] = None) -> int:

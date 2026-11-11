@@ -20,6 +20,7 @@ from app.core.i18n import (
 )
 from app.core.templates import templates
 from app.articles import router as articles_router
+from app.ideas import router as ideas_router
 from app.metadata import router as metadata_router
 from app.products import router as products_router
 from app.settings import router as settings_router
@@ -145,6 +146,9 @@ def create_app() -> FastAPI:
 
     # Crawled Articles router (Kho bài viết thu thập)
     app.include_router(articles_router, tags=["crawled-articles"])
+
+    # AI Ideas router (Kho ý tưởng AI)
+    app.include_router(ideas_router, tags=["ai-ideas"])
 
     # Shortcut redirect for Crawler
     @app.get("/crawler", include_in_schema=False)

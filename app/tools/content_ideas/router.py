@@ -211,18 +211,31 @@ async def content_ideas_articles(
 
 
 @router.get("/content-ideas/ideas", name="content-ideas-ideas")
-async def content_ideas_ideas(request: Request):
-    """AI Generated Content Ideas list."""
-    return templates.TemplateResponse(
-        request,
-        "tools/content_ideas/ideas.html",
-        {
-            "active_tool": "content-ideas",
-            "active_sub_menu": "ideas",
-            "sub_menus": CONTENT_IDEAS_MENUS,
-            "ideas": AI_IDEAS_LIST,
-            "metrics": OVERVIEW_METRICS,
-        },
+async def content_ideas_ideas(
+    request: Request,
+    search: str = "",
+    status: str = "all",
+    format: str = "all",
+    product: str = "all",
+    view_mode: str = "grid",
+    page: int = 1,
+    page_size: int = 6,
+    sort_by: str = "newest",
+):
+    """AI Generated Content Ideas list backed by database."""
+    from app.core.database import get_mongo_database
+    from app.ideas.router import ideas_page
+    return await ideas_page(
+        request=request,
+        search=search,
+        status=status,
+        format=format,
+        product=product,
+        view_mode=view_mode,
+        page=page,
+        page_size=page_size,
+        sort_by=sort_by,
+        db=get_mongo_database(),
     )
 
 

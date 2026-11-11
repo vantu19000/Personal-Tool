@@ -273,6 +273,8 @@ def test_http_api_crud(client):
     res_scan = client.post(f"/api/sources/{created_id}/scan")
     assert res_scan.status_code == 200
     assert res_scan.json()["ok"] is True
+    assert "new_count" in res_scan.json()
+    assert "duplicate_count" in res_scan.json()
 
     # 7. Delete Source
     res_delete = client.post(
@@ -281,3 +283,87 @@ def test_http_api_crud(client):
     )
     assert res_delete.status_code == 200
     assert res_delete.json()["ok"] is True
+
+
+def test_normalize_url_and_deduplication_helpers():
+    """Verify URL normalization strips tracking params, trailing slashes, and anchors."""
+    from app.sources.crawler import normalize_title, normalize_url
+
+    u1 = "https://vnexpress.net/bat-dong-san/tin-thi-truong-van-phong-2026/"
+    u2 = "https://vnexpress.net/bat-dong-san/tin-thi-truong-van-phong-2026?utm_source=facebook&utm_medium=cpc"
+    u3 = "https://vnexpress.net/bat-dong-san/tin-thi-truong-van-phong-2026#comment-section"
+
+    assert normalize_url(u1) == normalize_url(u2)
+    assert normalize_url(u2) == normalize_url(u3)
+    assert normalize_url(u1) == "https://vnexpress.net/bat-dong-san/tin-thi-truong-van-phong-2026"
+
+    t1 = "  Hướng Dẫn SMB Tự Setup AI Agent ! "
+    t2 = "hướng dẫn smb tự setup ai agent"
+    assert normalize_title(t1) == normalize_title(t2)
+
+
+@pytest.mark.anyio
+async def test_crawl_saves_to_articles_and_deduplicates():
+    """Verify crawl saves into crawled_articles and strictly prevents duplicates on subsequent runs."""
+    from app.articles import services as article_services
+    from app.sources.crawler import crawl_source_and_save
+
+    await services.reset_demo_sources(db=None)
+    await article_services.reset_demo_articles(db=None)
+
+    articles_before = await article_services.list_articles(db=None, page=1, page_size=100)
+    count_before = articles_before["total"]
+
+    # --- Run 1: Crawl Source ID 1 (Website) ---
+    res1 = await crawl_source_and_save(source_id=1, db=None)
+    assert res1["ok"] is True
+    assert res1["scanned_count"] >= 3
+    assert res1["new_count"] >= 1
+
+    articles_after_run1 = await article_services.list_articles(db=None, page=1, page_size=100)
+    count_after_run1 = articles_after_run1["total"]
+    assert count_after_run1 == count_before + res1["new_count"]
+
+    # Verify newly saved articles belong to Source 1
+    new_titles = [a["title"] for a in res1["new_articles"]]
+    assert any("Quy hoạch" in t or "Hà Nội" in t for t in new_titles)
+
+    # --- Run 2: Crawl Source ID 1 again (Exact same source) ---
+    # MUST DEDUPLICATE: 0 new articles, duplicate_count > 0!
+    res2 = await crawl_source_and_save(source_id=1, db=None)
+    assert res2["ok"] is True
+    assert res2["new_count"] == 0, "Duplicate articles should NOT be saved again!"
+    assert res2["duplicate_count"] >= res1["new_count"], "All previously crawled articles must be detected as duplicates"
+    assert "không lưu thêm bài trùng" in res2["message"]
+
+    articles_after_run2 = await article_services.list_articles(db=None, page=1, page_size=100)
+    count_after_run2 = articles_after_run2["total"]
+    assert count_after_run2 == count_after_run1, "Total articles count in DB must NOT increase on duplicate crawl!"
+
+
+def test_http_scan_api_and_scan_all(client):
+    """Verify HTTP API for single source scan and bulk scan-all with deduplication."""
+    # 1. First scan
+    resp1 = client.post("/api/sources/2/scan")
+    assert resp1.status_code == 200
+    d1 = resp1.json()
+    assert d1["ok"] is True
+    assert d1["scanned_count"] > 0
+
+    # 2. Immediate second scan of source 2 -> new_count must be 0
+    resp2 = client.post("/api/sources/2/scan")
+    assert resp2.status_code == 200
+    d2 = resp2.json()
+    assert d2["ok"] is True
+    assert d2["new_count"] == 0
+    assert d2["duplicate_count"] > 0
+
+    # 3. Bulk scan all active sources
+    resp_all = client.post("/api/sources/scan-all")
+    assert resp_all.status_code == 200
+    d_all = resp_all.json()
+    assert d_all["ok"] is True
+    assert d_all["sources_count"] >= 1
+    assert "total_scanned" in d_all
+    assert "total_duplicates" in d_all
+
