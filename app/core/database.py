@@ -112,3 +112,11 @@ async def check_db_connection() -> dict:
             "engine": "MongoDB",
             "error": str(exc),
         }
+
+
+# Re-export BaseMongoRepository for convenience across modules
+try:
+    from app.core.mongo_base import BaseMongoRepository
+except ImportError:
+    pass
+

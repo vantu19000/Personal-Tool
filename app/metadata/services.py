@@ -1,14 +1,14 @@
 """Services for Country Metadata management with MongoDB.
 
-Interacts with MongoDB database via Motor async client.
-Provides automatic collection creation, initial data seeding, and fallback support
-if the MongoDB Docker container is temporarily offline.
+Built on top of `BaseMongoRepository` from `app.core.mongo_base` to provide
+standardized data access, auto indexing, seeding, and fallback support.
 """
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Any, Dict, List, Optional
+
+from app.core.mongo_base import BaseMongoRepository
 
 logger = logging.getLogger(__name__)
 
@@ -199,78 +199,61 @@ DEFAULT_COUNTRIES = [
     },
 ]
 
-# In-memory storage for offline / dev demo fallback
-_IN_MEMORY_CACHE: List[Dict[str, Any]] = [dict(c) for c in DEFAULT_COUNTRIES]
+# Shared BaseMongoRepository instance for Country metadata
+country_repo = BaseMongoRepository(collection_name=COLLECTION_NAME, id_field="id")
 
 
-async def ensure_collection_and_seed(db: Any) -> bool:
-    """Ensure the collection exists in MongoDB and seed default countries if empty."""
-    if db is None:
-        return False
-    try:
-        col = db[COLLECTION_NAME]
-        count = await col.count_documents({})
-        if count == 0:
-            logger.info("MongoDB collection 'metadata_countries' is empty. Seeding initial countries...")
-            docs = [dict(c) for c in DEFAULT_COUNTRIES]
-            await col.insert_many(docs)
-            try:
-                await col.create_index("id", unique=True)
-                await col.create_index("country_code", unique=True)
-                await col.create_index("name")
-            except Exception:
-                pass
-            logger.info(f"Seeded {len(DEFAULT_COUNTRIES)} countries to MongoDB successfully.")
-        return True
-    except Exception as exc:
-        logger.warning(f"Could not connect to MongoDB or seed collection: {exc}")
-        return False
+async def ensure_collection_and_seed(db: Any = None) -> bool:
+    """Ensure the country collection exists and seed default countries if empty."""
+    index_specs = [
+        ("id", True),
+        ("country_code", True),
+        "name",
+    ]
+    return await country_repo.seed_if_empty(DEFAULT_COUNTRIES, index_specs=index_specs, db=db)
 
 
 async def list_countries(
-    db: Any,
+    db: Any = None,
     search: str = "",
     status_filter: str = "",
 ) -> Dict[str, Any]:
-    """Retrieve countries from MongoDB, with automatic fallback to memory cache if DB is offline."""
-    db_connected = False
-    items: List[Dict[str, Any]] = []
+    """Retrieve countries from MongoDB with optional search and filter."""
+    # Ensure initialized/seeded
+    await ensure_collection_and_seed(db=db)
 
-    if db is not None:
-        try:
-            await ensure_collection_and_seed(db)
-            col = db[COLLECTION_NAME]
+    query: Dict[str, Any] = {}
+    if search:
+        regex_pattern = {"$regex": search.strip(), "$options": "i"}
+        query["$or"] = [
+            {"name": regex_pattern},
+            {"country_code": regex_pattern},
+            {"phone_code": regex_pattern},
+            {"native_name": regex_pattern},
+        ]
 
-            query: Dict[str, Any] = {}
-            if search:
-                regex_pattern = {"$regex": search.strip(), "$options": "i"}
-                query["$or"] = [
-                    {"name": regex_pattern},
-                    {"country_code": regex_pattern},
-                    {"phone_code": regex_pattern},
-                    {"native_name": regex_pattern},
-                ]
+    if status_filter and status_filter != "all":
+        query["status"] = status_filter
 
-            if status_filter and status_filter != "all":
-                query["status"] = status_filter
+    items, db_connected = await country_repo.find_all(
+        query=query,
+        sort_field="id",
+        sort_dir=1,
+        limit=1000,
+        db=db,
+    )
 
-            cursor = col.find(query, {"_id": 0}).sort("id", 1)
-            items = await cursor.to_list(length=1000)
-            db_connected = True
-        except Exception as exc:
-            logger.warning(f"MongoDB query failed, using in-memory fallback: {exc}")
-            db_connected = False
-
-    if not db_connected:
-        filtered = list(_IN_MEMORY_CACHE)
+    # In-memory search fallback if DB was offline
+    if not db_connected and (search or (status_filter and status_filter != "all")):
+        filtered = list(items)
         if search:
             st = search.strip().lower()
             filtered = [
                 c for c in filtered
-                if st in c["name"].lower()
-                or st in c["country_code"].lower()
-                or st in c["phone_code"].lower()
-                or st in c.get("native_name", "").lower()
+                if st in c.get("name", "").lower()
+                or st in c.get("country_code", "").lower()
+                or st in c.get("phone_code", "").lower()
+                or st in (c.get("native_name") or "").lower()
             ]
         if status_filter and status_filter != "all":
             filtered = [c for c in filtered if c.get("status") == status_filter]
@@ -297,38 +280,7 @@ async def create_country(db: Any, data: Dict[str, Any]) -> Dict[str, Any]:
     if not phone_code.startswith("+"):
         phone_code = f"+{phone_code}"
 
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-
-    if db is not None:
-        try:
-            col = db[COLLECTION_NAME]
-            # Find max id
-            last_item = await col.find_one(sort=[("id", -1)])
-            new_id = (last_item.get("id", 0) + 1) if last_item else 1
-
-            new_doc = {
-                "id": new_id,
-                "name": name,
-                "country_code": country_code,
-                "phone_code": phone_code,
-                "native_name": str(data.get("native_name", "")).strip() or None,
-                "flag_emoji": str(data.get("flag_emoji", "")).strip() or "🌐",
-                "currency_code": str(data.get("currency_code", "")).strip().upper() or None,
-                "status": str(data.get("status", "active")),
-                "created_at": now_str,
-                "updated_at": now_str,
-            }
-            await col.insert_one(dict(new_doc))
-            # Also keep memory sync
-            _IN_MEMORY_CACHE.append(new_doc)
-            return new_doc
-        except Exception as exc:
-            logger.warning(f"MongoDB insert failed, saving to in-memory fallback: {exc}")
-
-    # Fallback to memory
-    new_id = max([c["id"] for c in _IN_MEMORY_CACHE], default=0) + 1
-    new_doc = {
-        "id": new_id,
+    doc = {
         "name": name,
         "country_code": country_code,
         "phone_code": phone_code,
@@ -336,17 +288,14 @@ async def create_country(db: Any, data: Dict[str, Any]) -> Dict[str, Any]:
         "flag_emoji": str(data.get("flag_emoji", "")).strip() or "🌐",
         "currency_code": str(data.get("currency_code", "")).strip().upper() or None,
         "status": str(data.get("status", "active")),
-        "created_at": now_str,
-        "updated_at": now_str,
     }
-    _IN_MEMORY_CACHE.append(new_doc)
-    return new_doc
+
+    return await country_repo.insert(doc, auto_id=True, db=db)
 
 
 async def update_country(db: Any, country_id: int, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Update an existing country in MongoDB."""
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-    update_fields: Dict[str, Any] = {"updated_at": now_str}
+    update_fields: Dict[str, Any] = {}
 
     if "name" in data and data["name"]:
         update_fields["name"] = str(data["name"]).strip()
@@ -364,46 +313,9 @@ async def update_country(db: Any, country_id: int, data: Dict[str, Any]) -> Opti
     if "status" in data:
         update_fields["status"] = str(data["status"])
 
-    if db is not None:
-        try:
-            col = db[COLLECTION_NAME]
-            res = await col.find_one_and_update(
-                {"id": country_id},
-                {"$set": update_fields},
-                projection={"_id": 0},
-                return_document=True,
-            )
-            if res:
-                # Update memory
-                for c in _IN_MEMORY_CACHE:
-                    if c["id"] == country_id:
-                        c.update(res)
-                return res
-        except Exception as exc:
-            logger.warning(f"MongoDB update failed: {exc}")
-
-    # Fallback to memory
-    for c in _IN_MEMORY_CACHE:
-        if c["id"] == country_id:
-            c.update(update_fields)
-            return c
-    return None
+    return await country_repo.update(country_id, update_fields, db=db)
 
 
 async def delete_country(db: Any, country_id: int) -> bool:
     """Delete a country record from MongoDB."""
-    if db is not None:
-        try:
-            col = db[COLLECTION_NAME]
-            res = await col.delete_one({"id": country_id})
-            if res.deleted_count > 0:
-                global _IN_MEMORY_CACHE
-                _IN_MEMORY_CACHE = [c for c in _IN_MEMORY_CACHE if c["id"] != country_id]
-                return True
-        except Exception as exc:
-            logger.warning(f"MongoDB delete failed: {exc}")
-
-    # Fallback
-    initial_len = len(_IN_MEMORY_CACHE)
-    _IN_MEMORY_CACHE = [c for c in _IN_MEMORY_CACHE if c["id"] != country_id]
-    return len(_IN_MEMORY_CACHE) < initial_len
+    return await country_repo.delete(country_id, db=db)
