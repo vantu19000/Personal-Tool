@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard · AI Content Ideas · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}AI Content Ideas{% endblock %}
+
+{% block content %}
+<div class="space-y-7 w-full pb-10">
+
+    <!-- Sub-Navbar and Suite Header -->
+    {% include "tools/content_ideas/_header.html" %}
+
+    <!-- ===== 1. TỔNG QUAN / 4 THẺ CHỈ SỐ KPI CHÍNH ===== -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <!-- Thẻ 1: Số nguồn theo dõi -->
+        <div class="relative overflow-hidden rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs transition hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 group">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Số nguồn theo dõi</p>
+                    <div class="mt-2 flex items-baseline gap-2">
+                        <span class="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">{{ metrics.monitored_sources_count }}</span>
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">nguồn mạng</span>
+                    </div>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                    <i data-lucide="radio" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <!-- Phân tách trạng thái -->
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+                <div class="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>{{ metrics.sources_active }} Đang hoạt động</span>
+                </div>
+                <span class="text-slate-400 dark:text-slate-500 font-mono">{{ metrics.sources_paused }} Tạm dừng</span>
+            </div>
+
+            <div class="mt-2 text-[11px] text-slate-400 dark:text-slate-500 truncate">
+                Báo điện tử (16) · MXH (22) · RSS (10)
+            </div>
+        </div>
+
+        <!-- Thẻ 2: Bài thu thập hôm nay -->
+        <div class="relative overflow-hidden rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs transition hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 group">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Bài thu thập hôm nay</p>
+                    <div class="mt-2 flex items-baseline gap-2">
+                        <span class="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">{{ metrics.articles_crawled_today }}</span>
+                        <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded">
+                            +{{ metrics.articles_growth_percent }}%
+                        </span>
+                    </div>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                    <i data-lucide="newspaper" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <!-- Tốc độ quét & Lần cuối -->
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+                <span class="text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                    <i data-lucide="activity" class="w-3.5 h-3.5 text-indigo-500"></i>
+                    <span>Tốc độ: {{ metrics.crawl_velocity }}</span>
+                </span>
+                <span class="text-slate-400 dark:text-slate-500">Lần quét: {{ metrics.last_scan_time }}</span>
+            </div>
+
+            <div class="mt-2 text-[11px] text-slate-400 dark:text-slate-500 truncate">
+                Đã phân loại tự động & trích xuất từ khóa
+            </div>
+        </div>
+
+        <!-- Thẻ 3: Ý tưởng AI trích xuất -->
+        <div class="relative overflow-hidden rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs transition hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 group">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ý tưởng AI</p>
+                    <div class="mt-2 flex items-baseline gap-2">
+                        <span class="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">{{ metrics.ai_ideas_count }}</span>
+                        <span class="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 px-1.5 py-0.5 rounded">
+                            {{ metrics.ai_ideas_high_potential }} Tiềm năng cao
+                        </span>
+                    </div>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                    <i data-lucide="sparkles" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <!-- Pipeline ý tưởng -->
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+                <span class="text-amber-600 dark:text-amber-400 font-medium">
+                    {{ metrics.ai_ideas_pending }} Chưa xử lý
+                </span>
+                <span class="text-blue-600 dark:text-blue-400 font-medium">
+                    {{ metrics.ai_ideas_drafting }} Đang viết nháp
+                </span>
+            </div>
+
+            <div class="mt-2 text-[11px] text-slate-400 dark:text-slate-500 truncate">
+                Gợi ý góc nhìn, tiêu đề & outline bài viết
+            </div>
+        </div>
+
+        <!-- Thẻ 4: Bài đã xuất bản -->
+        <div class="relative overflow-hidden rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs transition hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 group">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Bài đã xuất bản</p>
+                    <div class="mt-2 flex items-baseline gap-2">
+                        <span class="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">{{ metrics.published_articles_count }}</span>
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">bài hoàn chỉnh</span>
+                    </div>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                    <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <!-- Hiệu quả chuyển đổi -->
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+                <span class="text-slate-600 dark:text-slate-400">Chuyển đổi ý tưởng:</span>
+                <span class="font-bold text-emerald-600 dark:text-emerald-400 font-mono">{{ metrics.published_conversion_rate }}%</span>
+            </div>
+
+            <div class="mt-2 text-[11px] text-slate-400 dark:text-slate-500 truncate">
+                Web Blog (12) · Social (10) · Newsletter (4)
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 2. KHU VỰC TRENDING (RADAR XU HƯỚNG BÙNG NỔ THỜI GIAN THỰC) ===== -->
+    <section class="rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-7 shadow-xs space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-rose-500/20">
+                    <i data-lucide="flame" class="w-5 h-5 fill-white"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>Trending · Xu hướng bùng nổ theo thời gian thực</span>
+                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                            Radar Realtime
+                        </span>
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        Các chủ đề và từ khóa có tốc độ gia tăng thảo luận đột biến được quét từ các kênh mạng xã hội & báo chí
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 self-start sm:self-auto">
+                <span class="text-xs text-slate-400 dark:text-slate-500">Cập nhật mỗi 5 phút</span>
+                <a href="/tools/content-ideas/trending"
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                    <span>Xem tất cả Radar</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Bảng danh sách Trending -->
+        <div class="grid grid-cols-1 gap-3.5">
+            {% for item in trending_items %}
+            <div class="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-4 sm:p-5 transition hover:border-violet-500/50 hover:bg-white dark:hover:bg-slate-900/80 hover:shadow-md">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <!-- Left: Rank & Title & Angle -->
+                    <div class="flex items-start gap-3.5 min-w-0 flex-1">
+                        <!-- Rank Badge -->
+                        <div class="w-8 h-8 rounded-xl {% if loop.index == 1 %}bg-gradient-to-tr from-rose-500 to-amber-500 text-white font-bold{% elif loop.index == 2 %}bg-orange-500 text-white font-bold{% elif loop.index == 3 %}bg-amber-500 text-white font-bold{% else %}bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold{% endif %} flex items-center justify-center text-sm shrink-0 shadow-xs">
+                            #{{ item.rank }}
+                        </div>
+
+                        <div class="space-y-1.5 min-w-0 flex-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-md border {{ item.badge_color }}">
+                                    {{ item.badge }}
+                                </span>
+                                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                    {{ item.category }}
+                                </span>
+                                <span class="text-xs text-slate-400 dark:text-slate-500">·</span>
+                                <span class="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                                    {{ item.spike }} tốc độ tăng
+                                </span>
+                                <span class="text-xs text-slate-400 dark:text-slate-500">·</span>
+                                <span class="text-xs text-slate-500 dark:text-slate-400">
+                                    {{ item.discussions }}
+                                </span>
+                            </div>
+
+                            <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug hover:text-violet-600 dark:hover:text-violet-400 transition cursor-pointer">
+                                {{ item.title }}
+                            </h3>
+
+                            <!-- AI Suggested Angle Box -->
+                            <div class="flex items-start gap-2 pt-1">
+                                <span class="text-[11px] font-bold text-violet-600 dark:text-violet-400 shrink-0 flex items-center gap-1">
+                                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                                    <span>Góc AI gợi ý:</span>
+                                </span>
+                                <p class="text-xs text-slate-600 dark:text-slate-300 italic leading-relaxed">
+                                    "{{ item.suggested_angle }}"
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Viral Score & Actions -->
+                    <div class="flex items-center gap-4 shrink-0 self-end lg:self-center border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-200/60 dark:border-slate-800">
+                        <!-- Viral Score Meter -->
+                        <div class="text-right">
+                            <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Viral Score</p>
+                            <div class="flex items-baseline justify-end gap-1">
+                                <span class="text-xl font-extrabold text-violet-600 dark:text-violet-400 font-mono">{{ item.viral_score }}</span>
+                                <span class="text-[11px] text-slate-400 font-mono">/100</span>
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <a href="/tools/content-ideas/ideas?create_from={{ item.rank }}"
+                           class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-sm transition active:scale-95">
+                            <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i>
+                            <span>Tạo bài viết</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- ===== 3. HAI CỘT: TOP ĐỊA PHƯƠNG & TOP CHỦ ĐỀ ===== -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-7">
+        
+        <!-- Cột Trái (6/12): TOP ĐỊA PHƯƠNG -->
+        <section class="lg:col-span-6 rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-7 shadow-xs flex flex-col justify-between space-y-6">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                            <i data-lucide="map-pin" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span>Top Địa phương</span>
+                                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                                    Vùng trọng điểm
+                                </span>
+                            </h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                Mật độ phân bổ bài viết và luồng thảo luận theo tỉnh/thành
+                            </p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-mono text-slate-400">Tổng 642 tin</span>
+                </div>
+
+                <!-- Danh sách các tỉnh thành -->
+                <div class="space-y-4">
+                    {% for loc in top_locations %}
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold flex items-center justify-center text-[10px]">
+                                    #{{ loc.rank }}
+                                </span>
+                                <span class="font-bold text-slate-800 dark:text-slate-200 text-sm">{{ loc.name }}</span>
+                                <span class="text-[11px] font-semibold {{ loc.badge_color }} px-1.5 py-0.2 rounded">
+                                    {{ loc.trend }}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono font-bold text-slate-900 dark:text-white">{{ loc.count }} tin</span>
+                                <span class="font-mono text-slate-400">({{ loc.percentage }}%)</span>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                            <div class="h-full rounded-full {{ loc.progress_color }} transition-all duration-500" style="width: {{ loc.percentage }}%"></div>
+                        </div>
+
+                        <!-- Key Topics of this location -->
+                        <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+                            <span class="text-[10px] text-slate-400">Điểm nóng:</span>
+                            {% for topic in loc.key_topics %}
+                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                {{ topic }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Footer Note -->
+            <div class="p-3.5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-xs text-blue-900 dark:text-blue-200 flex items-center gap-2.5">
+                <i data-lucide="info" class="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400"></i>
+                <span>Hà Nội & TP.HCM chiếm 70% tổng lượng tin thu thập hôm nay. Đề xuất tập trung các góc viết nội đô.</span>
+            </div>
+        </section>
+
+        <!-- Cột Phải (6/12): TOP CHỦ ĐỀ -->
+        <section class="lg:col-span-6 rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-7 shadow-xs flex flex-col justify-between space-y-6">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                            <i data-lucide="hash" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span>Top Chủ đề</span>
+                                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
+                                    Ngành hàng Hot
+                                </span>
+                            </h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                Thống kê số lượng bài viết và số ý tưởng trích xuất theo chuyên mục
+                            </p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-mono text-slate-400">6 Danh mục</span>
+                </div>
+
+                <!-- Danh sách chủ đề -->
+                <div class="space-y-3">
+                    {% for top in top_topics %}
+                    <div class="p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between gap-3 hover:border-slate-300 dark:hover:border-slate-700 transition">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 {{ top.tag_color }} border">
+                                <i data-lucide="{{ top.icon }}" class="w-4 h-4"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                                    {{ top.name }}
+                                </p>
+                                <div class="flex items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                                    <span class="font-mono text-slate-700 dark:text-slate-300 font-semibold">{{ top.articles_count }} bài cào</span>
+                                    <span>·</span>
+                                    <span class="text-purple-600 dark:text-purple-400 font-semibold">{{ top.ideas_count }} ý tưởng AI</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-right shrink-0">
+                            <div class="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                                {{ top.growth }}
+                            </div>
+                            <div class="text-[10px] font-semibold text-slate-400 uppercase mt-0.5">
+                                Điểm: {{ top.score }}/100
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Footer Action -->
+            <div class="flex items-center justify-between pt-2">
+                <span class="text-xs text-slate-500 dark:text-slate-400">Bạn muốn theo dõi thêm chủ đề mới?</span>
+                <a href="/tools/content-ideas/settings" class="text-xs font-semibold text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-1">
+                    <span>Thêm từ khóa & chuyên mục</span>
+                    <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </section>
+    </div>
+
+    <!-- ===== 4. HAI CỘT DƯỚI: TIN CÀO MỚI NHẤT & NGUỒN THEO DÕI ===== -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-7">
+        
+        <!-- Cột Trái (7/12): Bài thu thập mới nhất -->
+        <section class="lg:col-span-7 rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-7 shadow-xs space-y-5">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                        <i data-lucide="newspaper" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                            Bài thu thập mới nhất
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Dòng tin tức được crawler nạp tự động vào hệ thống
+                        </p>
+                    </div>
+                </div>
+
+                <a href="/tools/content-ideas/articles" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                    <span>Xem toàn bộ ({{ metrics.articles_crawled_today }})</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+
+            <!-- List articles -->
+            <div class="space-y-3.5">
+                {% for art in recent_articles %}
+                <div class="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-2 hover:border-slate-300 dark:hover:border-slate-700 transition">
+                    <div class="flex items-center justify-between gap-2 text-xs flex-wrap">
+                        <div class="flex items-center gap-2">
+                            <span class="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                                <i data-lucide="{{ art.source_icon }}" class="w-3.5 h-3.5 text-indigo-500"></i>
+                                <span>{{ art.source }}</span>
+                            </span>
+                            <span class="text-slate-400">·</span>
+                            <span class="text-slate-400 font-mono">{{ art.crawled_at }}</span>
+                            <span class="text-slate-400">·</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                {{ art.location }}
+                            </span>
+                        </div>
+
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded {{ art.sentiment_badge }}">
+                            {{ art.sentiment }}
+                        </span>
+                    </div>
+
+                    <h4 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">
+                        {{ art.title }}
+                    </h4>
+
+                    <p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                        {{ art.summary }}
+                    </p>
+
+                    <div class="flex items-center justify-between pt-1.5 border-t border-slate-200/60 dark:border-slate-800/80 text-xs">
+                        <span class="text-[11px] text-slate-400 font-mono">Tiềm năng: {{ art.viral_potential }}/100</span>
+                        
+                        <div class="flex items-center gap-2">
+                            <a href="{{ art.url }}" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition text-[11px]">
+                                Xem gốc
+                            </a>
+                            <a href="/tools/content-ideas/ideas?article_id={{ art.id }}" class="inline-flex items-center gap-1 font-semibold text-violet-600 dark:text-violet-400 hover:underline text-[11px]">
+                                <i data-lucide="sparkles" class="w-3 h-3"></i>
+                                <span>Trích xuất ý tưởng</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Cột Phải (5/12): Nguồn theo dõi & Trạng thái -->
+        <section class="lg:col-span-5 rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-7 shadow-xs space-y-5 flex flex-col justify-between">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                            <i data-lucide="radio" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                                Nguồn theo dõi tiêu biểu
+                            </h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                44/48 nguồn đang hoạt động ổn định
+                            </p>
+                        </div>
+                    </div>
+
+                    <a href="/tools/content-ideas/sources" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1">
+                        <span>Quản lý</span>
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+
+                <!-- Sources list -->
+                <div class="space-y-3">
+                    {% for src in recent_sources %}
+                    <div class="p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-300">
+                                <i data-lucide="{{ src.icon }}" class="w-4 h-4"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                    {{ src.name }}
+                                </p>
+                                <p class="text-[11px] text-slate-400 truncate">
+                                    {{ src.type_label }} · {{ src.scan_frequency }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="text-right shrink-0">
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded {{ src.badge_color }}">
+                                {{ src.status_label }}
+                            </span>
+                            <p class="text-[10px] text-slate-400 font-mono mt-0.5">
+                                {{ src.articles_today }} bài/ngày
+                            </p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Add Source Button -->
+            <a href="/tools/content-ideas/sources"
+               class="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>Thêm kênh / nguồn theo dõi mới</span>
+            </a>
+        </section>
+    </div>
+
+</div>
+{% endblock %}

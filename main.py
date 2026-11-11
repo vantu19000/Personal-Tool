@@ -20,6 +20,7 @@ from app.core.i18n import (
 )
 from app.core.templates import templates
 from app.settings import router as settings_router
+from app.tools.content_ideas import router as content_ideas_router
 from app.tools.guid_generator import router as guid_generator_router
 from app.tools.hash_calculator import router as hash_calculator_router
 from app.tools.image_compressor import router as image_compressor_router
@@ -102,6 +103,9 @@ def create_app() -> FastAPI:
         )
         return response
 
+    # Register AI Content Ideas router
+    app.include_router(content_ideas_router, prefix="/tools", tags=["content-ideas"])
+
     # Register each tool's router under the shared /tools prefix.
     app.include_router(image_compressor_router, prefix="/tools", tags=["image-compressor"])
     app.include_router(image_metadata_router, prefix="/tools", tags=["image-metadata"])
@@ -132,6 +136,13 @@ def create_app() -> FastAPI:
         health = await check_db_connection()
         status_code = 200 if health.get("status") == "ok" else 503
         return JSONResponse(health, status_code=status_code)
+
+    # Shortcut redirect to AI Content Ideas
+    @app.get("/content-ideas", include_in_schema=False)
+    @app.get("/content-ideas/{rest_of_path:path}", include_in_schema=False)
+    async def redirect_content_ideas(rest_of_path: str = ""):
+        target = f"/tools/content-ideas/{rest_of_path}".rstrip("/") if rest_of_path else "/tools/content-ideas"
+        return RedirectResponse(url=target, status_code=307)
 
     # Dashboard (home)
     @app.get("/", name="dashboard")

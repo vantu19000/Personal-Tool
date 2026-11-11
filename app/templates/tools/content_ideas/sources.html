@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Nguồn theo dõi · AI Content Ideas · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}Nguồn theo dõi{% endblock %}
+
+{% block content %}
+<div class="space-y-7 w-full pb-10">
+
+    {% include "tools/content_ideas/_header.html" %}
+
+    <!-- Top Action & Filter Bar -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>Quản lý Nguồn Quét & Kênh Theo Dõi</span>
+                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                    {{ sources|length }} Nguồn cấu hình
+                </span>
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Thiết lập danh sách báo điện tử, RSS feed, fanpage, tài khoản mạng xã hội cần bot cào dữ liệu định kỳ.
+            </p>
+        </div>
+
+        <button type="button" onclick="alert('Tính năng thêm nguồn đang kết nối vào cơ sở dữ liệu!')"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition active:scale-95 cursor-pointer">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Thêm nguồn mới</span>
+        </button>
+    </div>
+
+    <!-- Sources Grid / Table -->
+    <div class="rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 overflow-hidden shadow-xs">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-100 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
+                        <th class="p-4 pl-6">Nguồn theo dõi</th>
+                        <th class="p-4">Loại kênh</th>
+                        <th class="p-4">Chuyên mục</th>
+                        <th class="p-4">Tần suất quét</th>
+                        <th class="p-4">Bài hôm nay</th>
+                        <th class="p-4">Lần quét cuối</th>
+                        <th class="p-4">Trạng thái</th>
+                        <th class="p-4 pr-6 text-right">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80 text-slate-700 dark:text-slate-300">
+                    {% for src in sources %}
+                    <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition">
+                        <td class="p-4 pl-6">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
+                                    <i data-lucide="{{ src.icon }}" class="w-4 h-4"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="font-bold text-slate-900 dark:text-white truncate">{{ src.name }}</p>
+                                    <a href="{{ src.url }}" target="_blank" class="text-[11px] text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 truncate block">
+                                        {{ src.url }}
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-4">
+                            <span class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                {{ src.type_label }}
+                            </span>
+                        </td>
+                        <td class="p-4 text-xs">{{ src.category }}</td>
+                        <td class="p-4 text-xs font-mono text-slate-500">{{ src.scan_frequency }}</td>
+                        <td class="p-4 font-mono font-bold text-slate-900 dark:text-white">{{ src.articles_today }} bài</td>
+                        <td class="p-4 text-xs text-slate-400 font-mono">{{ src.last_crawled }}</td>
+                        <td class="p-4">
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold {{ src.badge_color }}">
+                                {{ src.status_label }}
+                            </span>
+                        </td>
+                        <td class="p-4 pr-6 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <button type="button" title="Quét ngay" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white">
+                                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button type="button" title="Chỉnh sửa" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white">
+                                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

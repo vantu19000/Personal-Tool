@@ -80,6 +80,11 @@
     "utility": "Tiện ích"
   },
   "tools": {
+    "content-ideas": {
+      "name": "AI Content Ideas",
+      "desc": "Quét và phân tích ý tưởng nội dung xu hướng trên mạng bằng AI",
+      "badge": "✦ Mới"
+    },
     "image-compressor": {
       "name": "Nén Ảnh",
       "desc": "Nén ảnh tối ưu dung lượng hàng loạt hoặc theo thư mục, tự động sao lưu ảnh gốc",

@@ -6,6 +6,15 @@
 {% block content %}
 {# Define complete metadata fallback mapping to ensure icons, tags, and badges always render accurately #}
 {% set tool_meta = {
+    'content-ideas': {
+        'icon': 'sparkles',
+        'badge': '✦ Mới',
+        'badge_color': 'bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300',
+        'icon_bg': 'bg-violet-50 text-violet-600 dark:bg-violet-950/50 dark:text-violet-400',
+        'category': 'ai',
+        'desc': 'Quét và phân tích ý tưởng nội dung xu hướng trên mạng bằng AI, tổng hợp theo địa phương, chủ đề và radar trending',
+        'tags': ['AI', 'Content', 'Scan', 'Trending', 'Radar']
+    },
     'image-compressor': {
         'icon': 'minimize-2',
         'badge': '✦ Nén ảnh',

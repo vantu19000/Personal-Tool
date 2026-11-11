@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Bài đã xuất bản · AI Content Ideas · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}Bài đã xuất bản{% endblock %}
+
+{% block content %}
+<div class="space-y-7 w-full pb-10">
+
+    {% include "tools/content_ideas/_header.html" %}
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>Kho Bài Viết Đã Hoàn Thiện & Xuất Bản</span>
+                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                    {{ posts|length }} Bài đăng
+                </span>
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Theo dõi hiệu quả, lượt tương tác và tỷ lệ chuyển đổi từ các ý tưởng đã được viết bài và đăng tải.
+            </p>
+        </div>
+    </div>
+
+    <!-- Published List -->
+    <div class="space-y-4">
+        {% for post in posts %}
+        <div class="rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-md transition">
+            <div class="space-y-2 min-w-0 flex-1">
+                <div class="flex items-center gap-2 text-xs flex-wrap">
+                    <span class="font-bold px-2 py-0.5 rounded text-[10px] {{ post.badge_color }}">
+                        Đã đăng tải
+                    </span>
+                    <span class="text-slate-500 font-medium">{{ post.platform }}</span>
+                    <span class="text-slate-400">·</span>
+                    <span class="text-slate-400 font-mono text-[11px]">{{ post.published_at }}</span>
+                    <span class="text-slate-400">·</span>
+                    <span class="text-slate-400 text-[11px]">Đọc ~{{ post.read_time }}</span>
+                </div>
+
+                <h3 class="text-base font-bold text-slate-900 dark:text-white leading-snug">
+                    {{ post.title }}
+                </h3>
+            </div>
+
+            <!-- Stats -->
+            <div class="flex items-center gap-6 shrink-0 border-t md:border-t-0 pt-3 md:pt-0 border-slate-100 dark:border-slate-800">
+                <div class="text-center">
+                    <p class="text-[10px] uppercase font-bold text-slate-400">Lượt xem</p>
+                    <p class="text-base font-extrabold text-slate-900 dark:text-white font-mono">{{ post.views }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-[10px] uppercase font-bold text-slate-400">Chia sẻ</p>
+                    <p class="text-base font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">{{ post.shares }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-[10px] uppercase font-bold text-slate-400">Bình luận</p>
+                    <p class="text-base font-extrabold text-indigo-600 dark:text-indigo-400 font-mono">{{ post.comments }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

@@ -80,6 +80,11 @@
     "utility": "Utility"
   },
   "tools": {
+    "content-ideas": {
+      "name": "AI Content Ideas",
+      "desc": "Scan & analyze trending content ideas across the web with AI",
+      "badge": "✦ New"
+    },
     "image-compressor": {
       "name": "Image Compressor",
       "desc": "Optimize & batch compress images, preserve original backups automatically",

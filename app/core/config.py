@@ -101,6 +101,19 @@ def get_ollama_base_url() -> str:
 # ``id`` is used to highlight the active link in the sidebar.
 TOOLS = [
     {
+        "id": "content-ideas",
+        "name": "AI Content Ideas",
+        "path": "/tools/content-ideas",
+        "description": "Quét và phân tích ý tưởng nội dung xu hướng trên mạng bằng AI, tổng hợp theo địa phương, chủ đề và radar trending",
+        "category": "ai",
+        "category_name": "AI",
+        "badge": "✦ Mới",
+        "badge_color": "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300",
+        "icon": "sparkles",
+        "icon_bg": "bg-violet-50 text-violet-600 dark:bg-violet-950/50 dark:text-violet-400",
+        "tags": ["AI", "Content", "Scan", "Trending", "Radar"],
+    },
+    {
         "id": "image-to-prompt",
         "name": "Image to Prompt",
         "path": "/tools/image-to-prompt",

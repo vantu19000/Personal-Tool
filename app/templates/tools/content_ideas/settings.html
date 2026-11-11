@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Cấu hình Quét & AI · AI Content Ideas · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}Cấu hình Quét & AI{% endblock %}
+
+{% block content %}
+<div class="space-y-7 w-full pb-10">
+
+    {% include "tools/content_ideas/_header.html" %}
+
+    <div class="max-w-4xl space-y-6">
+        <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white">
+                Cấu hình Quét Tự Động & Trí Tuệ Nhân Tạo
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Tùy chỉnh chu kỳ quét, từ khóa loại trừ và mô hình AI để phân tích nội dung.
+            </p>
+        </div>
+
+        <form class="rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-7 shadow-xs space-y-6" onsubmit="event.preventDefault(); alert('Cấu hình đã được lưu thành công!');">
+            <!-- Scan frequency -->
+            <div class="space-y-2">
+                <label class="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    Tần suất quét tin tức tự động (Crawler Interval)
+                </label>
+                <select class="w-full max-w-md px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+                    <option value="15">Mỗi 15 phút (Khuyến nghị cho tin nóng)</option>
+                    <option value="30">Mỗi 30 phút</option>
+                    <option value="60">Mỗi 1 giờ</option>
+                    <option value="360">Mỗi 6 giờ</option>
+                </select>
+            </div>
+
+            <!-- AI Model for idea generation -->
+            <div class="space-y-2">
+                <label class="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    Mô hình AI phân tích & sinh ý tưởng
+                </label>
+                <select class="w-full max-w-md px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+                    <option value="ollama_qwen">Ollama Local · Qwen 2.5 7B (Khuyến nghị, 100% offline)</option>
+                    <option value="ollama_llama">Ollama Local · Llama 3.1 8B</option>
+                    <option value="gemini">Google Gemini 1.5 Flash (Cloud API)</option>
+                </select>
+                <p class="text-[11px] text-slate-400">
+                    Mô hình sẽ nhận nội dung bài cào và tự động trích xuất các góc nhìn sáng tạo, tiêu đề và dàn ý.
+                </p>
+            </div>
+
+            <!-- Target Keywords -->
+            <div class="space-y-2">
+                <label class="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    Từ khóa ưu tiên theo dõi (Priority Keywords)
+                </label>
+                <input type="text" value="AI Agent, Luật Đất Đai 2026, Xe điện, Du lịch chữa lành, Livestream AI, Khởi nghiệp"
+                       class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-xs sm:text-sm text-slate-800 dark:text-slate-200" />
+                <p class="text-[11px] text-slate-400">Phân cách các từ khóa bằng dấu phẩy.</p>
+            </div>
+
+            <!-- Blacklist Keywords -->
+            <div class="space-y-2">
+                <label class="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    Từ khóa loại trừ / Bỏ qua (Blacklist Keywords)
+                </label>
+                <input type="text" value="cờ bạc, cá độ, tin đồn thất thiệt, scam"
+                       class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-xs sm:text-sm text-slate-800 dark:text-slate-200" />
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end">
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition active:scale-95 cursor-pointer">
+                    Lưu cấu hình
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

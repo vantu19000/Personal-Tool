@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Bài thu thập · AI Content Ideas · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}Bài thu thập{% endblock %}
+
+{% block content %}
+<div class="space-y-7 w-full pb-10">
+
+    {% include "tools/content_ideas/_header.html" %}
+
+    <!-- Top Action & Search Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>Kho Dữ Liệu Bài Viết Đã Thu Thập</span>
+                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                    642 Bài hôm nay
+                </span>
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Toàn bộ tin tức, status, bình luận đã được làm sạch và phân loại ngữ nghĩa bởi AI.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2.5 flex-wrap">
+            <input type="text" placeholder="Tìm theo tiêu đề, từ khóa..."
+                   class="px-3.5 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+            <select class="px-3 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+                <option value="">Tất cả địa phương</option>
+                <option value="hn">Hà Nội</option>
+                <option value="hcm">TP. Hồ Chí Minh</option>
+                <option value="dn">Đà Nẵng</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Articles Feed Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {% for art in articles %}
+        <div class="rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs flex flex-col justify-between space-y-4 hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition">
+            <div class="space-y-2.5">
+                <div class="flex items-center justify-between text-xs">
+                    <span class="font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                        <i data-lucide="{{ art.source_icon }}" class="w-3.5 h-3.5"></i>
+                        <span>{{ art.source }}</span>
+                    </span>
+                    <span class="text-slate-400 font-mono text-[11px]">{{ art.crawled_at }}</span>
+                </div>
+
+                <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug">
+                    {{ art.title }}
+                </h3>
+
+                <p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed">
+                    {{ art.summary }}
+                </p>
+
+                <div class="flex items-center gap-1.5 flex-wrap pt-1">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                        {{ art.category }}
+                    </span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
+                        📍 {{ art.location }}
+                    </span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold {{ art.sentiment_badge }}">
+                        {{ art.sentiment }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+                <span class="font-mono text-slate-400 text-[11px]">Tiềm năng: {{ art.viral_potential }}/100</span>
+
+                <a href="/tools/content-ideas/ideas?article_id={{ art.id }}"
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs shadow-xs transition active:scale-95">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    <span>Tạo ý tưởng</span>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}
