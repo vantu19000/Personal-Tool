@@ -61,7 +61,34 @@ class ProvinceModel(BaseDocumentModel):
     country_code: str = "VN"
     type: str = "Tỉnh"
     region: Optional[str] = None
+    merged_from: Optional[str] = None
     phone_code: Optional[str] = None
     postal_code: Optional[str] = None
     status: str = "active"
+
+
+class WardModel(BaseDocumentModel):
+    """Ward / Commune metadata model stored in MongoDB collection 'metadata_wards'.
+
+    Fields:
+        id: Integer ID
+        code: Administrative GSO code (e.g. '00001')
+        name: Full name with type (e.g. 'Phường Phúc Xá', 'Xã Tân Triều')
+        type: Administrative type ('Phường', 'Xã', 'Thị trấn')
+        province_name: Province / City name (e.g. 'Thành phố Hà Nội')
+        district_name: Former district name if applicable (e.g. 'Quận Ba Đình')
+        merged_note: Note regarding reorganization / post-merger status
+        status: 'active' or 'inactive' or 'merged'
+        created_at: Formatted creation timestamp
+        updated_at: Formatted last update timestamp
+    """
+    id: int
+    code: str
+    name: str
+    type: str = "Xã"
+    province_name: Optional[str] = None
+    district_name: Optional[str] = None
+    merged_note: Optional[str] = None
+    status: str = "active"
+
 

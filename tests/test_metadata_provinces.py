@@ -37,17 +37,18 @@ def test_province_model_validation():
 def test_load_vn_provinces_json():
     provinces = services.load_vn_provinces_json()
     assert isinstance(provinces, list)
-    assert len(provinces) == 63
+    assert len(provinces) == 34
 
-    # Check key major cities and provinces
+    # Check key 6 centrally-governed cities and provinces according to NQ 202/2025/QH15
     names = [p["name"] for p in provinces]
     assert "TP. Hà Nội" in names
-    assert "TP. Hồ Chí Minh" in names
-    assert "TP. Đà Nẵng" in names
     assert "TP. Hải Phòng" in names
+    assert "TP. Huế" in names
+    assert "TP. Đà Nẵng" in names
+    assert "TP. Hồ Chí Minh" in names
     assert "TP. Cần Thơ" in names
-    assert "Bình Dương" in names
-    assert "Đồng Nai" in names
+    assert "Tỉnh Bắc Ninh" in names
+    assert "Tỉnh Đồng Nai" in names
 
 
 @pytest.mark.anyio
@@ -95,7 +96,7 @@ def test_provinces_page_render(client):
     assert response.status_code == 200
     assert "Quản lý Tỉnh / Thành phố" in response.text
     assert ("Bộ nhớ Cục bộ" in response.text) or ("metadata_provinces" in response.text)
-    assert "Nạp 63 Tỉnh/Thành VN" in response.text
+    assert "34 Tỉnh/Thành" in response.text
 
 
 def test_api_list_provinces(client):
@@ -157,10 +158,10 @@ def test_api_create_and_delete_province(client):
 def test_api_import_vn_provinces(client):
     response = client.post(
         "/metadata/api/provinces/import-vn",
-        data={"overwrite": "false"},
+        data={"overwrite": "true", "reset": "true"},
         headers={"Accept": "application/json"},
     )
     assert response.status_code == 200
     data = response.json()
     assert data.get("ok") is True
-    assert data.get("total_provinces") == 63
+    assert data.get("total_provinces") == 34

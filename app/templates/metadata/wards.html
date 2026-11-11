@@ -1,0 +1,629 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý Xã / Phường · Metadata · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}Quản lý Xã / Phường (Cấp cơ sở sau sáp nhập){% endblock %}
+
+{% block content %}
+<div class="space-y-6 w-full pb-10">
+
+    <!-- ===== Header Section ===== -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0c1a1a] via-[#102422] to-[#0c1a1a] text-white p-6 sm:p-7 border border-emerald-950/80 shadow-xl">
+        <div class="absolute -top-24 -left-12 w-80 h-80 bg-teal-600/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 right-1/4 w-80 h-80 bg-emerald-600/15 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div class="space-y-2">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <i data-lucide="database" class="w-3.5 h-3.5"></i>
+                        <span>Metadata · Hệ thống Danh mục</span>
+                    </span>
+
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        <i data-lucide="map" class="w-3 h-3"></i>
+                        <span>Cấp cơ sở: Xã / Phường / Thị trấn</span>
+                    </span>
+
+                    {% if db_connected %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>MongoDB Connected</span>
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span>Chế độ Demo Cục bộ</span>
+                    </span>
+                    {% endif %}
+                </div>
+
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                    <span>Quản lý Xã / Phường (Communes & Wards)</span>
+                </h1>
+
+                <p class="text-xs sm:text-sm text-slate-300/90 max-w-2xl leading-relaxed">
+                    Hệ thống danh mục đơn vị hành chính cấp cơ sở gồm <strong>Xã, Phường, Thị trấn</strong> sau sắp xếp, sáp nhập theo mô hình chính quyền địa phương 2 cấp, hỗ trợ đồng bộ dữ liệu mở quốc gia từ internet và lưu trữ trực tiếp trong MongoDB.
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="shrink-0 flex items-center gap-2.5 flex-wrap">
+                <button type="button"
+                        id="btn-sync-web"
+                        onclick="triggerSyncWeb()"
+                        class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold border border-white/20 backdrop-blur-sm transition active:scale-95 cursor-pointer"
+                        title="Tải trực tiếp danh mục từ Open Data mạng xã phường">
+                    <i data-lucide="cloud-download" class="w-4 h-4 text-cyan-300"></i>
+                    <span>Tải từ mạng (Open Data)</span>
+                </button>
+
+                <button type="button"
+                        id="btn-import-wards"
+                        onclick="triggerImportWards()"
+                        class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold border border-white/20 backdrop-blur-sm transition active:scale-95 cursor-pointer">
+                    <i data-lucide="hard-drive-download" class="w-4 h-4 text-emerald-300"></i>
+                    <span>Nạp dữ liệu mẫu</span>
+                </button>
+
+                <button type="button"
+                        onclick="openWardModal()"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-emerald-600/30 transition active:scale-95 cursor-pointer">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Thêm Xã / Phường</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== KPI Cards ===== -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Tổng số xã phường -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tổng đơn vị cơ sở</p>
+                <p class="text-2xl font-extrabold text-slate-900 dark:text-white font-mono mt-1" id="stat-total">{{ total_count }}</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <i data-lucide="layers" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Phường -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Phường (Đô thị)</p>
+                <p class="text-2xl font-extrabold text-blue-600 dark:text-blue-400 font-mono mt-1">{{ phuong_count }}</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <i data-lucide="building" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Xã -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Xã (Nông thôn)</p>
+                <p class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono mt-1">{{ xa_count }}</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <i data-lucide="trees" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Thị trấn / CSDL -->
+        <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Thị trấn</p>
+                <p class="text-2xl font-extrabold text-amber-600 dark:text-amber-400 font-mono mt-1">{{ thitran_count }}</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                <i data-lucide="home" class="w-5 h-5"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Search & Filter Toolbar ===== -->
+    <div class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs">
+        <form method="get" action="/metadata/wards" class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div class="relative flex-1 max-w-md">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </div>
+                <input type="text"
+                       name="search"
+                       value="{{ search }}"
+                       placeholder="Tìm theo tên xã/phường, mã (00001), tỉnh/thành..."
+                       class="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+            </div>
+
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <!-- Tỉnh / Thành phố -->
+                <select name="province"
+                        onchange="this.form.submit()"
+                        class="px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none max-w-[200px] truncate">
+                    <option value="all" {% if province_filter == 'all' %}selected{% endif %}>Tất cả Tỉnh / Thành</option>
+                    {% for p in provinces_list %}
+                    <option value="{{ p }}" {% if province_filter == p %}selected{% endif %}>{{ p }}</option>
+                    {% endfor %}
+                </select>
+
+                <!-- Loại hình -->
+                <select name="type"
+                        onchange="this.form.submit()"
+                        class="px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none">
+                    <option value="all" {% if type_filter == 'all' %}selected{% endif %}>Tất cả loại hình</option>
+                    <option value="Phường" {% if type_filter == 'Phường' %}selected{% endif %}>Phường</option>
+                    <option value="Xã" {% if type_filter == 'Xã' %}selected{% endif %}>Xã</option>
+                    <option value="Thị trấn" {% if type_filter == 'Thị trấn' %}selected{% endif %}>Thị trấn</option>
+                </select>
+
+                <!-- Trạng thái -->
+                <select name="status"
+                        onchange="this.form.submit()"
+                        class="px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>Tất cả trạng thái</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Đang hoạt động</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Tạm dừng</option>
+                </select>
+
+                <button type="submit" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 transition">
+                    Lọc
+                </button>
+
+                {% if search or status_filter != 'all' or province_filter != 'all' or type_filter != 'all' %}
+                <a href="/metadata/wards" class="px-3 py-2 rounded-xl text-xs text-rose-600 dark:text-rose-400 hover:underline">
+                    Đặt lại
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- ===== Wards Table ===== -->
+    <div class="rounded-3xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 overflow-hidden shadow-xs">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
+                        <th class="p-3.5 pl-6 w-16">ID</th>
+                        <th class="p-3.5">Tên Xã / Phường</th>
+                        <th class="p-3.5">Mã hành chính</th>
+                        <th class="p-3.5">Loại hình</th>
+                        <th class="p-3.5">Tỉnh / Thành phố</th>
+                        <th class="p-3.5">Quận / Huyện cũ</th>
+                        <th class="p-3.5">Sáp nhập / Ghi chú</th>
+                        <th class="p-3.5">Trạng thái</th>
+                        <th class="p-3.5 pr-6 text-right w-28">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80 text-slate-700 dark:text-slate-300">
+                    {% if wards %}
+                    {% for item in wards %}
+                    <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition group" id="row-{{ item.id }}">
+                        <!-- ID -->
+                        <td class="p-3.5 pl-6 font-mono text-slate-400 font-semibold text-xs">
+                            #{{ item.id }}
+                        </td>
+
+                        <!-- Name & Icon -->
+                        <td class="p-3.5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 
+                                    {% if item.type == 'Phường' %}bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300
+                                    {% elif item.type == 'Thị trấn' %}bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300
+                                    {% else %}bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300{% endif %}">
+                                    {% if item.type == 'Phường' %}
+                                    <i data-lucide="building" class="w-4 h-4"></i>
+                                    {% elif item.type == 'Thị trấn' %}
+                                    <i data-lucide="home" class="w-4 h-4"></i>
+                                    {% else %}
+                                    <i data-lucide="trees" class="w-4 h-4"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="font-bold text-slate-900 dark:text-white text-sm truncate">{{ item.name }}</p>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Code -->
+                        <td class="p-3.5">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700">
+                                {{ item.code }}
+                            </span>
+                        </td>
+
+                        <!-- Type -->
+                        <td class="p-3.5">
+                            {% if item.type == 'Phường' %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                                Phường
+                            </span>
+                            {% elif item.type == 'Thị trấn' %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                                Thị trấn
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                Xã
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Province -->
+                        <td class="p-3.5">
+                            <span class="font-medium text-slate-800 dark:text-slate-200 text-xs">
+                                {{ item.province_name or '—' }}
+                            </span>
+                        </td>
+
+                        <!-- Former District -->
+                        <td class="p-3.5 text-xs text-slate-500 dark:text-slate-400">
+                            {{ item.district_name or '—' }}
+                        </td>
+
+                        <!-- Merged Note -->
+                        <td class="p-3.5 max-w-[200px]">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 truncate block" title="{{ item.merged_note }}">
+                                {{ item.merged_note or '—' }}
+                            </span>
+                        </td>
+
+                        <!-- Status -->
+                        <td class="p-3.5">
+                            {% if item.status == 'active' %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                <span>Hoạt động</span>
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                <span>Tạm dừng</span>
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="p-3.5 pr-6 text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <button type="button"
+                                        title="Chỉnh sửa"
+                                        data-id="{{ item.id }}"
+                                        data-name="{{ item.name }}"
+                                        data-code="{{ item.code }}"
+                                        data-type="{{ item.type or 'Xã' }}"
+                                        data-province="{{ item.province_name or '' }}"
+                                        data-district="{{ item.district_name or '' }}"
+                                        data-merged="{{ item.merged_note or '' }}"
+                                        data-status="{{ item.status or 'active' }}"
+                                        onclick="openEditWardFromButton(this)"
+                                        class="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                </button>
+                                <button type="button"
+                                        title="Xóa"
+                                        data-id="{{ item.id }}"
+                                        data-name="{{ item.name }}"
+                                        onclick="deleteWardFromButton(this)"
+                                        class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="p-10 text-center text-slate-400">
+                            <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+                            <p class="text-sm font-medium">Không tìm thấy xã / phường nào phù hợp.</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Reusable Pagination Component -->
+        {% include "_pagination.html" %}
+    </div>
+
+</div>
+
+<!-- ===== Modal Thêm / Chỉnh Sửa Xã / Phường ===== -->
+<div id="ward-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <!-- Modal Header -->
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <h3 id="ward-modal-title" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <i data-lucide="map-pin" class="w-5 h-5 text-emerald-500"></i>
+                <span>Thêm Xã / Phường mới</span>
+            </h3>
+            <button type="button" onclick="closeWardModal()" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Modal Form -->
+        <form id="ward-form" onsubmit="handleWardFormSubmit(event)" class="p-6 space-y-4">
+            <input type="hidden" id="form-ward-id" name="id" value="" />
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Tên xã/phường -->
+                <div class="sm:col-span-2 space-y-1">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Tên Xã / Phường / Thị trấn <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" id="form-ward-name" name="name" required placeholder="Ví dụ: Phường Phúc Xá, Xã Tân Triều..."
+                           class="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                </div>
+
+                <!-- Mã hành chính -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Mã hành chính
+                    </label>
+                    <input type="text" id="form-ward-code" name="code" placeholder="00001..."
+                           class="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm uppercase font-mono border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                </div>
+
+                <!-- Loại hình -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Loại hình
+                    </label>
+                    <select id="form-ward-type" name="type" class="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none">
+                        <option value="Phường">Phường</option>
+                        <option value="Xã">Xã</option>
+                        <option value="Thị trấn">Thị trấn</option>
+                    </select>
+                </div>
+
+                <!-- Tỉnh / Thành phố -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Tỉnh / Thành phố trực thuộc
+                    </label>
+                    <input type="text" id="form-ward-province" name="province_name" placeholder="Thành phố Hà Nội, TP. Hồ Chí Minh..."
+                           class="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none" />
+                </div>
+
+                <!-- Quận / Huyện cũ -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Quận / Huyện (nếu có)
+                    </label>
+                    <input type="text" id="form-ward-district" name="district_name" placeholder="Quận Ba Đình, Huyện Gia Lâm..."
+                           class="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none" />
+                </div>
+
+                <!-- Ghi chú sáp nhập -->
+                <div class="sm:col-span-2 space-y-1">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Sáp nhập / Ghi chú sắp xếp đơn vị hành chính
+                    </label>
+                    <input type="text" id="form-ward-merged" name="merged_note" placeholder="Ví dụ: Đơn vị sau sắp xếp sáp nhập theo NQ 2024-2025..."
+                           class="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                </div>
+
+                <!-- Trạng thái -->
+                <div class="sm:col-span-2 space-y-1">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Trạng thái hoạt động
+                    </label>
+                    <select id="form-ward-status" name="status" class="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+                        <option value="active">Hoạt động (Active)</option>
+                        <option value="inactive">Tạm dừng (Inactive)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
+                <button type="button" onclick="closeWardModal()" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+                    Hủy bỏ
+                </button>
+                <button type="submit" id="btn-submit-ward" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition active:scale-95">
+                    Lưu thông tin
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openWardModal() {
+        document.getElementById('form-ward-id').value = '';
+        document.getElementById('form-ward-name').value = '';
+        document.getElementById('form-ward-code').value = '';
+        document.getElementById('form-ward-type').value = 'Phường';
+        document.getElementById('form-ward-province').value = '';
+        document.getElementById('form-ward-district').value = '';
+        document.getElementById('form-ward-merged').value = 'Đơn vị hành chính cấp xã chuẩn hóa';
+        document.getElementById('form-ward-status').value = 'active';
+        document.getElementById('ward-modal-title').innerHTML = '<i data-lucide="map-pin" class="w-5 h-5 text-emerald-500"></i><span>Thêm Xã / Phường mới</span>';
+        if (window.lucide) window.lucide.createIcons();
+        document.getElementById('ward-modal').classList.remove('hidden');
+    }
+
+    function openEditWardFromButton(btn) {
+        if (!btn) return;
+        const item = {
+            id: btn.getAttribute('data-id'),
+            name: btn.getAttribute('data-name'),
+            code: btn.getAttribute('data-code'),
+            type: btn.getAttribute('data-type'),
+            province_name: btn.getAttribute('data-province'),
+            district_name: btn.getAttribute('data-district'),
+            merged_note: btn.getAttribute('data-merged'),
+            status: btn.getAttribute('data-status'),
+        };
+        editWard(item);
+    }
+
+    function editWard(item) {
+        document.getElementById('form-ward-id').value = item.id;
+        document.getElementById('form-ward-name').value = item.name;
+        document.getElementById('form-ward-code').value = item.code;
+        document.getElementById('form-ward-type').value = item.type || 'Phường';
+        document.getElementById('form-ward-province').value = item.province_name || '';
+        document.getElementById('form-ward-district').value = item.district_name || '';
+        document.getElementById('form-ward-merged').value = item.merged_note || '';
+        document.getElementById('form-ward-status').value = item.status || 'active';
+        document.getElementById('ward-modal-title').innerHTML = '<i data-lucide="edit-3" class="w-5 h-5 text-emerald-500"></i><span>Chỉnh sửa Xã / Phường</span>';
+        if (window.lucide) window.lucide.createIcons();
+        document.getElementById('ward-modal').classList.remove('hidden');
+    }
+
+    function closeWardModal() {
+        document.getElementById('ward-modal').classList.add('hidden');
+    }
+
+    function deleteWardFromButton(btn) {
+        if (!btn) return;
+        const id = btn.getAttribute('data-id');
+        const name = btn.getAttribute('data-name');
+        deleteWard(id, name);
+    }
+
+    async function handleWardFormSubmit(e) {
+        e.preventDefault();
+        const id = document.getElementById('form-ward-id').value;
+        const form = document.getElementById('ward-form');
+        const formData = new FormData(form);
+
+        const url = id ? `/metadata/api/wards/${id}/edit` : `/metadata/api/wards`;
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.ok) {
+                closeWardModal();
+                window.location.reload();
+            } else {
+                alert('Lỗi: ' + (data.error || 'Không thể lưu xã / phường'));
+            }
+        } catch (err) {
+            alert('Lỗi kết nối khi gửi dữ liệu!');
+        }
+    }
+
+    async function deleteWard(id, name) {
+        const ok = await window.confirmModal({
+            title: 'Xóa xã / phường?',
+            message: `Bạn có chắc chắn muốn xóa <strong class="text-slate-900 dark:text-white font-bold font-mono">"${name}"</strong> khỏi cơ sở dữ liệu MongoDB?<br><span class="text-xs text-rose-500 font-medium">⚠️ Thao tác này sẽ xóa vĩnh viễn và không thể hoàn tác.</span>`,
+            confirmText: 'Xác nhận xóa',
+            cancelText: 'Hủy bỏ',
+            type: 'danger'
+        });
+        if (!ok) return;
+
+        try {
+            const res = await fetch(`/metadata/api/wards/${id}/delete`, {
+                method: 'POST',
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.ok) {
+                const row = document.getElementById(`row-${id}`);
+                if (row) {
+                    row.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                    setTimeout(() => {
+                        row.remove();
+                        window.location.reload();
+                    }, 300);
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                alert('Không thể xóa: ' + (data.error || 'Lỗi không xác định'));
+            }
+        } catch (err) {
+            alert('Lỗi kết nối khi gửi yêu cầu xóa!');
+        }
+    }
+
+    async function triggerImportWards() {
+        const ok = await window.confirmModal({
+            title: 'Nạp danh mục Xã / Phường mẫu',
+            message: 'Hệ thống sẽ nạp danh mục xã, phường, thị trấn chuẩn vào MongoDB.<br><span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Dữ liệu hiện có sẽ được bảo toàn.</span>',
+            confirmText: 'Bắt đầu nạp',
+            cancelText: 'Hủy bỏ',
+            type: 'info'
+        });
+        if (!ok) return;
+
+        const btn = document.getElementById('btn-import-wards');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="inline-block animate-spin mr-1.5">⏳</span> Đang nạp...';
+
+        try {
+            const formData = new FormData();
+            formData.append('limit', '500');
+            formData.append('reset', 'false');
+            const res = await fetch('/metadata/api/wards/import', {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.ok) {
+                window.location.reload();
+            } else {
+                alert('Không thể nạp dữ liệu: ' + (data.error || 'Lỗi không xác định'));
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        } catch (err) {
+            alert('Lỗi kết nối: ' + err.message);
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    async function triggerSyncWeb() {
+        const ok = await window.confirmModal({
+            title: 'Tải & Đồng bộ Xã / Phường từ mạng (Open Data)',
+            message: 'Hệ thống sẽ tải tự động bộ dữ liệu xã / phường mở trên GitHub/Open API về máy và đồng bộ vào MongoDB.<br><span class="text-xs text-cyan-600 dark:text-cyan-400 font-medium">🌐 Quá trình tải hoàn toàn tự động không cần thao tác tay.</span>',
+            confirmText: 'Bắt đầu tải',
+            cancelText: 'Hủy bỏ',
+            type: 'info'
+        });
+        if (!ok) return;
+
+        const btn = document.getElementById('btn-sync-web');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="inline-block animate-spin mr-1.5">⏳</span> Đang tải từ mạng...';
+
+        try {
+            const formData = new FormData();
+            formData.append('limit', '1000');
+            formData.append('reset', 'false');
+            const res = await fetch('/metadata/api/wards/sync-web', {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.ok) {
+                window.location.reload();
+            } else {
+                alert('Lỗi khi tải từ mạng: ' + (data.error || 'Lỗi không xác định'));
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        } catch (err) {
+            alert('Lỗi kết nối khi tải: ' + err.message);
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+</script>
+{% endblock %}

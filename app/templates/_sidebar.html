@@ -244,7 +244,18 @@
                             <i data-lucide="map-pin" class="w-3.5 h-3.5 shrink-0"></i>
                             <span>Tỉnh / Thành phố</span>
                         </div>
-                        <span class="text-[9px] font-bold px-1 rounded {% if in_metadata and active_sub_menu == 'provinces' %}bg-white/20 text-white{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400{% endif %}">63 VN</span>
+                        <span class="text-[9px] font-bold px-1 rounded {% if in_metadata and active_sub_menu == 'provinces' %}bg-white/20 text-white{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400{% endif %}">34 VN</span>
+                    </a>
+
+                    <!-- 3. Quản lý Xã / Phường -->
+                    <a href="/metadata/wards"
+                       class="flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-medium transition
+                              {% if in_metadata and active_sub_menu == 'wards' %}bg-emerald-600 text-white font-semibold shadow-xs{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                        <div class="flex items-center gap-2 truncate">
+                            <i data-lucide="map" class="w-3.5 h-3.5 shrink-0"></i>
+                            <span>Xã / Phường</span>
+                        </div>
+                        <span class="text-[9px] font-bold px-1 rounded {% if in_metadata and active_sub_menu == 'wards' %}bg-white/20 text-white{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400{% endif %}">10k+</span>
                     </a>
                 </div>
             </div>

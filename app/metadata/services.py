@@ -556,9 +556,14 @@ async def delete_province(db: Any, province_id: int) -> bool:
 
 async def migrate_vn_provinces(
     db: Any = None,
-    overwrite: bool = False,
+    overwrite: bool = True,
+    reset: bool = True,
 ) -> Dict[str, Any]:
-    """Import / Migrate 63 Vietnam provinces/cities into MongoDB with smart upsert."""
+    """Import / Migrate 34 Vietnam provinces/cities into MongoDB.
+
+    - If reset=True: replaces old dataset with the 34 new provinces (NQ 202/2025/QH15).
+    - If reset=False: smart upsert.
+    """
     vn_list = load_vn_provinces_json()
     if not vn_list:
         return {"ok": False, "error": "Vietnam provinces dataset file not found."}
@@ -566,17 +571,34 @@ async def migrate_vn_provinces(
     await ensure_province_collection_and_seed(db=db)
     col = province_repo.get_collection(db)
 
-    inserted_count = 0
-    updated_count = 0
-    skipped_count = 0
-
     if col is not None:
         try:
+            if reset:
+                # Replace with 34 new provinces
+                await col.delete_many({})
+                docs_to_insert = [dict(item) for item in vn_list]
+                await col.insert_many(docs_to_insert)
+                province_repo._memory_cache = [dict(item) for item in vn_list]
+                total_now = await col.count_documents({})
+                return {
+                    "ok": True,
+                    "total_provinces": len(vn_list),
+                    "inserted": len(vn_list),
+                    "updated": 0,
+                    "skipped": 0,
+                    "total_now": total_now,
+                    "reset": True,
+                }
+
+            # Non-reset upsert mode
             existing_docs = await col.find({}, {"code": 1, "name": 1, "id": 1, "_id": 0}).to_list(length=10000)
             existing_code_map = {str(doc.get("code", "")).strip().upper(): doc.get("id") for doc in existing_docs if doc.get("code")}
             existing_name_map = {str(doc.get("name", "")).strip().lower(): doc.get("id") for doc in existing_docs if doc.get("name")}
 
             next_id = await province_repo.get_next_id(db=db)
+            inserted_count = 0
+            updated_count = 0
+            skipped_count = 0
 
             for item in vn_list:
                 code_key = str(item.get("code", "")).strip().upper()
@@ -613,21 +635,13 @@ async def migrate_vn_provinces(
         except Exception as exc:
             logger.error(f"Province migration error: {exc}")
             if province_repo.enable_fallback:
-                inserted_count = 0
-                for item in vn_list:
-                    exists = any(
-                        p.get("code") == item.get("code") or p.get("name") == item.get("name")
-                        for p in province_repo._memory_cache
-                    )
-                    if not exists:
-                        province_repo._memory_cache.append(dict(item))
-                        inserted_count += 1
+                province_repo._memory_cache = [dict(item) for item in vn_list]
                 return {
                     "ok": True,
                     "total_provinces": len(vn_list),
-                    "inserted": inserted_count,
+                    "inserted": len(vn_list),
                     "updated": 0,
-                    "skipped": len(vn_list) - inserted_count,
+                    "skipped": 0,
                     "total_now": len(province_repo._memory_cache),
                     "fallback": True,
                 }
@@ -635,25 +649,324 @@ async def migrate_vn_provinces(
 
     # Fallback when DB is not connected
     if province_repo.enable_fallback:
-        inserted_count = 0
-        for item in vn_list:
-            exists = any(
-                p.get("code") == item.get("code") or p.get("name") == item.get("name")
-                for p in province_repo._memory_cache
-            )
-            if not exists:
-                province_repo._memory_cache.append(dict(item))
-                inserted_count += 1
+        province_repo._memory_cache = [dict(item) for item in vn_list]
         return {
             "ok": True,
             "total_provinces": len(vn_list),
-            "inserted": inserted_count,
+            "inserted": len(vn_list),
             "updated": 0,
-            "skipped": len(vn_list) - inserted_count,
+            "skipped": 0,
             "total_now": len(province_repo._memory_cache),
             "fallback": True,
         }
 
     return {"ok": False, "error": "Database not connected"}
+
+
+# ============================================================================
+# Ward / Commune (Xã / Phường) Metadata Management
+# ============================================================================
+
+WARD_COLLECTION_NAME = "metadata_wards"
+ward_repo = BaseMongoRepository(collection_name=WARD_COLLECTION_NAME, id_field="id")
+
+
+def load_vn_wards_json(limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    """Load the pre-built Vietnam wards dataset from data/vn_wards.json."""
+    import json
+    from pathlib import Path
+    data_path = Path(__file__).resolve().parent / "data" / "vn_wards.json"
+    if data_path.exists():
+        with open(data_path, "r", encoding="utf-8-sig") as f:
+            items = json.load(f)
+            if limit is not None:
+                return items[:limit]
+            return items
+    return []
+
+
+async def ensure_ward_collection_and_seed(db: Any = None) -> bool:
+    """Ensure the ward collection exists and seed with sample wards if empty."""
+    index_specs = [
+        ("id", True),
+        "code",
+        "name",
+        "type",
+        "province_name",
+        "district_name",
+        "status",
+    ]
+    # By default, seed first 150 wards for immediate responsiveness
+    sample_wards = load_vn_wards_json(limit=150)
+    return await ward_repo.seed_if_empty(sample_wards, index_specs=index_specs, db=db)
+
+
+async def get_distinct_ward_provinces(db: Any = None) -> List[str]:
+    """Retrieve distinct province names present in the ward collection."""
+    await ensure_ward_collection_and_seed(db=db)
+    col = ward_repo.get_collection(db)
+    if col is not None:
+        try:
+            provs = await col.distinct("province_name")
+            return sorted([p for p in provs if p])
+        except Exception:
+            pass
+    # Fallback from memory cache
+    provinces = {w.get("province_name") for w in ward_repo._memory_cache if w.get("province_name")}
+    return sorted(list(provinces))
+
+
+async def list_wards(
+    db: Any = None,
+    search: str = "",
+    province_filter: str = "all",
+    type_filter: str = "all",
+    status_filter: str = "all",
+    page: int = 1,
+    page_size: int = 25,
+) -> Dict[str, Any]:
+    """Retrieve wards from MongoDB with search, filters, pagination, and KPI counts."""
+    await ensure_ward_collection_and_seed(db=db)
+
+    query: Dict[str, Any] = {}
+    if search:
+        regex_pattern = {"$regex": search.strip(), "$options": "i"}
+        query["$or"] = [
+            {"name": regex_pattern},
+            {"code": regex_pattern},
+            {"province_name": regex_pattern},
+            {"district_name": regex_pattern},
+            {"merged_note": regex_pattern},
+        ]
+
+    if province_filter and province_filter != "all":
+        query["province_name"] = province_filter
+
+    if type_filter and type_filter != "all":
+        query["type"] = type_filter
+
+    if status_filter and status_filter != "all":
+        query["status"] = status_filter
+
+    items, pagination, db_connected = await ward_repo.find_paginated(
+        query=query,
+        sort_field="id",
+        sort_dir=1,
+        page=page,
+        page_size=page_size,
+        db=db,
+    )
+
+    # Compute quick stats
+    active_count = 0
+    phuong_count = 0
+    xa_count = 0
+    thitran_count = 0
+
+    if db_connected:
+        col = ward_repo.get_collection(db)
+        if col is not None:
+            try:
+                active_count = await col.count_documents({"status": "active"})
+                phuong_count = await col.count_documents({"type": "Phường"})
+                xa_count = await col.count_documents({"type": "Xã"})
+                thitran_count = await col.count_documents({"type": "Thị trấn"})
+            except Exception:
+                active_count = sum(1 for w in items if w.get("status") == "active")
+                phuong_count = sum(1 for w in items if w.get("type") == "Phường")
+                xa_count = sum(1 for w in items if w.get("type") == "Xã")
+                thitran_count = sum(1 for w in items if w.get("type") == "Thị trấn")
+    else:
+        active_count = sum(1 for w in items if w.get("status") == "active")
+        phuong_count = sum(1 for w in items if w.get("type") == "Phường")
+        xa_count = sum(1 for w in items if w.get("type") == "Xã")
+        thitran_count = sum(1 for w in items if w.get("type") == "Thị trấn")
+
+    provinces_list = await get_distinct_ward_provinces(db=db)
+
+    return {
+        "items": items,
+        "total": pagination.total_items,
+        "active_count": active_count,
+        "phuong_count": phuong_count,
+        "xa_count": xa_count,
+        "thitran_count": thitran_count,
+        "provinces_list": provinces_list,
+        "db_connected": db_connected,
+        "pagination": pagination,
+    }
+
+
+async def create_ward(db: Any, data: Dict[str, Any]) -> Dict[str, Any]:
+    """Create a new ward / commune in MongoDB."""
+    name = str(data.get("name", "")).strip()
+    code = str(data.get("code", "")).strip()
+
+    if not name:
+        raise ValueError("Tên xã / phường là bắt buộc.")
+
+    doc = {
+        "name": name,
+        "code": code or str(await ward_repo.get_next_id(db=db)),
+        "type": str(data.get("type", "Xã")).strip() or "Xã",
+        "province_name": str(data.get("province_name", "")).strip() or None,
+        "district_name": str(data.get("district_name", "")).strip() or None,
+        "merged_note": str(data.get("merged_note", "")).strip() or "Đơn vị hành chính cấp xã chuẩn hóa",
+        "status": str(data.get("status", "active")),
+    }
+
+    return await ward_repo.insert(doc, auto_id=True, db=db)
+
+
+async def update_ward(db: Any, ward_id: int, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Update an existing ward / commune in MongoDB."""
+    update_fields: Dict[str, Any] = {}
+
+    if "name" in data and data["name"]:
+        update_fields["name"] = str(data["name"]).strip()
+    if "code" in data and data["code"]:
+        update_fields["code"] = str(data["code"]).strip()
+    if "type" in data and data["type"]:
+        update_fields["type"] = str(data["type"]).strip()
+    if "province_name" in data:
+        update_fields["province_name"] = str(data["province_name"]).strip() or None
+    if "district_name" in data:
+        update_fields["district_name"] = str(data["district_name"]).strip() or None
+    if "merged_note" in data:
+        update_fields["merged_note"] = str(data["merged_note"]).strip() or None
+    if "status" in data:
+        update_fields["status"] = str(data["status"])
+
+    return await ward_repo.update(ward_id, update_fields, db=db)
+
+
+async def delete_ward(db: Any, ward_id: int) -> bool:
+    """Delete a ward record from MongoDB."""
+    return await ward_repo.delete(ward_id, db=db)
+
+
+async def import_vn_wards(
+    db: Any = None,
+    limit: Optional[int] = None,
+    reset: bool = False,
+) -> Dict[str, Any]:
+    """Import wards from local dataset file into MongoDB."""
+    ward_list = load_vn_wards_json(limit=limit)
+    if not ward_list:
+        return {"ok": False, "error": "Ward dataset file not found."}
+
+    await ensure_ward_collection_and_seed(db=db)
+    col = ward_repo.get_collection(db)
+
+    if col is not None:
+        try:
+            if reset:
+                await col.delete_many({})
+                docs = [dict(item) for item in ward_list]
+                await col.insert_many(docs)
+                ward_repo._memory_cache = [dict(item) for item in ward_list]
+                total = await col.count_documents({})
+                return {
+                    "ok": True,
+                    "total_imported": len(ward_list),
+                    "total_now": total,
+                    "reset": True,
+                }
+
+            # Batch insert
+            existing_codes = {str(d.get("code")) for d in await col.find({}, {"code": 1, "_id": 0}).to_list(30000)}
+            to_insert = [dict(item) for item in ward_list if str(item.get("code")) not in existing_codes]
+            if to_insert:
+                await col.insert_many(to_insert)
+
+            total = await col.count_documents({})
+            return {
+                "ok": True,
+                "total_imported": len(to_insert),
+                "total_now": total,
+                "reset": False,
+            }
+        except Exception as exc:
+            logger.error(f"Import wards error: {exc}")
+            if ward_repo.enable_fallback:
+                ward_repo._memory_cache = [dict(item) for item in ward_list]
+                return {
+                    "ok": True,
+                    "total_imported": len(ward_list),
+                    "total_now": len(ward_repo._memory_cache),
+                    "fallback": True,
+                }
+            return {"ok": False, "error": str(exc)}
+
+    if ward_repo.enable_fallback:
+        ward_repo._memory_cache = [dict(item) for item in ward_list]
+        return {
+            "ok": True,
+            "total_imported": len(ward_list),
+            "total_now": len(ward_repo._memory_cache),
+            "fallback": True,
+        }
+
+    return {"ok": False, "error": "Database not connected"}
+
+
+async def sync_wards_from_web(
+    db: Any = None,
+    limit: Optional[int] = 1000,
+    reset: bool = False,
+) -> Dict[str, Any]:
+    """Download open-source wards dataset from internet and synchronize to MongoDB."""
+    import urllib.request
+    import json
+    from datetime import datetime
+
+    url = "https://raw.githubusercontent.com/madnh/hanhchinhvn/master/dist/xa_phuong.json"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            raw_data = json.loads(r.read().decode("utf-8"))
+
+        normalized = []
+        id_counter = 1
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        for k, v in raw_data.items():
+            if limit and id_counter > limit:
+                break
+            p_with_type = v.get("path_with_type", "")
+            parts = [p.strip() for p in p_with_type.split(",")]
+            prov = parts[-1] if len(parts) >= 2 else ""
+            dist = parts[-2] if len(parts) >= 3 else ""
+
+            t_raw = v.get("type", "")
+            t_label = "Phường" if t_raw == "phuong" else ("Thị trấn" if t_raw == "thi-tran" else "Xã")
+
+            normalized.append({
+                "id": id_counter,
+                "code": str(v.get("code", id_counter)),
+                "name": v.get("name_with_type", v.get("name", "")),
+                "type": t_label,
+                "province_name": prov,
+                "district_name": dist,
+                "merged_note": "Cập nhật từ Open Data hành chính",
+                "status": "active",
+                "created_at": now_str,
+                "updated_at": now_str,
+            })
+            id_counter += 1
+
+        # Save to local cache file
+        from pathlib import Path
+        data_path = Path(__file__).resolve().parent / "data" / "vn_wards.json"
+        with open(data_path, "w", encoding="utf-8") as f:
+            json.dump(normalized, f, ensure_ascii=False, indent=2)
+
+        # Sync to DB
+        return await import_vn_wards(db=db, limit=limit, reset=reset)
+
+    except Exception as exc:
+        logger.error(f"Sync wards from web failed: {exc}")
+        return {"ok": False, "error": str(exc)}
+
 
 
