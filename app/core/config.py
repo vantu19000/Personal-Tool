@@ -30,6 +30,10 @@ class Settings:
     TEMPLATES_DIR = TEMPLATES_DIR
     STATIC_DIR = STATIC_DIR
 
+    # Server config
+    HOST: str = os.getenv("HOST", "127.0.0.1")
+    PORT: int = int(os.getenv("PORT", "9981"))
+
     # Ollama global config (dùng chung cho toàn bộ các chức năng)
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_TIMEOUT_SECONDS: int = 600  # Mặc định 10 phút (600s)

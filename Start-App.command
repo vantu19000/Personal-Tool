@@ -13,15 +13,15 @@ fi
 echo "=========================================================="
 echo "🚀 Đang khởi động Personal-Tool trên macOS..."
 echo "📍 Thư mục làm việc: $(pwd)"
-echo "🌐 Ứng dụng: http://127.0.0.1:8000"
+echo "🌐 Ứng dụng: http://127.0.0.1:9981"
 echo "=========================================================="
 
 # Tự động mở trình duyệt sau 1.5 giây
-(sleep 1.5 && open "http://127.0.0.1:8000") &
+(sleep 1.5 && open "http://127.0.0.1:9981") &
 
 # Chạy server với pyenv
 if command -v pyenv 1>/dev/null 2>&1; then
-    pyenv exec python -m uvicorn main:app --reload
+    pyenv exec python -m uvicorn main:app --port 9981 --reload
 else
-    python3 -m uvicorn main:app --reload
+    python3 -m uvicorn main:app --port 9981 --reload
 fi

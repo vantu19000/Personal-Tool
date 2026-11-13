@@ -1,8 +1,8 @@
 """Hidden launcher for the Personal-Tool server.
 
-- Nếu server CHƯA chạy trên cổng 8000 → khởi động uvicorn trong nền (không cửa sổ).
+- Nếu server CHƯA chạy trên cổng 9981 → khởi động uvicorn trong nền (không cửa sổ).
 - Nếu server ĐANG chạy → chỉ mở trình duyệt.
-- Luôn mở trình duyệt tới http://127.0.0.1:8000.
+- Luôn mở trình duyệt tới http://127.0.0.1:9981.
 """
 import os
 import socket
@@ -11,9 +11,17 @@ import time
 import webbrowser
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+
+# Tự động nạp biến môi trường từ .env nếu có python-dotenv
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(ROOT, ".env"))
+except Exception:
+    pass
+
 VENV_PY = os.path.join(ROOT, ".venv", "Scripts", "python.exe")
-HOST = "127.0.0.1"
-PORT = 8000
+HOST = os.getenv("HOST", "127.0.0.1")
+PORT = int(os.getenv("PORT", "9981"))
 URL = f"http://{HOST}:{PORT}/"
 
 

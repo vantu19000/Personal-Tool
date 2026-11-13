@@ -1,14 +1,14 @@
 #!/bin/zsh
 
-PID=$(lsof -ti:8000)
+PID=$(lsof -ti:9981)
 if [ -n "$PID" ]; then
     kill -9 $PID
     echo "=========================================================="
-    echo "✅ Đã dừng server đang chạy trên cổng 8000 (PID: $PID)."
+    echo "✅ Đã dừng server đang chạy trên cổng 9981 (PID: $PID)."
     echo "=========================================================="
 else
     echo "=========================================================="
-    echo "ℹ️ Không tìm thấy server nào đang chạy trên cổng 8000."
+    echo "ℹ️ Không tìm thấy server nào đang chạy trên cổng 9981."
     echo "=========================================================="
 fi
 

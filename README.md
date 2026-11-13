@@ -80,16 +80,16 @@ Mở trình duyệt:
 
 | Route                                 | Trang                              |
 | ------------------------------------- | ---------------------------------- |
-| `http://127.0.0.1:8000`               | Dashboard (liệt kê các tool)       |
-| `http://127.0.0.1:8000/tools/srt-translator` | SRT Translator (skeleton) |
+| `http://127.0.0.1:9981`               | Dashboard (liệt kê các tool)       |
+| `http://127.0.0.1:9981/tools/srt-translator` | SRT Translator (skeleton) |
 
 - `--reload` : tự khởi động lại server mỗi khi sửa code (dùng khi dev).
-- Mặc định listen ở `127.0.0.1:8000`.
+- Mặc định listen ở `127.0.0.1:9981`.
 
 Chạy host khác / port khác:
 
 ```powershell
-uvicorn main:app --host 0.0.0.0 --port 8000
+uvicorn main:app --host 0.0.0.0 --port 9981
 ```
 
 ---
@@ -157,7 +157,7 @@ Hệ thống cung cấp sẵn client và dependency kết nối tại `app/core/
 
 2. **Kiểm tra kết nối database:**
    - Qua hàm nội bộ: `from app.core.database import check_db_connection; result = await check_db_connection()`
-   - Hoặc qua API endpoint: `GET http://127.0.0.1:8000/api/health/db`
+   - Hoặc qua API endpoint: `GET http://127.0.0.1:9981/api/health/db`
 
 ---
 
@@ -176,8 +176,8 @@ pip list                             # xem đã cài gì
 pip install -U package               # cập nhật 1 package
 
 # === chạy server ===
-uvicorn main:app --reload            # chạy local (dev, auto reload)
-uvicorn main:app --port 8000         # chỉnh port
+uvicorn main:app --port 9981 --reload # chạy local (dev, auto reload)
+uvicorn main:app --port 9981         # chỉnh port
 python -m uvicorn main:app --reload  # cách gọi tương đương
 
 # === git (nếu dùng) ===
