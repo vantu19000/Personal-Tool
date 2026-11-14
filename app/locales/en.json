@@ -384,7 +384,7 @@
     "single_title": "Single PDF Conversion",
     "single_desc": "Select a PDF file from your computer to extract Markdown.",
     "file_label": "PDF File",
-    "file_hint": "Maximum 200 MB per file.",
+    "file_hint": "Maximum 512 GB per file.",
     "pages_per_file_label": "Pages per Markdown file",
     "pages_per_file_hint": "PDFs exceeding this page count will be split into multiple files and packaged into a zip archive.",
     "ocr_mode_label": "Scanned Page / Non-text Handling",

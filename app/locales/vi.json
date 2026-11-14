@@ -384,7 +384,7 @@
     "single_title": "Chuyển đổi từng file PDF",
     "single_desc": "Chọn tệp PDF từ máy tính để bắt đầu trích xuất Markdown.",
     "file_label": "File PDF",
-    "file_hint": "Tối đa 200 MB mỗi file.",
+    "file_hint": "Tối đa 512 GB mỗi file.",
     "pages_per_file_label": "Số trang mỗi file Markdown",
     "pages_per_file_hint": "PDF dài hơn số trang này sẽ được tách nhiều file và đóng gói zip.",
     "ocr_mode_label": "Xử lý trang Scan / Không có text",

@@ -26,7 +26,7 @@ from app.core import settings_store
 from app.core.templates import templates
 from app.tools.pdf_to_md import services
 
-MAX_PDF_BYTES = 200 * 1024 * 1024  # 200 MB upload limit
+MAX_PDF_BYTES = 512 * 1024 * 1024 * 1024  # 512 GB upload limit
 
 router = APIRouter(tags=["pdf-to-md"])
 
@@ -95,7 +95,7 @@ async def convert_upload(
         raise HTTPException(status_code=400, detail="File PDF trống (0 byte).")
     if len(content) > MAX_PDF_BYTES:
         raise HTTPException(
-            status_code=413, detail="File PDF quá lớn (tối đa 200 MB)."
+            status_code=413, detail="File PDF quá lớn (tối đa 512 GB)."
         )
 
     cfg = _get_pdf_settings()
