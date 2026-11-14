@@ -52,7 +52,7 @@
         </div>
 
         <!-- Option Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <!-- Chunking settings -->
             <div>
                 <label for="pages-per-file" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -63,47 +63,92 @@
                 <p class="mt-1 text-[11px] text-slate-400">{{ t('pdf_to_md.pages_per_file_hint') }}</p>
             </div>
 
-            <!-- OCR Settings -->
+            <!-- Start page -->
             <div>
-                <label for="ocr-mode" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    {{ t('pdf_to_md.ocr_mode_label') }}
+                <label for="start-page" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    {{ t('pdf_to_md.start_page_label') }}
                 </label>
-                <select id="ocr-mode" name="ocr_mode"
-                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition">
-                    <option value="auto" {% if cfg.ocr_mode == 'auto' %}selected{% endif %}>{{ t('pdf_to_md.ocr_options.auto') }}</option>
-                    <option value="gemini" {% if cfg.ocr_mode == 'gemini' %}selected{% endif %}>{{ t('pdf_to_md.ocr_options.gemini') }}</option>
-                    <option value="ollama" {% if cfg.ocr_mode == 'ollama' %}selected{% endif %}>{{ t('pdf_to_md.ocr_options.ollama') }}</option>
-                    <option value="off" {% if cfg.ocr_mode == 'off' %}selected{% endif %}>{{ t('pdf_to_md.ocr_options.off') }}</option>
-                </select>
-                <p class="mt-1 text-[11px] text-slate-400">{{ t('pdf_to_md.ocr_mode_hint') }}</p>
+                <input type="number" id="start-page" name="start_page" min="1" placeholder="{{ t('pdf_to_md.start_page_placeholder') }}"
+                       class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition">
+                <p class="mt-1 text-[11px] text-slate-400">{{ t('pdf_to_md.start_page_hint') }}</p>
+            </div>
+
+            <!-- End page -->
+            <div>
+                <label for="end-page" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    {{ t('pdf_to_md.end_page_label') }}
+                </label>
+                <input type="number" id="end-page" name="end_page" min="1" placeholder="{{ t('pdf_to_md.end_page_placeholder') }}"
+                       class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition">
+                <p class="mt-1 text-[11px] text-slate-400">{{ t('pdf_to_md.end_page_hint') }}</p>
             </div>
         </div>
 
-        <!-- Dynamic OCR parameters -->
-        <div id="gemini-params" class="hidden rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200/60 dark:border-purple-800/40 p-4 space-y-2">
-            <div class="flex items-center gap-2 text-xs font-semibold text-purple-700 dark:text-purple-300">
-                <i data-lucide="sparkles" class="w-4 h-4"></i>
-                <span>{{ t('pdf_to_md.gemini_title') }}</span>
+        <!-- OCR images to text option -->
+        <div class="rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 p-4 space-y-3">
+            <div class="flex items-start sm:items-center justify-between gap-3">
+                <label for="ocr-images" class="flex items-start sm:items-center gap-3 cursor-pointer select-none">
+                    <input type="checkbox" id="ocr-images" name="ocr_images" value="true"
+                           {% if cfg.ocr_images %}checked{% endif %}
+                           class="mt-0.5 sm:mt-0 w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-slate-300 dark:border-slate-700">
+                    <div>
+                        <span class="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                            {{ t('pdf_to_md.ocr_images_label') }}
+                        </span>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            {{ t('pdf_to_md.ocr_images_hint') }}
+                        </p>
+                    </div>
+                </label>
+                <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 font-semibold shrink-0">
+                    ✦ OCR AI
+                </span>
             </div>
-            <input type="password" id="gemini-api-key" name="gemini_api_key" value="{{ cfg.gemini_api_key }}"
-                   placeholder="{{ t('pdf_to_md.gemini_placeholder') }}"
-                   class="w-full rounded-xl border border-purple-200 dark:border-purple-800 px-3.5 py-2 text-xs sm:text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
-            <p class="text-[11px] text-purple-600/80 dark:text-purple-400">
-                {{ t('pdf_to_md.gemini_hint')|safe }}
-            </p>
-        </div>
 
-        <div id="ollama-params" class="hidden rounded-xl bg-sky-50/50 dark:bg-sky-950/20 border border-sky-200/60 dark:border-sky-800/40 p-4 space-y-2">
-            <div class="flex items-center gap-2 text-xs font-semibold text-sky-700 dark:text-sky-300">
-                <i data-lucide="cpu" class="w-4 h-4"></i>
-                <span>{{ t('pdf_to_md.ollama_title') }}</span>
+            <!-- Expandable OCR engine settings (shown when ocr-images is checked) -->
+            <div id="ocr-engine-panel" class="hidden pt-3 border-t border-slate-200/60 dark:border-slate-800/60 space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="ocr-mode" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            {{ t('pdf_to_md.ocr_mode_label') }}
+                        </label>
+                        <select id="ocr-mode" name="ocr_mode"
+                                class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition">
+                            <option value="auto" {% if cfg.ocr_mode == 'auto' or not cfg.ocr_mode %}selected{% endif %}>{{ t('pdf_to_md.ocr_options.auto') }}</option>
+                            <option value="ollama" {% if cfg.ocr_mode == 'ollama' %}selected{% endif %}>{{ t('pdf_to_md.ocr_options.ollama') }}</option>
+                            <option value="gemini" {% if cfg.ocr_mode == 'gemini' %}selected{% endif %}>{{ t('pdf_to_md.ocr_options.gemini') }}</option>
+                        </select>
+                        <p class="mt-1 text-[11px] text-slate-400">{{ t('pdf_to_md.ocr_mode_hint') }}</p>
+                    </div>
+                </div>
+
+                <!-- Dynamic OCR parameters -->
+                <div id="gemini-params" class="hidden rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200/60 dark:border-purple-800/40 p-3 space-y-2">
+                    <div class="flex items-center gap-2 text-xs font-semibold text-purple-700 dark:text-purple-300">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        <span>{{ t('pdf_to_md.gemini_title') }}</span>
+                    </div>
+                    <input type="password" id="gemini-api-key" name="gemini_api_key" value="{{ cfg.gemini_api_key }}"
+                           placeholder="{{ t('pdf_to_md.gemini_placeholder') }}"
+                           class="w-full rounded-xl border border-purple-200 dark:border-purple-800 px-3.5 py-2 text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                    <p class="text-[11px] text-purple-600/80 dark:text-purple-400">
+                        {{ t('pdf_to_md.gemini_hint')|safe }}
+                    </p>
+                </div>
+
+                <div id="ollama-params" class="hidden rounded-xl bg-sky-50/50 dark:bg-sky-950/20 border border-sky-200/60 dark:border-sky-800/40 p-3 space-y-2">
+                    <div class="flex items-center gap-2 text-xs font-semibold text-sky-700 dark:text-sky-300">
+                        <i data-lucide="cpu" class="w-4 h-4"></i>
+                        <span>{{ t('pdf_to_md.ollama_title') }}</span>
+                    </div>
+                    <input type="text" id="ollama-model" name="ollama_model" value="{{ cfg.ollama_model or 'gemma3:4b' }}"
+                           placeholder="gemma3:4b (tự động nhận diện)"
+                           class="w-full rounded-xl border border-sky-200 dark:border-sky-800 px-3.5 py-2 text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500">
+                    <p class="text-[11px] text-sky-600/80 dark:text-sky-400">
+                        {{ t('pdf_to_md.ollama_hint')|safe }}
+                    </p>
+                </div>
             </div>
-            <input type="text" id="ollama-model" name="ollama_model" value="{{ cfg.ollama_model or 'llama3.2-vision' }}"
-                   placeholder="llama3.2-vision"
-                   class="w-full rounded-xl border border-sky-200 dark:border-sky-800 px-3.5 py-2 text-xs sm:text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500">
-            <p class="text-[11px] text-sky-600/80 dark:text-sky-400">
-                {{ t('pdf_to_md.ollama_hint')|safe }}
-            </p>
         </div>
 
         <!-- Image extraction options -->
@@ -244,6 +289,8 @@
 (function () {
     const I18N = JSON.parse(document.getElementById("i18n-translations").textContent);
 
+    const ocrImagesCheckbox = document.getElementById("ocr-images");
+    const ocrEnginePanel = document.getElementById("ocr-engine-panel");
     const ocrSelect = document.getElementById("ocr-mode");
     const geminiParams = document.getElementById("gemini-params");
     const ollamaParams = document.getElementById("ollama-params");
@@ -254,6 +301,10 @@
 
     // Restore saved settings from localStorage
     try {
+        const savedOcrImages = localStorage.getItem("pdf_to_md_ocr_images");
+        if (savedOcrImages !== null && ocrImagesCheckbox) {
+            ocrImagesCheckbox.checked = savedOcrImages === "true";
+        }
         const savedGeminiKey = localStorage.getItem("pdf_to_md_gemini_key");
         if (savedGeminiKey && !geminiInput.value) {
             geminiInput.value = savedGeminiKey;
@@ -265,15 +316,27 @@
     } catch (e) {}
 
     function updateOcrPanels() {
-        const val = ocrSelect.value;
-        geminiParams.classList.toggle("hidden", val !== "gemini");
-        ollamaParams.classList.toggle("hidden", val !== "ollama");
+        const isOcrOn = ocrImagesCheckbox ? ocrImagesCheckbox.checked : false;
+        if (ocrEnginePanel) {
+            ocrEnginePanel.classList.toggle("hidden", !isOcrOn);
+        }
+        if (isOcrOn) {
+            const val = ocrSelect.value;
+            geminiParams.classList.toggle("hidden", val !== "gemini");
+            ollamaParams.classList.toggle("hidden", val !== "ollama");
+        }
     }
 
     function updateImageBox() {
         imageFormatBox.classList.toggle("hidden", !extractCheckbox.checked);
     }
 
+    if (ocrImagesCheckbox) {
+        ocrImagesCheckbox.addEventListener("change", function () {
+            try { localStorage.setItem("pdf_to_md_ocr_images", ocrImagesCheckbox.checked ? "true" : "false"); } catch (e) {}
+            updateOcrPanels();
+        });
+    }
     ocrSelect.addEventListener("change", updateOcrPanels);
     extractCheckbox.addEventListener("change", updateImageBox);
     updateOcrPanels();
@@ -322,6 +385,7 @@
         try {
             const formData = new FormData(form);
             formData.set("extract_images", extractCheckbox.checked ? "true" : "false");
+            formData.set("ocr_images", ocrImagesCheckbox && ocrImagesCheckbox.checked ? "true" : "false");
 
             const res = await fetch("/tools/pdf-to-md/convert", {
                 method: "POST",
@@ -419,10 +483,17 @@
         const ppf = document.getElementById("pages-per-file").value;
         if (ppf) fd.append("pages_per_file", ppf);
 
+        const startP = document.getElementById("start-page").value.trim();
+        if (startP) fd.append("start_page", startP);
+
+        const endP = document.getElementById("end-page").value.trim();
+        if (endP) fd.append("end_page", endP);
+
         fd.append("extract_images", extractCheckbox.checked ? "true" : "false");
         const embedMode = document.querySelector('input[name="image_embed_mode"]:checked');
         if (embedMode) fd.append("image_embed_mode", embedMode.value);
 
+        fd.append("ocr_images", ocrImagesCheckbox && ocrImagesCheckbox.checked ? "true" : "false");
         fd.append("ocr_mode", ocrSelect.value);
         if (geminiInput.value.trim()) fd.append("gemini_api_key", geminiInput.value.trim());
         if (ollamaInput.value.trim()) fd.append("ollama_model", ollamaInput.value.trim());

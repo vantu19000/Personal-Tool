@@ -17,6 +17,7 @@ import base64
 import json
 from dataclasses import dataclass, field
 import io
+import os
 from pathlib import Path
 import re
 from typing import Any, Dict, Iterator, List, Optional, Sequence
@@ -27,7 +28,7 @@ MIN_PAGES_PER_FILE = 1
 MAX_PAGES_PER_FILE = 500
 
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
-DEFAULT_OLLAMA_VISION_MODEL = "llama3.2-vision"
+DEFAULT_OLLAMA_VISION_MODEL = "gemma3:4b"
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
 # Cho phép ký tự tiếng Việt (Unicode letters/digits) và gạch ngang;
@@ -47,11 +48,14 @@ class ConversionOptions:
     extract_images: bool = True
     image_embed_mode: str = "folder"  # "folder" | "base64"
     min_image_dimension: int = 35  # skip tiny icons / line separators (in px)
+    ocr_images: bool = False  # True: chuyển ảnh/scan sang text; False: giữ nguyên ảnh scan
     ocr_mode: str = "auto"  # "auto" | "off" | "ollama" | "gemini"
     ollama_model: str = DEFAULT_OLLAMA_VISION_MODEL
     ollama_url: str = DEFAULT_OLLAMA_BASE_URL
     gemini_api_key: str = ""
     gemini_model: str = DEFAULT_GEMINI_MODEL
+    start_page: Optional[int] = None
+    end_page: Optional[int] = None
 
 
 @dataclass
@@ -158,18 +162,140 @@ def _ocr_with_tesseract(page: Any) -> Optional[str]:
     return None
 
 
+def _ensure_ollama_running(base_url: str = DEFAULT_OLLAMA_BASE_URL) -> bool:
+    """Ensure Ollama service is reachable; start it in background if installed locally."""
+    try:
+        req = urllib.request.Request(f"{base_url.rstrip('/')}/api/tags")
+        with urllib.request.urlopen(req, timeout=1.0) as resp:
+            if resp.status == 200:
+                return True
+    except Exception:
+        pass
+
+    if "localhost" in base_url or "127.0.0.1" in base_url:
+        import shutil
+        import subprocess
+        import time
+
+        ollama_bin = shutil.which("ollama") or r"C:\Users\vantu\AppData\Local\Programs\Ollama\ollama.exe"
+        if os.path.exists(ollama_bin):
+            env = os.environ.copy()
+            if os.path.exists(r"E:\AI\OllamaModels"):
+                env["OLLAMA_MODELS"] = r"E:\AI\OllamaModels"
+            try:
+                subprocess.Popen(
+                    [ollama_bin, "serve"],
+                    env=env,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    creationflags=getattr(subprocess, "DETACHED_PROCESS", 0)
+                    | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
+                )
+                for _ in range(10):
+                    time.sleep(0.5)
+                    try:
+                        req = urllib.request.Request(f"{base_url.rstrip('/')}/api/tags")
+                        with urllib.request.urlopen(req, timeout=1.0) as resp:
+                            if resp.status == 200:
+                                return True
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+    return False
+
+
+def _get_ollama_vision_candidates(
+    base_url: str = DEFAULT_OLLAMA_BASE_URL,
+    preferred: str = "",
+) -> List[str]:
+    """Retrieve ordered list of vision models available in Ollama."""
+    _ensure_ollama_running(base_url)
+    candidates: List[str] = []
+
+    try:
+        url = f"{base_url.rstrip('/')}/api/tags"
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=2.0) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            models = data.get("models", [])
+
+            # If user explicitly specified a custom model, prioritize it
+            if preferred and preferred.strip() and preferred.strip().lower() not in (
+                "default",
+                "auto",
+                "llama3.2-vision",
+            ):
+                p = preferred.strip().lower()
+                for m in models:
+                    n = m.get("name", "")
+                    if n.lower() == p or n.lower().startswith(p + ":") or n.lower().startswith(p):
+                        if n not in candidates:
+                            candidates.append(n)
+
+            # Filter only models that actually have vision capability or are known vision families
+            vision_names: List[str] = []
+            for m in models:
+                n = m.get("name", "")
+                caps = m.get("capabilities", [])
+                if "vision" in caps or any(k in n.lower() for k in ("vision", "llava", "gemma3")):
+                    vision_names.append(n)
+
+            # Sort: prioritize fast, lightweight vision models (gemma3:4b first, avoiding huge models or mllama issues)
+            def _rank(n: str) -> int:
+                nl = n.lower()
+                if "gemma3" in nl and "4b" in nl:
+                    return 0
+                if "gemma3" in nl:
+                    return 1
+                if "translategemma" in nl:
+                    return 2
+                if "gemma4" in nl:
+                    return 3
+                if "llama3.2-vision" in nl:
+                    return 4
+                if "minicpm" in nl:
+                    return 5
+                if "qwen" in nl:
+                    return 6
+                if "llava" in nl:
+                    return 7
+                return 10
+
+            for n in sorted(vision_names, key=_rank):
+                if n not in candidates:
+                    candidates.append(n)
+    except Exception:
+        pass
+
+    if not candidates:
+        candidates = ["gemma3:4b", "translategemma:4b", "gemma4:latest", "llama3.2-vision:11b"]
+    return candidates
+
+
+def _resolve_ollama_vision_model(
+    base_url: str = DEFAULT_OLLAMA_BASE_URL,
+    preferred: str = DEFAULT_OLLAMA_VISION_MODEL,
+) -> str:
+    """Find the best available vision model in local Ollama."""
+    candidates = _get_ollama_vision_candidates(base_url, preferred)
+    return candidates[0] if candidates else preferred or DEFAULT_OLLAMA_VISION_MODEL
+
+
 def _ocr_with_gemini(
     image_bytes: bytes,
-    api_key: str,
+    api_key: str = "",
     model: str = DEFAULT_GEMINI_MODEL,
     timeout: float = 45.0,
 ) -> Optional[str]:
     """Call Google Gemini API to OCR a scanned document page into Markdown."""
-    if not api_key:
+    key = api_key or os.getenv("GEMINI_API_KEY", "")
+    if not key:
         return None
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-        f"?key={api_key}"
+        f"?key={key}"
     )
     b64_data = base64.b64encode(image_bytes).decode("ascii")
     payload = {
@@ -178,10 +304,10 @@ def _ocr_with_gemini(
                 "parts": [
                     {
                         "text": (
-                            "Hãy chuyển đổi toàn bộ nội dung trong hình ảnh tài liệu này "
+                            "Hãy trích xuất chính xác toàn bộ văn bản trong hình ảnh này "
                             "sang định dạng Markdown chuẩn. "
                             "Giữ nguyên tiêu đề (#, ##), cấu trúc bảng biểu, danh sách và văn bản. "
-                            "Không thêm lời chào, giải thích, không bọc trong ```markdown."
+                            "Không thêm lời chào, giải thích, không dịch nghĩa, không bọc trong ```markdown."
                         )
                     },
                     {
@@ -227,44 +353,68 @@ def _ocr_with_ollama(
     image_bytes: bytes,
     model: str = DEFAULT_OLLAMA_VISION_MODEL,
     base_url: str = DEFAULT_OLLAMA_BASE_URL,
-    timeout: float = 60.0,
+    timeout: float = 90.0,
 ) -> Optional[str]:
     """Call local Ollama multimodal/vision model to OCR an image into Markdown."""
+    if not image_bytes:
+        return None
+    candidates = _get_ollama_vision_candidates(base_url, model)[:2]
     b64_data = base64.b64encode(image_bytes).decode("ascii")
-    url = f"{base_url.rstrip('/')}/api/chat"
-    payload = {
-        "model": model,
-        "messages": [
-            {
-                "role": "user",
-                "content": (
-                    "Hãy chuyển đổi toàn bộ nội dung trong hình ảnh tài liệu này sang định dạng Markdown. "
-                    "Giữ nguyên cấu trúc, tiêu đề, bảng biểu và văn bản. Chỉ trả về nội dung Markdown."
-                ),
-                "images": [b64_data],
-            }
-        ],
-        "stream": False,
-    }
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
+
+    prompt = (
+        "Bạn là chuyên gia OCR tài liệu. Hãy trích xuất toàn bộ văn bản trong hình ảnh này sang Markdown. "
+        "Giữ nguyên các đoạn văn bản, tiêu đề, danh sách. "
+        "Chỉ trả về nội dung chữ nhận diện được từ trang sách/ảnh, không dịch nghĩa, không thêm lời chào hay giải thích. "
+        "Nếu trang scan/ảnh hoàn toàn không chứa văn bản (ví dụ: ảnh trống, hình minh họa thuần túy không chữ), hãy trả về: [NO_TEXT]"
     )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            msg = data.get("message", {}).get("content", "").strip()
-            if msg.startswith("```markdown"):
-                msg = msg[len("```markdown") :].strip()
-            elif msg.startswith("```"):
-                msg = msg[3:].strip()
-            if msg.endswith("```"):
-                msg = msg[:-3].strip()
-            return msg or None
-    except Exception:
-        pass
+
+    for candidate in candidates:
+        url = f"{base_url.rstrip('/')}/api/chat"
+        payload = {
+            "model": candidate,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt,
+                    "images": [b64_data],
+                }
+            ],
+            "options": {
+                "num_ctx": 4096,
+                "temperature": 0.1,
+                "num_predict": 2048,
+            },
+            "stream": False,
+        }
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                msg = data.get("message", {}).get("content", "").strip()
+                if msg.startswith("```markdown"):
+                    msg = msg[len("```markdown") :].strip()
+                elif msg.startswith("```"):
+                    msg = msg[3:].strip()
+                if msg.endswith("```"):
+                    msg = msg[:-3].strip()
+                if msg in (
+                    "[NO_TEXT]",
+                    "NO_TEXT",
+                    "[EMPTY]",
+                    "EMPTY",
+                    "(không có chữ)",
+                    "(trống)",
+                ):
+                    return None
+                if msg:
+                    return msg
+        except Exception:
+            continue
     return None
 
 
@@ -294,7 +444,7 @@ def _process_page(
 
     # 2. Extract image information if enabled
     valid_imgs = []
-    if options.extract_images:
+    if options.extract_images or options.ocr_images:
         try:
             raw_imgs = page.get_image_info(xrefs=True)
             for img in raw_imgs:
@@ -319,12 +469,13 @@ def _process_page(
         except Exception:
             png_bytes = b""
 
-        # Attempt OCR if requested
+        # Attempt OCR only if requested (ocr_images is enabled and ocr_mode != "off")
         ocr_text: Optional[str] = None
-        if png_bytes and options.ocr_mode != "off":
-            if options.ocr_mode in ("auto", "gemini") and options.gemini_api_key:
+        if png_bytes and options.ocr_images and options.ocr_mode != "off":
+            gemini_key = options.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
+            if options.ocr_mode in ("auto", "gemini") and gemini_key:
                 ocr_text = _ocr_with_gemini(
-                    png_bytes, options.gemini_api_key, options.gemini_model
+                    png_bytes, gemini_key, options.gemini_model
                 )
             if not ocr_text and options.ocr_mode in ("auto", "ollama"):
                 ocr_text = _ocr_with_ollama(
@@ -333,15 +484,15 @@ def _process_page(
             if not ocr_text and options.ocr_mode in ("auto", "tesseract"):
                 ocr_text = _ocr_with_tesseract(page)
 
-        if ocr_text:
-            md_lines = [
-                "> ✦ *Trang scan — nội dung nhận diện tự động qua OCR:*\n",
-                ocr_text,
-            ]
-            return "\n".join(md_lines), True
+        if ocr_text and ocr_text.strip():
+            return ocr_text.strip(), True
 
-        # Fallback: Save scanned page as an image so the user retains visual content
+        # Fallback (hoặc khi không tick OCR): Save scanned page as an image so the user retains visual content
         if png_bytes:
+            # If user wants OCR but not image extraction, do not extract scan image if OCR returned nothing
+            if options.ocr_images and not options.extract_images:
+                return "> ℹ️ *Trang scan hình ảnh (không trích xuất ảnh scan theo tùy chọn).*\n", True
+
             if options.image_embed_mode == "base64":
                 b64 = base64.b64encode(png_bytes).decode("ascii")
                 img_src = f"data:image/png;base64,{b64}"
@@ -353,8 +504,8 @@ def _process_page(
 
             note = (
                 "> ℹ️ *Trang scan hình ảnh (không có lớp text).* "
-                "Cấu hình Gemini hoặc Ollama trong Cài đặt để tự động nhận diện chữ."
-                if options.ocr_mode != "off"
+                "Tick tùy chọn 'Chuyển ảnh sang text (OCR)' để tự động nhận diện chữ."
+                if not options.ocr_images
                 else "> ℹ️ *Trang scan hình ảnh.*"
             )
             md = f"{note}\n\n![Bản scan trang {page_no}]({img_src})\n"
@@ -375,7 +526,7 @@ def _process_page(
             }
         )
 
-    if options.extract_images:
+    if options.extract_images or options.ocr_images:
         for img in valid_imgs:
             elements.append(
                 {
@@ -397,8 +548,11 @@ def _process_page(
             rendered_items.append(el["text"])
         elif el["type"] == "image":
             xref = el["xref"]
-            if xref in xref_to_src:
-                img_src = xref_to_src[xref]
+            img_bytes: bytes = b""
+            cached_src = xref_to_src.get(xref)
+            if cached_src:
+                img_src = cached_src
+                img_bytes = images_bundle.get(img_src, b"")
             else:
                 global_img_counter[0] += 1
                 img_idx = global_img_counter[0]
@@ -410,12 +564,31 @@ def _process_page(
                     else:
                         img_name = f"{stem}_p{page_no}_img{img_idx}.{ext}"
                         img_src = f"images/{img_name}"
-                        images_bundle[img_src] = img_bytes
                     xref_to_src[xref] = img_src
                 except Exception:
                     continue
 
-            rendered_items.append(f"\n![Hình ảnh (Trang {page_no})]({img_src})\n")
+            # If OCR images is enabled, run OCR whenever an image is encountered
+            img_ocr_text: Optional[str] = None
+            if options.ocr_images and options.ocr_mode != "off" and img_bytes:
+                gemini_key = options.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
+                if options.ocr_mode in ("auto", "gemini") and gemini_key:
+                    img_ocr_text = _ocr_with_gemini(
+                        img_bytes, gemini_key, options.gemini_model
+                    )
+                if not img_ocr_text and options.ocr_mode in ("auto", "ollama"):
+                    img_ocr_text = _ocr_with_ollama(
+                        img_bytes, options.ollama_model, options.ollama_url
+                    )
+
+            if img_ocr_text and img_ocr_text.strip():
+                # Successfully OCR'd to text: do NOT store in images_bundle
+                rendered_items.append(f"\n{img_ocr_text.strip()}\n")
+            elif options.extract_images:
+                # Keep image in output bundle
+                if options.image_embed_mode != "base64" and img_src.startswith("images/"):
+                    images_bundle[img_src] = img_bytes
+                rendered_items.append(f"\n![Hình ảnh (Trang {page_no})]({img_src})\n")
 
     return "\n\n".join(rendered_items), False
 
@@ -423,22 +596,23 @@ def _process_page(
 def _build_markdown_chunk(
     stem: str,
     page_markdowns: Sequence[str],
-    start: int,
-    end: int,
+    page_numbers: Sequence[int],
     has_scanned: bool = False,
 ) -> str:
     """Render a sequence of page markdowns into one chunk document."""
+    start = page_numbers[0]
+    end = page_numbers[-1]
     scan_badge = " · Có trang scan/ảnh" if has_scanned else ""
+    range_str = f"trang {start}" if start == end else f"trang {start}–{end}"
     lines: List[str] = [
-        f"# {stem} — trang {start}–{end}",
+        f"# {stem} — {range_str}",
         "",
         f"> Tách tự động từ PDF · {len(page_markdowns)} trang "
-        f"(trang {start} đến trang {end}){scan_badge}.",
+        f"({range_str}){scan_badge}.",
         "",
     ]
-    for offset, content in enumerate(page_markdowns):
-        page_no = start + offset
-        lines.append(f"## Trang {page_no}")
+    for p_no, content in zip(page_numbers, page_markdowns):
+        lines.append(f"## Trang {p_no}")
         lines.append("")
         lines.append(content.strip() or "(trang trống)")
         lines.append("")
@@ -449,6 +623,7 @@ def _render_parts_with_images(
     stem: str,
     page_markdowns: List[str],
     scanned_flags: List[bool],
+    page_numbers: List[int],
     pages_per_file: int,
 ) -> List[Dict[str, Any]]:
     """Split page contents into chunk parts."""
@@ -459,16 +634,22 @@ def _render_parts_with_images(
     for start in range(0, total, n):
         chunk_texts = page_markdowns[start : start + n]
         chunk_scans = scanned_flags[start : start + n]
-        chunk_start = start + 1
-        chunk_end = start + len(chunk_texts)
+        chunk_nums = page_numbers[start : start + n]
+        chunk_start = chunk_nums[0]
+        chunk_end = chunk_nums[-1]
         has_scanned = any(chunk_scans)
         content = _build_markdown_chunk(
-            stem, chunk_texts, chunk_start, chunk_end, has_scanned
+            stem, chunk_texts, chunk_nums, has_scanned
         )
 
+        name = (
+            f"{stem}_trang-{chunk_start}.md"
+            if chunk_start == chunk_end
+            else f"{stem}_trang-{chunk_start}-{chunk_end}.md"
+        )
         parts.append(
             {
-                "name": f"{stem}_trang-{chunk_start}-{chunk_end}.md",
+                "name": name,
                 "start": chunk_start,
                 "end": chunk_end,
                 "content": content,
@@ -484,9 +665,12 @@ def convert_pdf_bytes(
     pages_per_file: int = 10,
     source_name: str = "document.pdf",
     *,
+    start_page: Optional[int] = None,
+    end_page: Optional[int] = None,
     extract_images: bool = True,
     image_embed_mode: str = "folder",
     min_image_dimension: int = 35,
+    ocr_images: bool = False,
     ocr_mode: str = "auto",
     ollama_model: str = DEFAULT_OLLAMA_VISION_MODEL,
     ollama_url: str = DEFAULT_OLLAMA_BASE_URL,
@@ -506,11 +690,14 @@ def convert_pdf_bytes(
         extract_images=extract_images,
         image_embed_mode=image_embed_mode,
         min_image_dimension=min_image_dimension,
+        ocr_images=ocr_images,
         ocr_mode=ocr_mode,
         ollama_model=ollama_model,
         ollama_url=ollama_url,
         gemini_api_key=gemini_api_key,
         gemini_model=gemini_model,
+        start_page=start_page,
+        end_page=end_page,
     )
 
     fitz = _fitz()
@@ -528,6 +715,19 @@ def convert_pdf_bytes(
         if total_pages == 0:
             raise PdfConversionError("PDF không có trang nào.")
 
+        # Determine effective page range
+        start_p = 1 if options.start_page is None or options.start_page < 1 else options.start_page
+        end_p = total_pages if options.end_page is None or options.end_page > total_pages else options.end_page
+
+        if start_p > total_pages:
+            raise PdfConversionError(
+                f"Trang bắt đầu ({start_p}) vượt quá tổng số trang của file ({total_pages} trang)."
+            )
+        if start_p > end_p:
+            raise PdfConversionError(
+                f"Trang bắt đầu ({start_p}) không thể lớn hơn trang kết thúc ({end_p})."
+            )
+
         stem = _sanitize_stem(Path(source_name).stem)
         images_bundle: Dict[str, bytes] = {}
         xref_to_src: Dict[int, str] = {}
@@ -535,10 +735,11 @@ def convert_pdf_bytes(
 
         page_markdowns: List[str] = []
         scanned_flags: List[bool] = []
+        page_numbers: List[int] = []
 
-        for page_idx in range(total_pages):
+        for page_no in range(start_p, end_p + 1):
+            page_idx = page_no - 1
             page = doc[page_idx]
-            page_no = page_idx + 1
             md_content, is_scanned = _process_page(
                 doc=doc,
                 page=page,
@@ -551,6 +752,7 @@ def convert_pdf_bytes(
             )
             page_markdowns.append(md_content)
             scanned_flags.append(is_scanned)
+            page_numbers.append(page_no)
 
     finally:
         doc.close()
@@ -559,13 +761,14 @@ def convert_pdf_bytes(
         stem=stem,
         page_markdowns=page_markdowns,
         scanned_flags=scanned_flags,
+        page_numbers=page_numbers,
         pages_per_file=pages_per_file,
     )
 
     return ConversionResult(
         parts=parts,
         images=images_bundle,
-        total_pages=total_pages,
+        total_pages=len(page_numbers),
         scanned_pages=sum(scanned_flags),
         extracted_images_count=len(images_bundle),
     )
@@ -575,9 +778,12 @@ def convert_pdf_file(
     pdf_path: Path,
     pages_per_file: int = 10,
     *,
+    start_page: Optional[int] = None,
+    end_page: Optional[int] = None,
     extract_images: bool = True,
     image_embed_mode: str = "folder",
     min_image_dimension: int = 35,
+    ocr_images: bool = False,
     ocr_mode: str = "auto",
     ollama_model: str = DEFAULT_OLLAMA_VISION_MODEL,
     ollama_url: str = DEFAULT_OLLAMA_BASE_URL,
@@ -592,9 +798,12 @@ def convert_pdf_file(
         pdf_path.read_bytes(),
         pages_per_file=pages_per_file,
         source_name=pdf_path.name,
+        start_page=start_page,
+        end_page=end_page,
         extract_images=extract_images,
         image_embed_mode=image_embed_mode,
         min_image_dimension=min_image_dimension,
+        ocr_images=ocr_images,
         ocr_mode=ocr_mode,
         ollama_model=ollama_model,
         ollama_url=ollama_url,
@@ -608,9 +817,12 @@ def convert_folder(
     output_folder: Path,
     pages_per_file: int = 10,
     *,
+    start_page: Optional[int] = None,
+    end_page: Optional[int] = None,
     extract_images: bool = True,
     image_embed_mode: str = "folder",
     min_image_dimension: int = 35,
+    ocr_images: bool = False,
     ocr_mode: str = "auto",
     ollama_model: str = DEFAULT_OLLAMA_VISION_MODEL,
     ollama_url: str = DEFAULT_OLLAMA_BASE_URL,
@@ -643,9 +855,12 @@ def convert_folder(
             result = convert_pdf_file(
                 pdf,
                 pages_per_file=pages_per_file,
+                start_page=start_page,
+                end_page=end_page,
                 extract_images=extract_images,
                 image_embed_mode=image_embed_mode,
                 min_image_dimension=min_image_dimension,
+                ocr_images=ocr_images,
                 ocr_mode=ocr_mode,
                 ollama_model=ollama_model,
                 ollama_url=ollama_url,

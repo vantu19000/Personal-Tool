@@ -37,8 +37,9 @@ def _get_pdf_settings() -> Dict[str, Any]:
         "pages_per_file": 10,
         "extract_images": True,
         "image_embed_mode": "folder",
+        "ocr_images": False,
         "ocr_mode": "auto",
-        "ollama_model": "llama3.2-vision",
+        "ollama_model": "gemma3:4b",
         "gemini_api_key": "",
     }
     stored = settings_store.get_block("pdf_to_md")
@@ -77,8 +78,11 @@ async def convert_upload(
     request: Request,
     file: UploadFile = File(...),
     pages_per_file: Optional[int] = Form(None),
+    start_page: Optional[int] = Form(None),
+    end_page: Optional[int] = Form(None),
     extract_images: Optional[str] = Form(None),
     image_embed_mode: Optional[str] = Form(None),
+    ocr_images: Optional[str] = Form(None),
     ocr_mode: Optional[str] = Form(None),
     ollama_model: Optional[str] = Form(None),
     gemini_api_key: Optional[str] = Form(None),
@@ -107,13 +111,19 @@ async def convert_upload(
     else:
         do_extract = extract_images.lower() in ("true", "1", "on", "yes")
 
+    # Determine ocr_images flag
+    if ocr_images is None:
+        do_ocr_images = bool(cfg.get("ocr_images", False))
+    else:
+        do_ocr_images = ocr_images.lower() in ("true", "1", "on", "yes")
+
     embed_mode = (image_embed_mode or cfg.get("image_embed_mode", "folder")).strip().lower()
     if embed_mode not in ("folder", "base64"):
         embed_mode = "folder"
 
     eff_ocr_mode = (ocr_mode or cfg.get("ocr_mode", "auto")).strip().lower()
     eff_ollama_model = (
-        ollama_model if ollama_model is not None else cfg.get("ollama_model", "llama3.2-vision")
+        ollama_model if ollama_model is not None else cfg.get("ollama_model", "gemma3:4b")
     ).strip()
     eff_gemini_key = (
         gemini_api_key if gemini_api_key is not None else cfg.get("gemini_api_key", "")
@@ -125,8 +135,11 @@ async def convert_upload(
                 data=content,
                 pages_per_file=n,
                 source_name=filename,
+                start_page=start_page,
+                end_page=end_page,
                 extract_images=do_extract,
                 image_embed_mode=embed_mode,
+                ocr_images=do_ocr_images,
                 ocr_mode=eff_ocr_mode,
                 ollama_model=eff_ollama_model,
                 gemini_api_key=eff_gemini_key,
@@ -167,8 +180,11 @@ async def convert_folder(
     source_folder: str = Form(...),
     output_folder: str = Form(...),
     pages_per_file: Optional[int] = Form(None),
+    start_page: Optional[int] = Form(None),
+    end_page: Optional[int] = Form(None),
     extract_images: Optional[str] = Form(None),
     image_embed_mode: Optional[str] = Form(None),
+    ocr_images: Optional[str] = Form(None),
     ocr_mode: Optional[str] = Form(None),
     ollama_model: Optional[str] = Form(None),
     gemini_api_key: Optional[str] = Form(None),
@@ -189,13 +205,18 @@ async def convert_folder(
     else:
         do_extract = extract_images.lower() in ("true", "1", "on", "yes")
 
+    if ocr_images is None:
+        do_ocr_images = bool(cfg.get("ocr_images", False))
+    else:
+        do_ocr_images = ocr_images.lower() in ("true", "1", "on", "yes")
+
     embed_mode = (image_embed_mode or cfg.get("image_embed_mode", "folder")).strip().lower()
     if embed_mode not in ("folder", "base64"):
         embed_mode = "folder"
 
     eff_ocr_mode = (ocr_mode or cfg.get("ocr_mode", "auto")).strip().lower()
     eff_ollama_model = (
-        ollama_model if ollama_model is not None else cfg.get("ollama_model", "llama3.2-vision")
+        ollama_model if ollama_model is not None else cfg.get("ollama_model", "gemma3:4b")
     ).strip()
     eff_gemini_key = (
         gemini_api_key if gemini_api_key is not None else cfg.get("gemini_api_key", "")
@@ -206,8 +227,11 @@ async def convert_folder(
             source_folder=Path(src),
             output_folder=Path(out),
             pages_per_file=n,
+            start_page=start_page,
+            end_page=end_page,
             extract_images=do_extract,
             image_embed_mode=embed_mode,
+            ocr_images=do_ocr_images,
             ocr_mode=eff_ocr_mode,
             ollama_model=eff_ollama_model,
             gemini_api_key=eff_gemini_key,

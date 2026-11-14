@@ -88,6 +88,7 @@ class PdfToMdSettings(BaseModel):
     pages_per_file: int = Field(10, ge=1, le=500)
     extract_images: bool = Field(True)
     image_embed_mode: str = Field("folder")
+    ocr_images: bool = Field(False)
     ocr_mode: str = Field("auto")
     ollama_model: str = Field("llama3.2-vision", max_length=100)
     gemini_api_key: str = Field("", max_length=200)
@@ -263,6 +264,7 @@ BLOCKS: Dict[str, BlockDef] = {
             "pages_per_file": 10,
             "extract_images": True,
             "image_embed_mode": "folder",
+            "ocr_images": False,
             "ocr_mode": "auto",
             "ollama_model": "llama3.2-vision",
             "gemini_api_key": "",
@@ -291,6 +293,13 @@ BLOCKS: Dict[str, BlockDef] = {
                 kind="text",
                 placeholder="folder",
                 help_text="folder: nén file zip chứa folder images/; base64: nhúng thẳng mã base64 vào file .md.",
+            ),
+            FieldDef(
+                key="ocr_images",
+                label="Chuyển ảnh và trang scan sang text (true / false)",
+                kind="text",
+                placeholder="false",
+                help_text="true: nhận diện chữ OCR từ ảnh và trang scan sang text Markdown; false: giữ nguyên ảnh scan.",
             ),
             FieldDef(
                 key="ocr_mode",
