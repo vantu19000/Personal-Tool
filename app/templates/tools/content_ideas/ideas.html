@@ -876,9 +876,37 @@
                 </select>
             </div>
 
+            <!-- Model Ollama -->
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Model Ollama AI</label>
+                    <span id="ideas-page-ollama-status" class="text-[11px] text-slate-400">Đang kiểm tra...</span>
+                </div>
+                <select id="generate-model-select"
+                        class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none cursor-pointer">
+                    <option value="">Đang tải models...</option>
+                </select>
+            </div>
+
+            <!-- Output Language -->
+            <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Ngôn ngữ đầu ra (Output)</label>
+                <select id="generate-language-select"
+                        class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:outline-none cursor-pointer">
+                    <option value="vi" selected>🇻🇳 Tiếng Việt (Vietnamese)</option>
+                    <option value="en">🇺🇸 English (Tiếng Anh)</option>
+                    <option value="ja">🇯🇵 日本語 - Japanese (Tiếng Nhật)</option>
+                    <option value="zh">🇨🇳 中文 - Chinese (Tiếng Trung)</option>
+                    <option value="ko">🇰🇷 한국어 - Korean (Tiếng Hàn)</option>
+                    <option value="fr">🇫🇷 Français - French (Tiếng Pháp)</option>
+                    <option value="de">🇩🇪 Deutsch - German (Tiếng Đức)</option>
+                    <option value="es">🇪🇸 Español - Spanish (Tiếng Tây Ban Nha)</option>
+                </select>
+            </div>
+
             <div class="p-3 rounded-xl bg-purple-50/60 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/40 text-xs text-purple-800 dark:text-purple-300 leading-relaxed">
                 <i data-lucide="info" class="w-3.5 h-3.5 inline mr-1 text-purple-600"></i>
-                AI sẽ phân tích toàn văn bài viết, nhận diện thực thể chính, tạo góc tiếp cận độc đáo, tính điểm Viral và xuất bản trực tiếp vào Kho ý tưởng này.
+                AI sẽ phân tích toàn văn bài viết, tạo góc tiếp cận độc đáo, tính điểm Viral và xuất bản trực tiếp vào Kho ý tưởng này.
             </div>
 
             <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
@@ -1134,9 +1162,33 @@
     }
 
     // Modal 4: AI Generate Idea Modal
-    function openGenerateIdeaModal() {
+    let cachedOllamaModelsForIdeasPage = null;
+
+    async function openGenerateIdeaModal() {
         document.getElementById('generate-idea-modal').classList.remove('hidden');
         if (window.lucide) window.lucide.createIcons();
+
+        const modelSelect = document.getElementById('generate-model-select');
+        const statusEl = document.getElementById('ideas-page-ollama-status');
+
+        if (!cachedOllamaModelsForIdeasPage) {
+            try {
+                const resp = await fetch('/api/content-ideas/ollama-models');
+                cachedOllamaModelsForIdeasPage = await resp.json();
+            } catch (e) {
+                cachedOllamaModelsForIdeasPage = { online: false, models: [], default_model: '' };
+            }
+        }
+
+        if (cachedOllamaModelsForIdeasPage && cachedOllamaModelsForIdeasPage.models && cachedOllamaModelsForIdeasPage.models.length > 0) {
+            modelSelect.innerHTML = cachedOllamaModelsForIdeasPage.models.map(m =>
+                `<option value="${m}" ${m === cachedOllamaModelsForIdeasPage.default_model ? 'selected' : ''}>${m}</option>`
+            ).join('');
+            statusEl.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400 font-semibold">● Online (${cachedOllamaModelsForIdeasPage.models.length} models)</span>`;
+        } else {
+            modelSelect.innerHTML = '<option value="">(Không tìm thấy Ollama - Dùng Engine dự phòng)</option>';
+            statusEl.innerHTML = `<span class="text-amber-500 font-semibold">● Offline</span>`;
+        }
     }
 
     function closeGenerateIdeaModal() {
@@ -1152,13 +1204,22 @@
             return;
         }
 
+        const model = document.getElementById('generate-model-select').value;
+        const language = document.getElementById('generate-language-select').value;
+
         const btn = document.getElementById('generate-submit-btn');
         btn.disabled = true;
-        btn.innerHTML = '<span class="inline-block animate-spin mr-1">⌛</span> Đang phân tích & sinh ý tưởng...';
+        btn.innerHTML = '<span class="inline-block animate-spin mr-1">⌛</span> AI đang phân tích & viết ý tưởng...';
+
+        const formData = new FormData();
+        if (model) formData.append('model', model);
+        formData.append('language', language);
+        formData.append('count', '3');
 
         try {
             const resp = await fetch(`/api/ideas/generate-from-article/${articleId}`, {
                 method: 'POST',
+                body: formData,
             });
             const data = await resp.json();
             if (data.ok) {

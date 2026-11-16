@@ -272,8 +272,23 @@ def test_articles_pagination_ui(client):
 
 def test_api_generate_idea_saves_to_ideas_db(client):
     """Verify that calling /api/articles/{id}/generate-idea actually generates and saves ideas into ai_ideas database."""
-    # 1. Trigger generate idea for article 1
-    resp = client.post("/api/articles/1/generate-idea")
+    # 0. Test GET /api/articles/{id}/ai-prompt endpoint
+    resp_prompt = client.get("/api/articles/1/ai-prompt")
+    assert resp_prompt.status_code == 200
+    pdata = resp_prompt.json()
+    assert pdata["ok"] is True
+    assert "ai_prompt" in pdata
+    assert "source_name" in pdata
+
+    # 1. Trigger generate idea for article 1 with custom prompt
+    resp = client.post(
+        "/api/articles/1/generate-idea",
+        data={
+            "prompt": "Góc nhìn chuyên gia kinh tế nông nghiệp Việt Nam, phân tích ảnh hưởng đến nông dân",
+            "language": "vi",
+            "count": 3,
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["ok"] is True
@@ -292,4 +307,10 @@ def test_api_generate_idea_saves_to_ideas_db(client):
     resp_html = client.get("/tools/content-ideas/ideas?article_id=1")
     assert resp_html.status_code == 200
     assert "Bài viết gốc: #1" in resp_html.text
+
+    # 4. Check HTML articles page contains modal-ai-prompt
+    resp_art_html = client.get("/tools/content-ideas/articles")
+    assert resp_art_html.status_code == 200
+    assert "modal-ai-prompt" in resp_art_html.text
+    assert "restoreDefaultSourcePrompt" in resp_art_html.text
 

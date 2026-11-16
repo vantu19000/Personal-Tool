@@ -340,16 +340,72 @@ async def api_assign_product(
     })
 
 
+@router.get("/api/content-ideas/ollama-models", name="api-content-ideas-ollama-models")
+async def api_content_ideas_ollama_models():
+    """Return available Ollama models and supported output languages."""
+    from app.ideas.ai_services import list_ollama_models, SUPPORTED_LANGUAGES, DEFAULT_PREFERRED_MODELS
+    models = await list_ollama_models()
+    default_model = "qwen3.8:latest"
+    for pref in DEFAULT_PREFERRED_MODELS:
+        if pref in models:
+            default_model = pref
+            break
+    if not default_model and models:
+        default_model = models[0]
+
+    return JSONResponse({
+        "online": bool(models),
+        "models": models,
+        "default_model": default_model,
+        "languages": [{"code": k, "name": v} for k, v in SUPPORTED_LANGUAGES.items()],
+        "default_language": "vi",
+    })
+
+
+@router.get("/api/articles/{article_id}/ai-prompt", name="api-get-article-ai-prompt")
+async def api_get_article_ai_prompt(article_id: int, db: Any = Depends(get_db)):
+    """Retrieve default AI prompt from the article's crawler source."""
+    art = await services.get_article_by_id(article_id, db=db)
+    if not art:
+        return JSONResponse({"ok": False, "error": "Bài viết không tồn tại"}, status_code=404)
+    source_prompt = await services.get_source_prompt_for_article(art, db=db)
+    return JSONResponse({
+        "ok": True,
+        "article_id": article_id,
+        "source_name": art.get("source", ""),
+        "ai_prompt": source_prompt,
+    })
+
+
 @router.post("/api/articles/{article_id}/generate-idea", name="api-generate-idea-from-article")
-async def api_generate_idea(article_id: int, db: Any = Depends(get_db)):
-    """Trigger AI idea generation from this article, save to DB, and mark as processed."""
+async def api_generate_idea(
+    article_id: int,
+    model: Optional[str] = Form(None),
+    language: Optional[str] = Form("vi"),
+    count: Optional[int] = Form(3),
+    prompt: Optional[str] = Form(None),
+    db: Any = Depends(get_db),
+):
+    """Trigger AI idea generation from this article using Ollama LLM, save to DB, and mark as processed."""
     art = await services.get_article_by_id(article_id, db=db)
     if not art:
         return JSONResponse({"ok": False, "error": "Bài viết không tồn tại"}, status_code=404)
 
-    # Generate and save AI ideas directly to MongoDB ai_ideas collection
-    from app.ideas import services as idea_services
-    generated_ideas = await idea_services.generate_ideas_from_article(art, count=3, db=db)
+    # Use prompt from form (user edit), or fallback to crawler source's ai_prompt
+    final_prompt = (prompt or "").strip()
+    if not final_prompt:
+        final_prompt = await services.get_source_prompt_for_article(art, db=db)
+
+    # Generate and save AI ideas directly to MongoDB ai_ideas collection via Ollama LLM
+    from app.ideas.ai_services import generate_ideas_with_ollama
+    generated_ideas = await generate_ideas_with_ollama(
+        article=art,
+        model=model,
+        language=language or "vi",
+        count=max(1, min(5, int(count or 3))),
+        custom_prompt=final_prompt,
+        db=db,
+    )
 
     # Update article status to has_idea
     updated = await services.mark_as_has_idea(article_id, db=db)
@@ -358,6 +414,8 @@ async def api_generate_idea(article_id: int, db: Any = Depends(get_db)):
         "article": updated,
         "ideas_count": len(generated_ideas),
         "ideas": generated_ideas,
+        "model_used": model or "auto",
+        "language_used": language or "vi",
         "message": f"AI đã trích xuất thành công {len(generated_ideas)} ý tưởng nội dung từ bài '{art['title'][:35]}...'!",
     })
 

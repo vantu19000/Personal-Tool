@@ -469,6 +469,34 @@ async def get_articles_kpis(db: Optional[Any] = None) -> Dict[str, Any]:
     }
 
 
+async def get_source_prompt_for_article(article: Dict[str, Any], db: Optional[Any] = None) -> str:
+    """Retrieve the custom AI prompt configured for the source of this article."""
+    from app.sources import services as source_services
+
+    source_id = article.get("source_id")
+    if source_id:
+        try:
+            source = await source_services.get_source_by_id(int(source_id), db=db)
+            if source and source.get("ai_prompt"):
+                return source["ai_prompt"].strip()
+        except Exception:
+            pass
+
+    # Fallback: search source by name if source_id is missing or source not found by ID
+    source_name = (article.get("source") or "").strip()
+    if source_name:
+        try:
+            sources_data = await source_services.list_sources(db=db, search=source_name, page_size=10)
+            for s in sources_data.get("items", []):
+                if s.get("name", "").strip().lower() == source_name.lower():
+                    if s.get("ai_prompt"):
+                        return s["ai_prompt"].strip()
+        except Exception:
+            pass
+
+    return ""
+
+
 async def get_article_by_id(article_id: int, db: Optional[Any] = None) -> Optional[Dict[str, Any]]:
     """Retrieve single article by integer ID."""
     doc = await _repo.find_by_id(article_id, db=db)

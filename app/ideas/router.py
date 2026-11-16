@@ -359,16 +359,36 @@ async def api_delete_idea(
 
 
 @router.post("/api/ideas/generate-from-article/{article_id}", tags=["ai-ideas"])
-async def api_generate_from_article(article_id: int, db: Any = Depends(get_db)):
-    """Generate an AI idea automatically from a crawled article."""
+async def api_generate_from_article(
+    article_id: int,
+    model: Optional[str] = Form(None),
+    language: Optional[str] = Form("vi"),
+    count: Optional[int] = Form(3),
+    prompt: Optional[str] = Form(None),
+    db: Any = Depends(get_db),
+):
+    """Generate AI ideas automatically from a crawled article using Ollama LLM."""
     art = await article_services.get_article_by_id(article_id, db=db)
     if not art:
         raise HTTPException(status_code=404, detail="Bài viết thu thập không tồn tại.")
 
-    new_idea = await services.generate_idea_from_article(art, db=db)
+    # Use prompt from form or fallback to crawler source's ai_prompt
+    final_prompt = (prompt or "").strip()
+    if not final_prompt:
+        final_prompt = await article_services.get_source_prompt_for_article(art, db=db)
+
+    from app.ideas.ai_services import generate_ideas_with_ollama
+    new_ideas = await generate_ideas_with_ollama(
+        article=art,
+        model=model,
+        language=language or "vi",
+        count=max(1, min(5, int(count or 3))),
+        custom_prompt=final_prompt,
+        db=db,
+    )
     # Also mark article as has_idea
     await article_services.mark_as_has_idea(article_id, db=db)
-    return {"ok": True, "idea": new_idea}
+    return {"ok": True, "ideas": new_ideas, "idea": new_ideas[0] if new_ideas else {}}
 
 
 @router.post("/api/ideas/reset-demo", tags=["ai-ideas"])
