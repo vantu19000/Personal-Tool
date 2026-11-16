@@ -342,14 +342,23 @@ async def api_assign_product(
 
 @router.post("/api/articles/{article_id}/generate-idea", name="api-generate-idea-from-article")
 async def api_generate_idea(article_id: int, db: Any = Depends(get_db)):
-    """Simulate triggering AI idea generation from this article and mark as processed."""
-    updated = await services.mark_as_has_idea(article_id, db=db)
-    if not updated:
+    """Trigger AI idea generation from this article, save to DB, and mark as processed."""
+    art = await services.get_article_by_id(article_id, db=db)
+    if not art:
         return JSONResponse({"ok": False, "error": "Bài viết không tồn tại"}, status_code=404)
+
+    # Generate and save AI ideas directly to MongoDB ai_ideas collection
+    from app.ideas import services as idea_services
+    generated_ideas = await idea_services.generate_ideas_from_article(art, count=3, db=db)
+
+    # Update article status to has_idea
+    updated = await services.mark_as_has_idea(article_id, db=db)
     return JSONResponse({
         "ok": True,
         "article": updated,
-        "message": f"AI đã trích xuất thành công 3 ý tưởng nội dung từ bài '{updated['title'][:35]}...'!",
+        "ideas_count": len(generated_ideas),
+        "ideas": generated_ideas,
+        "message": f"AI đã trích xuất thành công {len(generated_ideas)} ý tưởng nội dung từ bài '{art['title'][:35]}...'!",
     })
 
 

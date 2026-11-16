@@ -7,6 +7,7 @@ Adding a new tool
 3. Register the router in ``main.py``.
 """
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -14,8 +15,15 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_DIR = BASE_DIR.parent
 
-# Tự động nạp biến môi trường từ .env nếu có
-load_dotenv(PROJECT_DIR / ".env")
+# Tự động nạp biến môi trường từ .env (hoặc .env.test nếu chạy test)
+env_file_name = os.getenv("ENV_FILE")
+if not env_file_name:
+    if os.getenv("APP_ENV") == "testing" or "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST"):
+        env_file_name = ".env.test"
+    else:
+        env_file_name = ".env"
+
+load_dotenv(PROJECT_DIR / env_file_name, override=True)
 TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
 
@@ -31,20 +39,42 @@ class Settings:
     STATIC_DIR = STATIC_DIR
 
     # Server config
-    HOST: str = os.getenv("HOST", "127.0.0.1")
-    PORT: int = int(os.getenv("PORT", "9981"))
+    @property
+    def HOST(self) -> str:
+        return os.getenv("HOST", "127.0.0.1")
+
+    @property
+    def PORT(self) -> int:
+        return int(os.getenv("PORT", "9981"))
 
     # Ollama global config (dùng chung cho toàn bộ các chức năng)
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_TIMEOUT_SECONDS: int = 600  # Mặc định 10 phút (600s)
 
     # MongoDB Database config (Docker / Local)
-    MONGO_HOST: str = os.getenv("MONGO_HOST", "localhost")
-    MONGO_PORT: int = int(os.getenv("MONGO_PORT", "27017"))
-    MONGO_USER: str = os.getenv("MONGO_USER", "root")
-    MONGO_PASSWORD: str = os.getenv("MONGO_PASSWORD", "rootpassword")
-    MONGO_DB_NAME: str = os.getenv("MONGO_DB_NAME", "personal_tool_db")
-    MONGO_AUTH_SOURCE: str = os.getenv("MONGO_AUTH_SOURCE", "admin")
+    @property
+    def MONGO_HOST(self) -> str:
+        return os.getenv("MONGO_HOST", "localhost")
+
+    @property
+    def MONGO_PORT(self) -> int:
+        return int(os.getenv("MONGO_PORT", "27017"))
+
+    @property
+    def MONGO_USER(self) -> str:
+        return os.getenv("MONGO_USER", "root")
+
+    @property
+    def MONGO_PASSWORD(self) -> str:
+        return os.getenv("MONGO_PASSWORD", "rootpassword")
+
+    @property
+    def MONGO_DB_NAME(self) -> str:
+        return os.getenv("MONGO_DB_NAME", "personal_tool_db")
+
+    @property
+    def MONGO_AUTH_SOURCE(self) -> str:
+        return os.getenv("MONGO_AUTH_SOURCE", "admin")
 
     @property
     def mongodb_uri(self) -> str:

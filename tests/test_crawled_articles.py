@@ -269,3 +269,27 @@ def test_articles_pagination_ui(client):
     assert resp_p2.status_code == 200
     assert "Trước" in resp_p2.text
 
+
+def test_api_generate_idea_saves_to_ideas_db(client):
+    """Verify that calling /api/articles/{id}/generate-idea actually generates and saves ideas into ai_ideas database."""
+    # 1. Trigger generate idea for article 1
+    resp = client.post("/api/articles/1/generate-idea")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["ok"] is True
+    assert data["ideas_count"] >= 1
+    assert "ideas" in data
+    assert len(data["ideas"]) >= 1
+
+    # 2. Check that the ideas are queryable via /api/ideas with article_id filter
+    resp_ideas = client.get("/api/ideas?article_id=1")
+    assert resp_ideas.status_code == 200
+    ideas_data = resp_ideas.json()
+    assert ideas_data["total"] >= 1
+    assert any(i.get("source_article_id") == 1 for i in ideas_data["items"])
+
+    # 3. Check HTML ideas page with article_id query
+    resp_html = client.get("/tools/content-ideas/ideas?article_id=1")
+    assert resp_html.status_code == 200
+    assert "Bài viết gốc: #1" in resp_html.text
+

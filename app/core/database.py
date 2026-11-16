@@ -62,15 +62,11 @@ def get_mongo_client() -> Optional[Any]:
 
 
 def get_mongo_database() -> Optional[Any]:
-    """Get the default MongoDB database instance."""
-    global _db
+    """Get the default MongoDB database instance based on current settings."""
     client = get_mongo_client()
     if client is None:
-        _db = None
         return None
-    if _db is None:
-        _db = client[settings.MONGO_DB_NAME]
-    return _db
+    return client[settings.MONGO_DB_NAME]
 
 
 async def get_db() -> AsyncGenerator[Optional[Any], None]:
