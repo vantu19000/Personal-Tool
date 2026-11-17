@@ -28,16 +28,20 @@ PROMPT_LANGUAGES = {
 }
 
 DEFAULT_SYSTEM_PROMPT = (
-    "You are an expert AI prompt engineer specializing in prompt creation for modern cloud image generation "
-    "models like Google Gemini (Imagen 3) and ChatGPT (DALL-E 3).\n\n"
-    "Analyze this image and write a rich, highly descriptive prompt in {output_language} to recreate this image accurately.\n\n"
-    "Guidelines for Gemini & ChatGPT:\n"
+    "You are an expert AI prompt engineer specializing in visual image analysis and prompt creation for modern "
+    "cloud image generation models like Google Gemini (Imagen 3) and ChatGPT (DALL-E 3).\n\n"
+    "Analyze this image and provide:\n"
+    "1. A concise, catchy Title (name) for the image in {output_language}.\n"
+    "2. A rich, highly descriptive Prompt in {output_language} to recreate this image accurately.\n\n"
+    "Guidelines for the Prompt:\n"
+    "- Character & Reference Face: If a person or character is in the image, identify their gender/type (e.g., a male character, a female character, a man, a woman) and explicitly describe in the prompt that their face is based on the reference image (e.g., 'a male character whose face and facial features are based on the reference image' / 'nhân vật nam dùng ảnh tham chiếu cho khuôn mặt'). Do NOT describe the specific facial features (eyes, nose, lips) from this analyzed image.\n"
     "- Write the prompt in {output_language} using fluent, descriptive natural language sentences rather than comma-separated tags.\n"
-    "- Describe the subject(s) in detail: appearance, facial expression, pose, clothing, and actions.\n"
-    "- Describe the environment, background, setting, lighting (e.g., golden hour, soft studio light, volumetric rays), atmosphere, and color palette.\n"
-    "- Specify the artistic medium and camera perspective (e.g., cinematic photography, eye-level shot, 35mm film still, digital illustration).\n"
-    "- Avoid negative prompts, keyword spam, or model parameters (no '--ar', no weights like '(masterpiece:1.2)').\n"
-    "- Return ONLY the final prompt text. Do not include any greeting, introduction, explanation, or markdown quotes."
+    "- Describe the subject's body, appearance, pose, clothing, actions, environment, background, setting, lighting, atmosphere, color palette, camera perspective, and artistic medium in rich detail.\n"
+    "- Avoid negative prompts, keyword spam, or model parameters (no '--ar', no weights like '(masterpiece:1.2)').\n\n"
+    "Format your output strictly as follows (do not include greetings or explanations):\n"
+    "Title: <concise title for the image in {output_language}>\n\n"
+    "Prompt:\n"
+    "<detailed generation prompt in {output_language}>"
 )
 
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tiff"}
@@ -58,6 +62,7 @@ class PromptConfig:
     temperature: float = 0.2
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
     overwrite: bool = False
+    reference_face_bytes: Optional[bytes] = None
 
 
 def prepare_prompt(prompt: str, language: str = "en") -> str:
@@ -67,7 +72,10 @@ def prepare_prompt(prompt: str, language: str = "en") -> str:
     if "{output_language}" in p:
         return p.replace("{output_language}", lang_name)
     if language.lower() not in ("en", "english"):
-        return f"{p}\n\nImportant Requirement: The generated image prompt MUST be written entirely in {lang_name}."
+        return (
+            f"{p}\n\nImportant Requirement: Both the Title (image name) and the generated image Prompt "
+            f"MUST be written entirely in {lang_name}."
+        )
     return p
 
 
@@ -132,18 +140,116 @@ def clean_extracted_prompt(text: str) -> str:
         return ""
 
     # Remove markdown code fences if wrapped in ```prompt ... ``` or ``` ... ```
-    fence_match = re.search(r"```(?:markdown|prompt|txt|text)?\s*([\s\S]*?)\s*```", text, re.IGNORECASE)
+    fence_match = re.search(r"```(?:markdown|prompt|txt|text|json)?\s*([\s\S]*?)\s*```", text, re.IGNORECASE)
     if fence_match:
         text = fence_match.group(1).strip()
 
     # Remove leading common bot phrases like "Here is the prompt:", "Prompt:", etc.
-    text = re.sub(r"^(?:Here is(?: a| the)? prompt:?|Prompt:?|Generated prompt:?)\s*", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"^(?:Here is(?: a| the)? prompt:?|Generated prompt:?)\s*", "", text, flags=re.IGNORECASE).strip()
 
     # Remove surrounding quotes if entire text is wrapped in "..."
     if (text.startswith('"') and text.endswith('"')) or (text.startswith("'") and text.endswith("'")):
         text = text[1:-1].strip()
 
     return text
+
+
+def parse_title_and_prompt(text: str) -> dict[str, str]:
+    """Parse raw model output or existing txt content into a title and prompt dict."""
+    cleaned = clean_extracted_prompt(text)
+    if not cleaned:
+        return {"title": "", "prompt": ""}
+
+    # 1. Try JSON parsing
+    json_match = re.search(r"\{[\s\S]*\}", cleaned)
+    if json_match:
+        try:
+            data = json.loads(json_match.group(0))
+            if isinstance(data, dict):
+                title = str(data.get("title") or data.get("name") or data.get("tieu_de") or "").strip()
+                prompt = str(data.get("prompt") or data.get("description") or "").strip()
+                if title or prompt:
+                    return {
+                        "title": title.strip('"\'*# '),
+                        "prompt": prompt.strip('"\' '),
+                    }
+        except Exception:
+            pass
+
+    # 2. Markdown headers or labelled sections:
+    # Handles: # Image Title, Title:, **Title:**, # Prompt, Prompt:, etc.
+    title_pattern = re.compile(
+        r"(?:^|\n)\s*(?:#{1,3}\s*)?(?:\*\*)?(?:Image\s*Title|Title|Tiêu\s*đề|Tên\s*ảnh|Name)\s*[:：\-]?(?:\*\*)?\s*[:：\-]?(?:\*\*)?\s*\n*\s*([^\n\r#]+)",
+        re.IGNORECASE,
+    )
+
+    prompt_section_pattern = re.compile(
+        r"(?:^|\n)\s*(?:#{1,3}\s*)?(?:\*\*)?(?:MAIN\s*PROMPT|Image\s*Prompt|Prompt|Gợi\s*ý\s*prompt)\s*[:：\-]?(?:\*\*)?\s*[:：\-]?(?:\*\*)?\s*([\s\S]*?)(?=(?:\n\s*(?:#{1,3}\s*)?(?:\*\*)?Negative\s*Prompt\s*[:：\-]?(?:\*\*)?)|$)",
+        re.IGNORECASE,
+    )
+
+    prompt_match = prompt_section_pattern.search(cleaned)
+    title_match = title_pattern.search(cleaned)
+
+    title = ""
+    prompt = ""
+
+    if prompt_match:
+        prompt = prompt_match.group(1).strip()
+        if title_match:
+            if title_match.start() < prompt_match.start():
+                title = title_match.group(1).strip()
+            else:
+                title = title_match.group(1).strip()
+        else:
+            pre = cleaned[:prompt_match.start()].strip()
+            pre = re.sub(
+                r"^(?:#{1,3}\s*)?(?:\*\*)?(?:Image\s*Title|Title|Tiêu\s*đề|Tên\s*ảnh|Name)\s*[:：\-]?(?:\*\*)?\s*[:：\-]?(?:\*\*)?\s*",
+                "",
+                pre,
+                flags=re.IGNORECASE,
+            ).strip()
+            if pre:
+                title = pre.split("\n")[0].strip()
+    elif title_match:
+        title = title_match.group(1).strip()
+        after_title = cleaned[title_match.end():].strip()
+        prompt = after_title
+    else:
+        lines = [line.strip() for line in cleaned.split("\n") if line.strip()]
+        if len(lines) == 1:
+            full = lines[0]
+            if len(full) > 60:
+                first_clause = re.split(r"[,;:.!?]", full)[0].strip()
+                if 10 <= len(first_clause) <= 60:
+                    title = first_clause
+                else:
+                    split_at = full[:60].rfind(" ")
+                    title = full[:split_at].strip() if split_at > 20 else full[:50].strip()
+                prompt = full
+            else:
+                title = full
+                prompt = full
+        elif len(lines) > 1:
+            first_line = lines[0]
+            if len(first_line) <= 80:
+                title = first_line
+                prompt = "\n".join(lines[1:]).strip()
+            else:
+                title = first_line[:60].strip()
+                prompt = "\n".join(lines).strip()
+
+    title = title.strip().strip('"\'*#')
+    prompt = prompt.strip().strip('"\'')
+
+    if not title and prompt:
+        first_sentence = re.split(r"[.!?\n]", prompt)[0].strip()
+        title = first_sentence[:60].strip() if len(first_sentence) > 60 else first_sentence
+
+    return {
+        "title": title,
+        "prompt": prompt,
+    }
 
 
 async def resolve_model_name(requested_model: str, base_url: str = DEFAULT_OLLAMA_BASE_URL) -> str:
@@ -168,15 +274,31 @@ async def resolve_model_name(requested_model: str, base_url: str = DEFAULT_OLLAM
 async def generate_prompt_for_image_bytes(
     image_bytes: bytes,
     config: PromptConfig,
-) -> str:
-    """Send image bytes (base64) to Ollama and return the reverse engineered prompt."""
+) -> dict[str, str]:
+    """Send image bytes (base64) to Ollama and return dict with 'title' and 'prompt'."""
     if not image_bytes:
         raise ImageToPromptError("Dữ liệu ảnh trống.")
 
     model_to_use = await resolve_model_name(config.model, config.base_url)
-    final_prompt = prepare_prompt(config.prompt, config.language)
+    base_prompt = prepare_prompt(config.prompt, config.language)
 
     b64_img = base64.b64encode(image_bytes).decode("utf-8")
+    images_payload = [b64_img]
+
+    final_prompt = base_prompt
+    if config.reference_face_bytes:
+        b64_ref = base64.b64encode(config.reference_face_bytes).decode("utf-8")
+        images_payload.append(b64_ref)
+        final_prompt = (
+            f"IMPORTANT: You are analyzing TWO images.\n"
+            f"- Image 1: Main scene & composition image (defines subject pose, clothing, actions, environment, lighting, and style).\n"
+            f"- Image 2: Reference face image (defines the character's face, facial likeness, eyes, nose, lips, facial structure, skin tone, and identity).\n\n"
+            f"CRITICAL INSTRUCTION: The character's face in the generated prompt MUST be strictly the person in Image 2 (the uploaded reference face image). "
+            f"Do NOT describe the face from Image 1. Instead, describe the face using the exact facial characteristics of Image 2, and explicitly state in the prompt: "
+            f"'The character's face is identical to the uploaded reference face image, perfectly matching the facial features, structure, eyes, nose, lips, skin tone, and likeness of the reference photo.'\n\n"
+            f"{base_prompt}"
+        )
+
     base = config.base_url.rstrip("/")
     timeout = aiohttp.ClientTimeout(total=config.timeout_seconds, connect=30.0)
 
@@ -186,7 +308,7 @@ async def generate_prompt_for_image_bytes(
             {
                 "role": "user",
                 "content": final_prompt,
-                "images": [b64_img],
+                "images": images_payload,
             }
         ],
         "stream": False,
@@ -204,17 +326,35 @@ async def generate_prompt_for_image_bytes(
                     content = data.get("message", {}).get("content", "")
                     cleaned = clean_extracted_prompt(content)
                     if cleaned:
-                        return cleaned
-                    raise ImageToPromptError("Ollama trả về nội dung prompt rỗng.")
+                        return parse_title_and_prompt(cleaned)
+                    raise ImageToPromptError("Ollama trả về nội dung rỗng.")
 
                 err_body = await resp.text()
+
+                # If model does not support multiple images, fallback to single image with prompt directive
+                if len(images_payload) > 1 and ("only 1 image" in err_body.lower() or "one image" in err_body.lower() or "only one image" in err_body.lower()):
+                    retry_payload = dict(chat_payload)
+                    retry_payload["messages"] = [
+                        {
+                            "role": "user",
+                            "content": final_prompt,
+                            "images": [b64_img],
+                        }
+                    ]
+                    async with session.post(f"{base}/api/chat", json=retry_payload) as retry_resp:
+                        if retry_resp.status == 200:
+                            retry_data = await retry_resp.json()
+                            retry_content = retry_data.get("message", {}).get("content", "")
+                            cleaned = clean_extracted_prompt(retry_content)
+                            if cleaned:
+                                return parse_title_and_prompt(cleaned)
 
                 # If Ollama endpoint itself is not found (e.g. legacy Ollama), fallback to /api/generate
                 if resp.status == 404 and "404 page not found" in err_body.lower():
                     gen_payload = {
                         "model": model_to_use,
                         "prompt": final_prompt,
-                        "images": [b64_img],
+                        "images": images_payload,
                         "stream": False,
                         "options": {
                             "temperature": config.temperature,
@@ -226,8 +366,8 @@ async def generate_prompt_for_image_bytes(
                             gen_content = gen_data.get("response", "")
                             cleaned = clean_extracted_prompt(gen_content)
                             if cleaned:
-                                return cleaned
-                            raise ImageToPromptError("Ollama trả về nội dung prompt rỗng.")
+                                return parse_title_and_prompt(cleaned)
+                            raise ImageToPromptError("Ollama trả về nội dung rỗng.")
                         gen_err = await gen_resp.text()
                         raise ImageToPromptError(extract_ollama_error(gen_err))
 
@@ -248,8 +388,8 @@ async def generate_prompt_for_image_bytes(
 async def generate_prompt_for_file(
     image_path: Path,
     config: PromptConfig,
-) -> str:
-    """Read image file and generate prompt."""
+) -> dict[str, str]:
+    """Read image file and generate title and prompt."""
     try:
         raw_bytes = await asyncio.to_thread(image_path.read_bytes)
     except OSError as exc:
@@ -271,23 +411,32 @@ async def process_image_file(
             existing_content = await asyncio.to_thread(txt_path.read_text, encoding="utf-8", errors="replace")
         except Exception:
             existing_content = ""
+        parsed = parse_title_and_prompt(existing_content)
         return {
             "status": "skipped",
             "file": str(image_path),
             "filename": image_path.name,
             "txt_file": str(txt_path),
-            "prompt": existing_content,
+            "title": parsed.get("title", ""),
+            "prompt": parsed.get("prompt", existing_content),
             "reason": "File .txt đã tồn tại (đã bỏ qua vì không chọn ghi đè)",
         }
 
     try:
-        prompt_text = await generate_prompt_for_file(image_path, config)
-        await asyncio.to_thread(txt_path.write_text, prompt_text + "\n", encoding="utf-8")
+        res = await generate_prompt_for_file(image_path, config)
+        if isinstance(res, str):
+            res = parse_title_and_prompt(res)
+        title = res.get("title", "").strip()
+        prompt_text = res.get("prompt", "").strip()
+
+        file_content = f"Title: {title}\n\nPrompt:\n{prompt_text}\n"
+        await asyncio.to_thread(txt_path.write_text, file_content, encoding="utf-8")
         return {
             "status": "ok",
             "file": str(image_path),
             "filename": image_path.name,
             "txt_file": str(txt_path),
+            "title": title,
             "prompt": prompt_text,
         }
     except Exception as exc:

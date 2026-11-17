@@ -371,19 +371,50 @@
         </div>
 
         <!-- Single Result Box -->
-        <div id="single-result-box" class="hidden space-y-3 p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
+        <div id="single-result-box" class="hidden space-y-4 p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-2xs">
+            <div class="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-slate-200/80 dark:border-slate-800">
+                <span class="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i>
                     <span>{{ t('image_to_prompt.single_result_title') }}</span>
                 </span>
-                <button type="button" id="copy-single-prompt-btn"
-                        class="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition">
+                <button type="button" id="copy-single-all-btn"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shadow-2xs">
                     <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                    <span>{{ t('image_to_prompt.copy_prompt') }}</span>
+                    <span>{{ t('image_to_prompt.copy_all') }}</span>
                 </button>
             </div>
-            <pre id="single-result-text" class="p-4 rounded-xl bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-mono whitespace-pre-wrap leading-relaxed select-all"></pre>
+
+            <!-- 1. Tiêu đề cho ảnh (Đặt tên cho ảnh) -->
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <i data-lucide="tag" class="w-3.5 h-3.5 text-fuchsia-600 dark:text-fuchsia-400"></i>
+                        <span>{{ t('image_to_prompt.single_title_label') }}</span>
+                    </label>
+                    <button type="button" id="copy-single-title-btn"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition">
+                        <i data-lucide="copy" class="w-3 h-3"></i>
+                        <span>{{ t('image_to_prompt.copy_title') }}</span>
+                    </button>
+                </div>
+                <div id="single-result-title" class="p-3.5 rounded-xl bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold text-xs sm:text-sm font-sans select-all leading-relaxed"></div>
+            </div>
+
+            <!-- 2. Prompt để tạo ra ảnh -->
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400"></i>
+                        <span>{{ t('image_to_prompt.single_prompt_label') }}</span>
+                    </label>
+                    <button type="button" id="copy-single-prompt-btn"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition">
+                        <i data-lucide="copy" class="w-3 h-3"></i>
+                        <span>{{ t('image_to_prompt.copy_prompt') }}</span>
+                    </button>
+                </div>
+                <pre id="single-result-text" class="p-4 rounded-xl bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-mono whitespace-pre-wrap leading-relaxed select-all"></pre>
+            </div>
         </div>
     </section>
 
@@ -409,7 +440,11 @@
     "status_saved": t('image_to_prompt.status_saved'),
     "status_skipped": t('image_to_prompt.status_skipped'),
     "status_error": t('image_to_prompt.status_error'),
+    "title_label": t('image_to_prompt.title_label'),
     "generated_prompt_label": t('image_to_prompt.generated_prompt_label'),
+    "copy_title": t('image_to_prompt.copy_title'),
+    "copy_prompt": t('image_to_prompt.copy_prompt'),
+    "copy_all": t('image_to_prompt.copy_all'),
     "error_from_ollama": t('image_to_prompt.error_from_ollama'),
     "btn_start": t('image_to_prompt.btn_start'),
     "btn_busy": t('image_to_prompt.btn_busy'),
@@ -441,10 +476,10 @@
 
     const promptPresets = {
         detailed: {{ default_prompt|tojson }},
-        chatgpt_cinematic: "Analyze this image and generate an evocative, narrative-driven prompt in natural English tailored for ChatGPT and DALL-E 3. Describe the scene as a vivid cinematic moment: focal subject, subtle emotion, authentic textures, spatial depth, camera perspective, and ambient lighting mood. Write in fluent descriptive prose without technical jargon or tags. Return ONLY the raw prompt text, without any intro or explanation.",
-        gemini_photorealistic: "Analyze this image and write a photorealistic image generation prompt in natural English optimized for Google Gemini (Imagen 3). Describe the subject, composition, camera shot type (e.g. macro, eye-level, medium close-up), lighting quality (e.g. golden hour, soft diffuse daylight, chiaroscuro), natural skin/material textures, depth of field, and color temperature. Do not use tags or parameter syntax. Return ONLY the raw prompt text.",
-        cloud_illustration: "Analyze this image and write a detailed prompt in natural English for Google Gemini or ChatGPT to recreate it as a high-quality digital artwork or anime illustration. Describe the art style, linework, color harmonies, character visual details, whimsical or dramatic atmosphere, and lighting effects. Return ONLY the raw prompt text.",
-        midjourney_tags: "Analyze this image and write a prompt using descriptive keywords and visual tags for Midjourney and Stable Diffusion. Include subject, style, lighting, color palette, camera shot, and artistic medium. Return ONLY the raw prompt text."
+        chatgpt_cinematic: "Analyze this image and provide:\n1. A captivating Title (name) for the image in {output_language}.\n2. An evocative, narrative-driven Prompt in {output_language} tailored for ChatGPT and DALL-E 3. If a character is present, explicitly specify that the character's face is based on the reference image uploaded by the user (matching exact likeness, facial structure, eyes, nose, and lips). Describe the scene as a vivid cinematic moment: focal subject, subtle emotion, spatial depth, camera perspective, and ambient lighting mood.\n\nFormat your output strictly as:\nTitle: <image title in {output_language}>\n\nPrompt:\n<cinematic prompt in {output_language}>",
+        gemini_photorealistic: "Analyze this image and provide:\n1. A descriptive Title (name) for the image in {output_language}.\n2. A photorealistic image generation Prompt in {output_language} optimized for Google Gemini (Imagen 3). If a character is present, explicitly specify that the character's face is based on the reference image uploaded by the user (matching exact likeness, facial structure, eyes, nose, and lips). Describe subject, composition, camera shot type, natural lighting, textures, depth of field, and color temperature.\n\nFormat your output strictly as:\nTitle: <image title in {output_language}>\n\nPrompt:\n<photorealistic prompt in {output_language}>",
+        cloud_illustration: "Analyze this image and provide:\n1. An artistic Title (name) for the image in {output_language}.\n2. A detailed illustration Prompt in {output_language} for Google Gemini or ChatGPT to recreate it as a high-quality digital artwork or anime illustration. If a character is present, explicitly specify that the character's face is based on the reference image uploaded by the user. Describe art style, linework, color harmonies, character visual details, and lighting.\n\nFormat your output strictly as:\nTitle: <image title in {output_language}>\n\nPrompt:\n<illustration prompt in {output_language}>",
+        midjourney_tags: "Analyze this image and provide:\n1. A short Title (name) for the image in {output_language}.\n2. A Prompt using descriptive keywords and visual tags for Midjourney and Stable Diffusion. If a character is present, explicitly specify that the character's face is based on the uploaded reference image. Include subject, style, lighting, color palette, camera shot, and artistic medium.\n\nFormat your output strictly as:\nTitle: <image title in {output_language}>\n\nPrompt:\n<tags prompt in {output_language}>"
     };
 
     async function checkOllamaConnection() {
@@ -715,7 +750,7 @@
             startLabel.textContent = isBusy ? I18N.btn_busy : I18N.btn_start;
         }
 
-        function createOrUpdateRow(file, status, textPath, promptOrError) {
+        function createOrUpdateRow(file, status, textPath, promptOrError, title) {
             let li = currentItemMap.get(file);
             if (!li) {
                 li = document.createElement("li");
@@ -749,16 +784,40 @@
                 </div>
             `;
 
-            if (status === 'ok' && promptOrError) {
-                contentHtml += `
-                    <div class="mt-2.5 p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                        <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-                            <span>${I18N.generated_prompt_label}</span>
-                            <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(promptOrError)}); this.textContent='✓ ${I18N.copied}'; setTimeout(() => this.textContent='${I18N.copy}', 1500);" class="text-indigo-600 dark:text-indigo-400 hover:underline">${I18N.copy}</button>
+            if ((status === 'ok' || status === 'skipped') && (title || promptOrError)) {
+                contentHtml += `<div class="mt-2.5 space-y-2">`;
+
+                if (title) {
+                    contentHtml += `
+                        <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                            <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+                                <span class="font-semibold text-fuchsia-600 dark:text-fuchsia-400 flex items-center gap-1">
+                                    <i data-lucide="tag" class="w-3 h-3"></i>
+                                    <span>${I18N.title_label}</span>
+                                </span>
+                                <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(title)}); this.innerHTML='✓ ${I18N.copied}'; setTimeout(() => this.innerHTML='${I18N.copy_title}', 1500);" class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-[11px]">${I18N.copy_title}</button>
+                            </div>
+                            <div class="font-semibold text-xs text-slate-800 dark:text-slate-100 select-all">${title}</div>
                         </div>
-                        <p class="font-mono text-xs text-slate-700 dark:text-slate-300 line-clamp-3 select-all">${promptOrError}</p>
-                    </div>
-                `;
+                    `;
+                }
+
+                if (promptOrError) {
+                    contentHtml += `
+                        <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                            <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+                                <span class="font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                                    <i data-lucide="sparkles" class="w-3 h-3"></i>
+                                    <span>${I18N.generated_prompt_label}</span>
+                                </span>
+                                <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(promptOrError)}); this.innerHTML='✓ ${I18N.copied}'; setTimeout(() => this.innerHTML='${I18N.copy_prompt}', 1500);" class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-[11px]">${I18N.copy_prompt}</button>
+                            </div>
+                            <p class="font-mono text-xs text-slate-700 dark:text-slate-300 line-clamp-3 select-all">${promptOrError}</p>
+                        </div>
+                    `;
+                }
+
+                contentHtml += `</div>`;
             } else if (status === 'error') {
                 contentHtml += `
                     <div class="mt-2.5 p-3 rounded-lg bg-rose-50/90 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-900/80">
@@ -835,9 +894,9 @@
                     } else if (event.type === "file_start") {
                         createOrUpdateRow(event.file, "processing", "", "");
                     } else if (event.type === "file_done") {
-                        createOrUpdateRow(event.file, "ok", event.txt_file, event.prompt);
+                        createOrUpdateRow(event.file, "ok", event.txt_file, event.prompt, event.title);
                     } else if (event.type === "file_skipped") {
-                        createOrUpdateRow(event.file, "skipped", event.txt_file, event.prompt);
+                        createOrUpdateRow(event.file, "skipped", event.txt_file, event.prompt, event.title);
                     } else if (event.type === "file_error") {
                         createOrUpdateRow(event.file, "error", event.txt_file, event.error);
                         if (batchErrorBanner && batchErrorMessage) {
@@ -910,8 +969,11 @@
         const submitIcon = document.getElementById("single-submit-icon");
         const submitLabel = document.getElementById("single-submit-label");
         const resultBox = document.getElementById("single-result-box");
+        const resultTitle = document.getElementById("single-result-title");
         const resultText = document.getElementById("single-result-text");
         const copyBtn = document.getElementById("copy-single-prompt-btn");
+        const copyTitleBtn = document.getElementById("copy-single-title-btn");
+        const copyAllBtn = document.getElementById("copy-single-all-btn");
         const singleErrorBox = document.getElementById("single-error-box");
         const singleErrorText = document.getElementById("single-error-text");
         const modelSelect = document.getElementById("batch-model");
@@ -942,6 +1004,31 @@
                 });
             }
         });
+
+        if (copyTitleBtn) {
+            copyTitleBtn.addEventListener("click", () => {
+                if (resultTitle && resultTitle.textContent) {
+                    navigator.clipboard.writeText(resultTitle.textContent).then(() => {
+                        const original = copyTitleBtn.innerHTML;
+                        copyTitleBtn.innerHTML = `<span class="text-emerald-500 font-bold">✓ ${I18N.copied}</span>`;
+                        setTimeout(() => { copyTitleBtn.innerHTML = original; }, 1800);
+                    });
+                }
+            });
+        }
+
+        if (copyAllBtn) {
+            copyAllBtn.addEventListener("click", () => {
+                const titleStr = resultTitle ? resultTitle.textContent.trim() : "";
+                const promptStr = resultText ? resultText.textContent.trim() : "";
+                const combined = `Title: ${titleStr}\n\nPrompt:\n${promptStr}`;
+                navigator.clipboard.writeText(combined).then(() => {
+                    const original = copyAllBtn.innerHTML;
+                    copyAllBtn.innerHTML = `<span class="text-emerald-500 font-bold">✓ ${I18N.copied}</span>`;
+                    setTimeout(() => { copyAllBtn.innerHTML = original; }, 1800);
+                });
+            });
+        }
 
         singleForm.addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -980,9 +1067,11 @@
                     throw new Error(errMsg);
                 }
 
-                resultText.textContent = data.prompt;
+                if (resultTitle) resultTitle.textContent = data.title || "";
+                resultText.textContent = data.prompt || "";
                 resultBox.classList.remove("hidden");
                 resultBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                if (window.lucide) window.lucide.createIcons();
             } catch (err) {
                 if (singleErrorBox && singleErrorText) {
                     singleErrorBox.classList.remove("hidden");

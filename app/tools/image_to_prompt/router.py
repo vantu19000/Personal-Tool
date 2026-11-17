@@ -11,6 +11,8 @@ import asyncio
 import json
 from pathlib import Path
 
+from typing import Optional
+
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -115,14 +117,19 @@ async def image_to_prompt_scan(
 @router.post("/image-to-prompt/single", name="image-to-prompt-single-direct")
 async def image_to_prompt_single(
     file: UploadFile = File(..., description="File hình ảnh cần tạo prompt"),
+    reference_face: Optional[UploadFile] = File(None, description="Ảnh mặt tham chiếu (tùy chọn)"),
     model: str = Form(services.DEFAULT_MODEL),
     prompt: str = Form(""),
     language: str = Form("en"),
 ):
-    """Test generating a reverse prompt on a single uploaded image."""
+    """Test generating a reverse prompt on a single uploaded image with optional reference face."""
     raw = await file.read()
     if not raw:
         raise HTTPException(status_code=400, detail="File tải lên không có dữ liệu.")
+
+    ref_bytes = await reference_face.read() if reference_face else None
+    if ref_bytes and len(ref_bytes) == 0:
+        ref_bytes = None
 
     _, default_prompt, default_language, default_timeout = _get_configured_defaults()
     config = services.PromptConfig(
@@ -130,11 +137,18 @@ async def image_to_prompt_single(
         prompt=prompt.strip() or default_prompt,
         language=language.strip() or default_language,
         timeout_seconds=default_timeout,
+        reference_face_bytes=ref_bytes,
     )
 
     try:
-        result_prompt = await services.generate_prompt_for_image_bytes(raw, config)
-        return JSONResponse({"prompt": result_prompt, "filename": file.filename or "image"})
+        result = await services.generate_prompt_for_image_bytes(raw, config)
+        if isinstance(result, str):
+            result = services.parse_title_and_prompt(result)
+        return JSONResponse({
+            "title": result.get("title", ""),
+            "prompt": result.get("prompt", ""),
+            "filename": file.filename or "image",
+        })
     except services.ImageToPromptError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
@@ -144,6 +158,7 @@ async def image_to_prompt_single(
 @router.post("/image-to-prompt/process", name="image-to-prompt-process")
 async def image_to_prompt_process(
     folder: str = Form(..., description="Thư mục chứa ảnh"),
+    reference_face: Optional[UploadFile] = File(None, description="Ảnh mặt tham chiếu áp dụng cho cả thư mục (tùy chọn)"),
     model: str = Form(services.DEFAULT_MODEL),
     prompt: str = Form(""),
     language: str = Form("en"),
@@ -165,6 +180,10 @@ async def image_to_prompt_process(
             detail=f"Không tìm thấy hình ảnh nào ({', '.join(services.SUPPORTED_EXTENSIONS)}) trong thư mục {folder_path}",
         )
 
+    ref_bytes = await reference_face.read() if reference_face else None
+    if ref_bytes and len(ref_bytes) == 0:
+        ref_bytes = None
+
     _, default_prompt, default_language, default_timeout = _get_configured_defaults()
     config = services.PromptConfig(
         model=model.strip() or services.DEFAULT_MODEL,
@@ -172,6 +191,7 @@ async def image_to_prompt_process(
         language=language.strip() or default_language,
         timeout_seconds=default_timeout,
         overwrite=overwrite,
+        reference_face_bytes=ref_bytes,
     )
 
     total = len(files)
