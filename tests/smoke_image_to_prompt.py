@@ -167,13 +167,83 @@ try:
     p4 = parse_title_and_prompt(sample_bold)
     assert p4["title"] == "Vintage Car in Rain"
     assert "classic car" in p4["prompt"]
-    print("   -> OK! parse_title_and_prompt xử lý chính xác tất cả định dạng (Markdown header, Key-Value, JSON, Bold).")
+
+    # Test trường hợp tiêu đề kèm (Title) và prompt kèm (bằng tiếng Việt)
+    sample_user_case = (
+        "**Tiêu đề (Title):** Cặp Đôi Cưới Ăn Pizza Trên Bậc Thang\n\n"
+        "**Gợi ý prompt (bằng tiếng Việt):**\n\n"
+        "Chụp ảnh chân dung đời thường của một cặp đôi đang ngồi trên bậc thang."
+    )
+    p5 = parse_title_and_prompt(sample_user_case)
+    assert p5["title"] == "Cặp Đôi Cưới Ăn Pizza Trên Bậc Thang", f"Title error: {p5['title']}"
+    assert "(Title)" not in p5["title"]
+    assert "Title" not in p5["title"]
+    assert p5["prompt"].startswith("Chụp ảnh chân dung"), f"Prompt error: {p5['prompt']}"
+    assert "(bằng tiếng Việt)" not in p5["prompt"]
+    assert "tiếng Việt" not in p5["prompt"][:30]
+
+    print("   -> OK! parse_title_and_prompt xử lý sạch sẽ hoàn toàn '(Title):**' và '(bằng tiếng Việt):**'.")
 
     print("11. Kiểm tra chỉ thị nhân vật dùng ảnh tham chiếu trong prompt...")
     from app.tools.image_to_prompt.services import DEFAULT_SYSTEM_PROMPT
     assert "reference image" in DEFAULT_SYSTEM_PROMPT.lower()
     assert "character" in DEFAULT_SYSTEM_PROMPT.lower()
     print("   -> OK! DEFAULT_SYSTEM_PROMPT chỉ thị rõ ràng nhân vật nam/nữ dùng ảnh tham chiếu.")
+
+    print("12. Kiểm tra hàm nhận diện tỷ lệ khung hình ảnh (detect_image_dimensions_and_ratio)...")
+    from app.tools.image_to_prompt.services import detect_image_dimensions_and_ratio
+    from PIL import Image
+    import io
+
+    # Tạo ảnh 16:9 (1920x1080)
+    buf_16_9 = io.BytesIO()
+    Image.new("RGB", (1920, 1080), color="blue").save(buf_16_9, format="JPEG")
+    w1, h1, ar1 = detect_image_dimensions_and_ratio(buf_16_9.getvalue())
+    assert (w1, h1, ar1) == (1920, 1080, "16:9")
+
+    # Tạo ảnh 9:16 (1080x1920)
+    buf_9_16 = io.BytesIO()
+    Image.new("RGB", (1080, 1920), color="red").save(buf_9_16, format="PNG")
+    w2, h2, ar2 = detect_image_dimensions_and_ratio(buf_9_16.getvalue())
+    assert (w2, h2, ar2) == (1080, 1920, "9:16")
+
+    # Tạo ảnh vuông 1:1 (512x512)
+    buf_1_1 = io.BytesIO()
+    Image.new("RGB", (512, 512), color="green").save(buf_1_1, format="PNG")
+    w3, h3, ar3 = detect_image_dimensions_and_ratio(buf_1_1.getvalue())
+    assert (w3, h3, ar3) == (512, 512, "1:1")
+    print(f"   -> OK! Nhận diện chính xác 16:9 ({w1}x{h1}), 9:16 ({w2}x{h2}), 1:1 ({w3}x{h3}).")
+
+    print("13. Kiểm tra gắn thông số tỷ lệ ảnh vào Prompt (apply_aspect_ratio_to_prompt)...")
+    from app.tools.image_to_prompt.services import apply_aspect_ratio_to_prompt
+    base_p = "A cinematic shot of a dragon."
+    mj_p = apply_aspect_ratio_to_prompt(base_p, "16:9", mode="midjourney")
+    assert mj_p == "A cinematic shot of a dragon. --ar 16:9"
+
+    both_p = apply_aspect_ratio_to_prompt(base_p, "16:9", mode="both")
+    assert "Aspect ratio: 16:9" in both_p
+    assert "--ar 16:9" in both_p
+
+    natural_p = apply_aspect_ratio_to_prompt(base_p, "9:16", mode="natural")
+    assert "Aspect ratio: 9:16" in natural_p
+    assert "--ar" not in natural_p
+
+    none_p = apply_aspect_ratio_to_prompt(base_p, "16:9", mode="none")
+    assert none_p == base_p
+    print("   -> OK! apply_aspect_ratio_to_prompt hoạt động chuẩn xác theo mọi chế độ.")
+
+    print("14. Kiểm tra endpoint lưu cấu hình mặc định (/save-defaults)...")
+    save_data = {
+        "model": "qween3.8",
+        "language": "vi",
+        "prompt": "Custom prompt description for Ollama",
+        "character_desc": "nhân vật nam dùng ảnh tham chiếu cho khuôn mặt",
+        "aspect_ratio_mode": "both",
+    }
+    r = client.post("/tools/image-to-prompt/save-defaults", data=save_data)
+    assert r.status_code == 200
+    assert r.json()["status"] == "ok"
+    print("   -> OK! Lưu cấu hình mô tả và tỷ lệ cho Ollama vào settings.json thành công.")
 
 finally:
     shutil.rmtree(temp_dir, ignore_errors=True)

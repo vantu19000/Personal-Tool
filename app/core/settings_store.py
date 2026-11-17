@@ -45,7 +45,7 @@ SETTINGS_FILE = DATA_DIR / "settings.json"
 class FieldDef:
     """Metadata for one renderable settings field.
 
-    ``kind`` is one of ``"text" | "textarea" | "number"``. ``placeholder`` /
+    ``kind`` is one of ``"text" | "textarea" | "number" | "select"``. ``placeholder`` /
     ``help_text`` are surfaced in the UI.
     """
 
@@ -54,6 +54,7 @@ class FieldDef:
     kind: str = "text"
     placeholder: str = ""
     help_text: str = ""
+    options: List[Dict[str, str]] = field(default_factory=list)
 
 
 @dataclass
@@ -99,6 +100,11 @@ class ImageToPromptSettings(BaseModel):
 
     default_model: str = Field("qween3.8", max_length=100)
     default_language: str = Field("en", max_length=20)
+    character_description: str = Field(
+        "nhân vật nam dùng ảnh tham chiếu cho khuôn mặt",
+        max_length=500,
+    )
+    aspect_ratio_mode: str = Field("both", max_length=50)
     system_prompt: str = Field(..., min_length=5, max_length=8000)
     timeout_seconds: int = Field(1200, ge=30, le=7200)
 
@@ -202,6 +208,8 @@ BLOCKS: Dict[str, BlockDef] = {
         default={
             "default_model": "qween3.8",
             "default_language": "en",
+            "character_description": "nhân vật nam dùng ảnh tham chiếu cho khuôn mặt",
+            "aspect_ratio_mode": "both",
             "system_prompt": DEFAULT_IMAGE_TO_PROMPT,
             "timeout_seconds": 1200,
         },
@@ -221,6 +229,25 @@ BLOCKS: Dict[str, BlockDef] = {
                 help_text="Mã ngôn ngữ prompt sinh ra (vd: en cho tiếng Anh, vi cho tiếng Việt).",
             ),
             FieldDef(
+                key="character_description",
+                label="Mô tả nhân vật & tham chiếu khuôn mặt",
+                kind="text",
+                placeholder="nhân vật nam dùng ảnh tham chiếu cho khuôn mặt",
+                help_text="Chỉ thị cho AI về nhân vật (ví dụ: 'nhân vật nam dùng ảnh tham chiếu cho khuôn mặt').",
+            ),
+            FieldDef(
+                key="aspect_ratio_mode",
+                label="Cách bắt chước tỷ lệ ảnh gốc",
+                kind="select",
+                options=[
+                    {"value": "both", "label": "Cả hai (Aspect ratio: {ratio} & --ar {ratio})"},
+                    {"value": "midjourney", "label": "Chỉ tham số Midjourney (--ar {ratio})"},
+                    {"value": "natural", "label": "Chỉ câu tự nhiên (Aspect ratio: {ratio})"},
+                    {"value": "none", "label": "Tắt (không tự động gắn tỷ lệ)"},
+                ],
+                help_text="Tự động đo tỷ lệ khung hình của ảnh gốc và gắn vào prompt đầu ra.",
+            ),
+            FieldDef(
                 key="timeout_seconds",
                 label="Thời gian chờ tối đa (giây)",
                 kind="number",
@@ -232,7 +259,7 @@ BLOCKS: Dict[str, BlockDef] = {
                 label="Chỉ dẫn trích xuất prompt (System Prompt)",
                 kind="textarea",
                 placeholder="Prompt gửi cho Ollama...",
-                help_text="Câu lệnh gửi cho AI. Dùng {output_language} để tự động điền ngôn ngữ được chọn.",
+                help_text="Câu lệnh gửi cho AI. Hỗ trợ các biến: {output_language}, {character_description}, {aspect_ratio}, {width}, {height}.",
             ),
         ],
     ),

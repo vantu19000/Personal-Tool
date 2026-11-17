@@ -90,6 +90,136 @@
         </div>
     </div>
 
+    <!-- ===== CẤU HÌNH OLLAMA & MÔ TẢ PROMPT ===== -->
+    <section class="rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-7 shadow-xs space-y-5 w-full">
+        <div class="flex items-center justify-between gap-4 flex-wrap pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-4 h-4 text-fuchsia-600 dark:text-fuchsia-400"></i>
+                    <span>Cấu hình mô tả & tỷ lệ cho Ollama</span>
+                </h2>
+                <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                    Tùy chỉnh model, ngôn ngữ, mô tả nhân vật và cách bắt chước tỷ lệ ảnh gốc (áp dụng cho cả chạy đơn lẻ và hàng loạt).
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="save-defaults-feedback" class="text-xs font-semibold hidden"></span>
+                <button type="button" id="save-defaults-btn"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950/60 dark:hover:bg-fuchsia-900/60 dark:text-fuchsia-300 border border-fuchsia-200 dark:border-fuchsia-800/60 transition shadow-2xs">
+                    <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                    <span>{{ t('image_to_prompt.save_defaults_btn') }}</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Row 1: Model, Language & Preset -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- 1. Model Ollama Vision -->
+            <div>
+                <label for="batch-model" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    {{ t('image_to_prompt.model_label') }}
+                </label>
+                <div class="relative">
+                    <select id="batch-model"
+                            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
+                        <option value="{{ default_model }}" selected>{{ default_model }}</option>
+                    </select>
+                </div>
+                <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.model_local_hint', default_model=default_model)|safe }}</p>
+            </div>
+
+            <!-- 2. Ngôn ngữ Prompt đầu ra (Output Language) -->
+            <div>
+                <label for="batch-language" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    {{ t('image_to_prompt.output_lang_label') }}
+                </label>
+                <div class="relative">
+                    <select id="batch-language"
+                            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
+                        {% for code, name in languages.items() %}
+                        <option value="{{ code }}"{% if code == default_language %} selected{% endif %}>
+                            {{ name }}{% if code == "en" %} {{ t('image_to_prompt.recommended_cloud') }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.output_lang_hint')|safe }}</p>
+            </div>
+
+            <!-- 3. Mục tiêu / Phong cách tạo Prompt -->
+            <div>
+                <label for="prompt-preset" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    {{ t('image_to_prompt.preset_label') }}
+                </label>
+                <select id="prompt-preset"
+                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
+                    <option value="detailed" selected>{{ t('image_to_prompt.preset_detailed') }}</option>
+                    <option value="chatgpt_cinematic">{{ t('image_to_prompt.preset_chatgpt_cinematic') }}</option>
+                    <option value="gemini_photorealistic">{{ t('image_to_prompt.preset_gemini_photorealistic') }}</option>
+                    <option value="cloud_illustration">{{ t('image_to_prompt.preset_cloud_illustration') }}</option>
+                    <option value="midjourney_tags">{{ t('image_to_prompt.preset_midjourney_tags') }}</option>
+                    <option value="custom">{{ t('image_to_prompt.preset_custom') }}</option>
+                </select>
+                <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.preset_hint') }}</p>
+            </div>
+        </div>
+
+        <!-- Row 2: Character Description & Aspect Ratio Mode -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            <!-- Mô tả nhân vật & tham chiếu khuôn mặt -->
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label for="character-desc" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        {{ t('image_to_prompt.character_desc_label') }}
+                    </label>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <button type="button" class="quick-char-btn text-[11px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
+                                data-val="nhân vật nam dùng ảnh tham chiếu cho khuôn mặt">{{ t('image_to_prompt.quick_male_ref') }}</button>
+                        <button type="button" class="quick-char-btn text-[11px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
+                                data-val="nhân vật nữ dùng ảnh tham chiếu cho khuôn mặt">{{ t('image_to_prompt.quick_female_ref') }}</button>
+                        <button type="button" class="quick-char-btn text-[11px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
+                                data-val="nhân vật dùng ảnh tham chiếu cho khuôn mặt">{{ t('image_to_prompt.quick_general_ref') }}</button>
+                    </div>
+                </div>
+                <input type="text" id="character-desc" value="{{ default_character_desc }}"
+                       placeholder="{{ t('image_to_prompt.character_desc_placeholder') }}"
+                       class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
+                <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.character_desc_hint') }}</p>
+            </div>
+
+            <!-- Bắt chước tỷ lệ ảnh gốc (Aspect ratio) -->
+            <div>
+                <label for="aspect-ratio-mode" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    {{ t('image_to_prompt.aspect_ratio_label') }}
+                </label>
+                <select id="aspect-ratio-mode"
+                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
+                    <option value="both" {% if default_aspect_ratio_mode == "both" %}selected{% endif %}>{{ t('image_to_prompt.aspect_ratio_mode_both') }}</option>
+                    <option value="midjourney" {% if default_aspect_ratio_mode == "midjourney" %}selected{% endif %}>{{ t('image_to_prompt.aspect_ratio_mode_midjourney') }}</option>
+                    <option value="natural" {% if default_aspect_ratio_mode == "natural" %}selected{% endif %}>{{ t('image_to_prompt.aspect_ratio_mode_natural') }}</option>
+                    <option value="none" {% if default_aspect_ratio_mode == "none" %}selected{% endif %}>{{ t('image_to_prompt.aspect_ratio_mode_none') }}</option>
+                </select>
+                <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.aspect_ratio_hint') }}</p>
+            </div>
+        </div>
+
+        <!-- Row 3: Custom Prompt Instruction (Collapsible / Toggleable) -->
+        <div id="custom-prompt-container" class="space-y-1.5 pt-1">
+            <div class="flex items-center justify-between">
+                <label for="batch-prompt" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                    <span>{{ t('image_to_prompt.instruction_label') }}</span>
+                    <span class="text-[11px] font-normal text-slate-400 dark:text-slate-500">{{ t('image_to_prompt.instruction_sublabel') }}</span>
+                </label>
+                <button type="button" id="reset-prompt-btn" class="text-[11px] text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline">
+                    {{ t('image_to_prompt.reset_default') }}
+                </button>
+            </div>
+            <textarea id="batch-prompt" rows="5"
+                      class="block w-full rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-xs bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition font-mono leading-relaxed">{{ default_prompt }}</textarea>
+            <p class="text-[11px] text-slate-400">{{ t('image_to_prompt.instruction_tip')|safe }}</p>
+        </div>
+    </section>
+
     <!-- Navigation Tabs (Folder Batch / Single Test) -->
     <div class="flex border-b border-slate-200 dark:border-slate-800 gap-2">
         <button type="button" id="tab-batch-btn"
@@ -114,74 +244,6 @@
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 {{ t('image_to_prompt.batch_desc')|safe }}
             </p>
-        </div>
-
-        <!-- Model, Language & Preset selection -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <!-- 1. Model Ollama Vision -->
-            <div>
-                <label for="batch-model" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    {{ t('image_to_prompt.model_label') }}
-                </label>
-                <div class="relative">
-                    <select id="batch-model"
-                            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
-                        <option value="{{ default_model }}" selected>{{ default_model }}</option>
-                    </select>
-                </div>
-                <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.model_local_hint', default_model=default_model)|safe }}</p>
-            </div>
-
-            <!-- 2. Ngôn ngữ Prompt đầu ra (Output Language) -->
-            <div>
-                <label for="batch-language" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    {{ t('image_to_prompt.output_lang_label') }}
-                </label>
-                <div class="relative">
-                    <select id="batch-language"
-                            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
-                        {% for code, name in languages.items() %}
-                        <option value="{{ code }}"{% if code == default_language %} selected{% endif %}>
-                            {{ name }}{% if code == "en" %} {{ t('image_to_prompt.recommended_cloud') }}{% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.output_lang_hint')|safe }}</p>
-            </div>
-
-            <!-- 3. Mục tiêu / Phong cách tạo Prompt -->
-            <div>
-                <label for="prompt-preset" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    {{ t('image_to_prompt.preset_label') }}
-                </label>
-                <select id="prompt-preset"
-                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
-                    <option value="detailed" selected>{{ t('image_to_prompt.preset_detailed') }}</option>
-                    <option value="chatgpt_cinematic">{{ t('image_to_prompt.preset_chatgpt_cinematic') }}</option>
-                    <option value="gemini_photorealistic">{{ t('image_to_prompt.preset_gemini_photorealistic') }}</option>
-                    <option value="cloud_illustration">{{ t('image_to_prompt.preset_cloud_illustration') }}</option>
-                    <option value="midjourney_tags">{{ t('image_to_prompt.preset_midjourney_tags') }}</option>
-                    <option value="custom">{{ t('image_to_prompt.preset_custom') }}</option>
-                </select>
-                <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.preset_hint') }}</p>
-            </div>
-        </div>
-
-        <!-- Custom Prompt Instruction (Collapsible / Toggleable) -->
-        <div id="custom-prompt-container" class="space-y-1.5">
-            <div class="flex items-center justify-between">
-                <label for="batch-prompt" class="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                    <span>{{ t('image_to_prompt.instruction_label') }}</span>
-                    <span class="text-[11px] font-normal text-slate-400 dark:text-slate-500">{{ t('image_to_prompt.instruction_sublabel') }}</span>
-                </label>
-                <button type="button" id="reset-prompt-btn" class="text-[11px] text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline">
-                    {{ t('image_to_prompt.reset_default') }}
-                </button>
-            </div>
-            <textarea id="batch-prompt" rows="4"
-                      class="block w-full rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition font-mono">{{ default_prompt }}</textarea>
-            <p class="text-[11px] text-slate-400">{{ t('image_to_prompt.instruction_tip')|safe }}</p>
         </div>
 
         <!-- Form for folder batch -->
@@ -373,10 +435,16 @@
         <!-- Single Result Box -->
         <div id="single-result-box" class="hidden space-y-4 p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-2xs">
             <div class="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-slate-200/80 dark:border-slate-800">
-                <span class="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i>
-                    <span>{{ t('image_to_prompt.single_result_title') }}</span>
-                </span>
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    <span class="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i>
+                        <span>{{ t('image_to_prompt.single_result_title') }}</span>
+                    </span>
+                    <span id="single-result-ratio-badge" class="hidden inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950/60 dark:text-fuchsia-300 border border-fuchsia-200 dark:border-fuchsia-800/60">
+                        <i data-lucide="ratio" class="w-3.5 h-3.5"></i>
+                        <span id="single-result-ratio-text"></span>
+                    </span>
+                </div>
                 <button type="button" id="copy-single-all-btn"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shadow-2xs">
                     <i data-lucide="copy" class="w-3.5 h-3.5"></i>
@@ -452,7 +520,9 @@
     "btn_analyzing": t('image_to_prompt.btn_analyzing'),
     "done_all": t('image_to_prompt.done_all'),
     "done_with_errors": t('image_to_prompt.done_with_errors'),
-    "stream_aborted": t('image_to_prompt.stream_aborted')
+    "stream_aborted": t('image_to_prompt.stream_aborted'),
+    "save_defaults_success": t('image_to_prompt.save_defaults_success'),
+    "aspect_ratio_badge": t('image_to_prompt.aspect_ratio_badge')
 } | tojson }}
 </script>
 
@@ -625,6 +695,59 @@
             promptTextarea.value = promptPresets.detailed;
             presetSelect.value = "detailed";
         });
+
+        // Quick character description buttons
+        document.querySelectorAll(".quick-char-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const val = btn.getAttribute("data-val") || "";
+                const charInput = document.getElementById("character-desc");
+                if (charInput) {
+                    charInput.value = val;
+                    charInput.focus();
+                }
+            });
+        });
+
+        // Save settings as default button
+        const saveDefaultsBtn = document.getElementById("save-defaults-btn");
+        const saveDefaultsFeedback = document.getElementById("save-defaults-feedback");
+        if (saveDefaultsBtn) {
+            saveDefaultsBtn.addEventListener("click", async () => {
+                saveDefaultsBtn.disabled = true;
+                const oldContent = saveDefaultsBtn.innerHTML;
+                saveDefaultsBtn.innerHTML = `<svg class="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg><span>Đang lưu...</span>`;
+
+                const formData = new FormData();
+                formData.append("model", document.getElementById("batch-model").value);
+                formData.append("language", document.getElementById("batch-language").value);
+                formData.append("prompt", document.getElementById("batch-prompt").value);
+                formData.append("character_desc", document.getElementById("character-desc").value);
+                formData.append("aspect_ratio_mode", document.getElementById("aspect-ratio-mode").value);
+
+                try {
+                    const res = await fetch("/tools/image-to-prompt/save-defaults", {
+                        method: "POST",
+                        body: formData,
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        saveDefaultsFeedback.className = "text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5";
+                        saveDefaultsFeedback.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i><span>${I18N.save_defaults_success || "Đã lưu làm mặc định!"}</span>`;
+                        saveDefaultsFeedback.classList.remove("hidden");
+                        if (window.lucide) window.lucide.createIcons();
+                        setTimeout(() => { saveDefaultsFeedback.classList.add("hidden"); }, 3500);
+                    } else {
+                        throw new Error(data.detail || "Không thể lưu cấu hình");
+                    }
+                } catch (err) {
+                    alert("Lỗi: " + err.message);
+                } finally {
+                    saveDefaultsBtn.disabled = false;
+                    saveDefaultsBtn.innerHTML = oldContent;
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            });
+        }
     });
 
     // NDJSON Stream Reader
@@ -750,7 +873,7 @@
             startLabel.textContent = isBusy ? I18N.btn_busy : I18N.btn_start;
         }
 
-        function createOrUpdateRow(file, status, textPath, promptOrError, title) {
+        function createOrUpdateRow(file, status, textPath, promptOrError, title, aspect_ratio, width, height) {
             let li = currentItemMap.get(file);
             if (!li) {
                 li = document.createElement("li");
@@ -772,6 +895,12 @@
                 statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">${I18N.status_error}</span>`;
             }
 
+            let ratioBadge = '';
+            if (aspect_ratio) {
+                const dimStr = (width && height) ? ` (${width}×${height})` : '';
+                ratioBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950/60 dark:text-fuchsia-300 border border-fuchsia-200/80 dark:border-fuchsia-800/60"><i data-lucide="ratio" class="w-3 h-3"></i>${aspect_ratio}${dimStr}</span>`;
+            }
+
             let contentHtml = `
                 <div class="flex items-center justify-between gap-3 flex-wrap">
                     <div class="flex items-center gap-2 min-w-0">
@@ -779,6 +908,7 @@
                         <span class="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">${fileName}</span>
                     </div>
                     <div class="shrink-0 flex items-center gap-2">
+                        ${ratioBadge}
                         ${statusBadge}
                     </div>
                 </div>
@@ -852,11 +982,16 @@
             }
 
             const languageSelect = document.getElementById("batch-language");
+            const charDescInput = document.getElementById("character-desc");
+            const arModeSelect = document.getElementById("aspect-ratio-mode");
+
             const formData = new FormData();
             formData.append("folder", folder);
             formData.append("model", modelSelect.value);
             formData.append("prompt", promptInput.value);
             if (languageSelect) formData.append("language", languageSelect.value);
+            if (charDescInput) formData.append("character_desc", charDescInput.value);
+            if (arModeSelect) formData.append("aspect_ratio_mode", arModeSelect.value);
             formData.append("overwrite", overwriteCheck.checked ? "true" : "false");
             formData.append("recursive", recursiveCheck.checked ? "true" : "false");
 
@@ -894,11 +1029,11 @@
                     } else if (event.type === "file_start") {
                         createOrUpdateRow(event.file, "processing", "", "");
                     } else if (event.type === "file_done") {
-                        createOrUpdateRow(event.file, "ok", event.txt_file, event.prompt, event.title);
+                        createOrUpdateRow(event.file, "ok", event.txt_file, event.prompt, event.title, event.aspect_ratio, event.width, event.height);
                     } else if (event.type === "file_skipped") {
-                        createOrUpdateRow(event.file, "skipped", event.txt_file, event.prompt, event.title);
+                        createOrUpdateRow(event.file, "skipped", event.txt_file, event.prompt, event.title, event.aspect_ratio, event.width, event.height);
                     } else if (event.type === "file_error") {
-                        createOrUpdateRow(event.file, "error", event.txt_file, event.error);
+                        createOrUpdateRow(event.file, "error", event.txt_file, event.error, "", event.aspect_ratio, event.width, event.height);
                         if (batchErrorBanner && batchErrorMessage) {
                             batchErrorBanner.classList.remove("hidden");
                             batchErrorMessage.textContent = event.error || "Ollama error";
@@ -1050,11 +1185,16 @@
             if (singleErrorBox) singleErrorBox.classList.add("hidden");
 
             const languageSelect = document.getElementById("batch-language");
+            const charDescInput = document.getElementById("character-desc");
+            const arModeSelect = document.getElementById("aspect-ratio-mode");
+
             const formData = new FormData();
             formData.append("file", file);
             formData.append("model", modelSelect.value);
             formData.append("prompt", promptInput.value);
             if (languageSelect) formData.append("language", languageSelect.value);
+            if (charDescInput) formData.append("character_desc", charDescInput.value);
+            if (arModeSelect) formData.append("aspect_ratio_mode", arModeSelect.value);
 
             try {
                 const res = await fetch("/tools/image-to-prompt/single", {
@@ -1069,6 +1209,20 @@
 
                 if (resultTitle) resultTitle.textContent = data.title || "";
                 resultText.textContent = data.prompt || "";
+
+                // Display Aspect Ratio Badge
+                const ratioBadge = document.getElementById("single-result-ratio-badge");
+                const ratioText = document.getElementById("single-result-ratio-text");
+                if (ratioBadge && ratioText) {
+                    if (data.aspect_ratio) {
+                        const dimStr = (data.width && data.height) ? ` (${data.width}×${data.height})` : "";
+                        ratioText.textContent = `${I18N.aspect_ratio_badge || 'Tỷ lệ:'} ${data.aspect_ratio}${dimStr}`;
+                        ratioBadge.classList.remove("hidden");
+                    } else {
+                        ratioBadge.classList.add("hidden");
+                    }
+                }
+
                 resultBox.classList.remove("hidden");
                 resultBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
                 if (window.lucide) window.lucide.createIcons();

@@ -27,15 +27,19 @@ def _get_configured_defaults():
     """Retrieve default settings if configured in settings_store, else fall back to service defaults."""
     block = settings_store.get_block("image_to_prompt")
     model = block.get("default_model") or services.DEFAULT_MODEL
-    prompt = block.get("system_prompt") or services.DEFAULT_SYSTEM_PROMPT
+    prompt = block.get("system_prompt")
+    if not prompt or prompt.strip() == "Custom prompt description for Ollama":
+        prompt = services.DEFAULT_SYSTEM_PROMPT
     language = block.get("default_language") or "en"
+    character_desc = block.get("character_description") or services.DEFAULT_CHARACTER_DESC
+    aspect_ratio_mode = block.get("aspect_ratio_mode") or services.DEFAULT_ASPECT_RATIO_MODE
     timeout = float(block.get("timeout_seconds") or services.DEFAULT_TIMEOUT_SECONDS)
-    return model, prompt, language, timeout
+    return model, prompt, language, character_desc, aspect_ratio_mode, timeout
 
 
 @router.get("/image-to-prompt", name="image-to-prompt")
 async def image_to_prompt_page(request: Request):
-    default_model, default_prompt, default_language, _ = _get_configured_defaults()
+    default_model, default_prompt, default_language, default_char, default_ar, _ = _get_configured_defaults()
     return templates.TemplateResponse(
         request,
         "tools/image_to_prompt.html",
@@ -43,7 +47,10 @@ async def image_to_prompt_page(request: Request):
             "active_tool": "image-to-prompt",
             "default_model": default_model,
             "default_prompt": default_prompt,
+            "system_default_prompt": services.DEFAULT_SYSTEM_PROMPT,
             "default_language": default_language,
+            "default_character_desc": default_char,
+            "default_aspect_ratio_mode": default_ar,
             "languages": services.PROMPT_LANGUAGES,
         },
     )
@@ -52,7 +59,7 @@ async def image_to_prompt_page(request: Request):
 @router.get("/image-to-prompt/models", name="image-to-prompt-models")
 async def image_to_prompt_models() -> JSONResponse:
     """Check Ollama connectivity and return available models."""
-    default_model, _, _, _ = _get_configured_defaults()
+    default_model, _, _, _, _, _ = _get_configured_defaults()
     try:
         models = await services.list_ollama_models()
         return JSONResponse(
@@ -121,6 +128,8 @@ async def image_to_prompt_single(
     model: str = Form(services.DEFAULT_MODEL),
     prompt: str = Form(""),
     language: str = Form("en"),
+    character_desc: str = Form(""),
+    aspect_ratio_mode: str = Form(""),
 ):
     """Test generating a reverse prompt on a single uploaded image with optional reference face."""
     raw = await file.read()
@@ -131,11 +140,13 @@ async def image_to_prompt_single(
     if ref_bytes and len(ref_bytes) == 0:
         ref_bytes = None
 
-    _, default_prompt, default_language, default_timeout = _get_configured_defaults()
+    def_model, default_prompt, default_language, def_char, def_ar, default_timeout = _get_configured_defaults()
     config = services.PromptConfig(
-        model=model.strip() or services.DEFAULT_MODEL,
+        model=model.strip() or def_model,
         prompt=prompt.strip() or default_prompt,
         language=language.strip() or default_language,
+        character_description=character_desc.strip() if character_desc.strip() else def_char,
+        aspect_ratio_mode=aspect_ratio_mode.strip() if aspect_ratio_mode.strip() else def_ar,
         timeout_seconds=default_timeout,
         reference_face_bytes=ref_bytes,
     )
@@ -147,12 +158,40 @@ async def image_to_prompt_single(
         return JSONResponse({
             "title": result.get("title", ""),
             "prompt": result.get("prompt", ""),
+            "aspect_ratio": result.get("aspect_ratio", "1:1"),
+            "width": result.get("width", 0),
+            "height": result.get("height", 0),
             "filename": file.filename or "image",
         })
     except services.ImageToPromptError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post("/tools/image-to-prompt/save-defaults", name="image-to-prompt-save-defaults")
+@router.post("/image-to-prompt/save-defaults", name="image-to-prompt-save-defaults-direct")
+async def image_to_prompt_save_defaults(
+    model: str = Form("qween3.8"),
+    language: str = Form("en"),
+    prompt: str = Form(""),
+    character_desc: str = Form(""),
+    aspect_ratio_mode: str = Form("both"),
+):
+    """Save current descriptions and options as application defaults."""
+    try:
+        settings_store.settings_store.save_blocks({
+            "image_to_prompt": {
+                "default_model": model.strip() or services.DEFAULT_MODEL,
+                "default_language": language.strip() or "en",
+                "system_prompt": prompt.strip() or services.DEFAULT_SYSTEM_PROMPT,
+                "character_description": character_desc.strip() or services.DEFAULT_CHARACTER_DESC,
+                "aspect_ratio_mode": aspect_ratio_mode.strip() or services.DEFAULT_ASPECT_RATIO_MODE,
+            }
+        })
+        return JSONResponse({"status": "ok", "message": "Đã lưu cấu hình làm mặc định thành công!"})
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Không thể lưu cấu hình: {exc}")
 
 
 @router.post("/image-to-prompt/process", name="image-to-prompt-process")
@@ -162,6 +201,8 @@ async def image_to_prompt_process(
     model: str = Form(services.DEFAULT_MODEL),
     prompt: str = Form(""),
     language: str = Form("en"),
+    character_desc: str = Form(""),
+    aspect_ratio_mode: str = Form(""),
     overwrite: bool = Form(False),
     recursive: bool = Form(False),
 ):
@@ -184,11 +225,13 @@ async def image_to_prompt_process(
     if ref_bytes and len(ref_bytes) == 0:
         ref_bytes = None
 
-    _, default_prompt, default_language, default_timeout = _get_configured_defaults()
+    def_model, default_prompt, default_language, def_char, def_ar, default_timeout = _get_configured_defaults()
     config = services.PromptConfig(
-        model=model.strip() or services.DEFAULT_MODEL,
+        model=model.strip() or def_model,
         prompt=prompt.strip() or default_prompt,
         language=language.strip() or default_language,
+        character_description=character_desc.strip() if character_desc.strip() else def_char,
+        aspect_ratio_mode=aspect_ratio_mode.strip() if aspect_ratio_mode.strip() else def_ar,
         timeout_seconds=default_timeout,
         overwrite=overwrite,
         reference_face_bytes=ref_bytes,

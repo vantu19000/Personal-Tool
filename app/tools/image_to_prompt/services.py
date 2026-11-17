@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import io
 import json
+import math
 import os
 import re
 from dataclasses import dataclass
@@ -11,10 +13,27 @@ from pathlib import Path
 from typing import Any, Callable, List, Optional
 
 import aiohttp
+from PIL import Image
 
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 DEFAULT_MODEL = "qween3.8"
 DEFAULT_TIMEOUT_SECONDS = 1200.0  # 20 phút (20 * 60s)
+DEFAULT_CHARACTER_DESC = "nhân vật nam dùng ảnh tham chiếu cho khuôn mặt"
+DEFAULT_ASPECT_RATIO_MODE = "both"
+
+STANDARD_RATIOS = [
+    (1, 1, "1:1"),
+    (16, 9, "16:9"),
+    (9, 16, "9:16"),
+    (4, 3, "4:3"),
+    (3, 4, "3:4"),
+    (3, 2, "3:2"),
+    (2, 3, "2:3"),
+    (4, 5, "4:5"),
+    (5, 4, "5:4"),
+    (21, 9, "21:9"),
+    (9, 21, "9:21"),
+]
 
 PROMPT_LANGUAGES = {
     "en": "English",
@@ -29,16 +48,16 @@ PROMPT_LANGUAGES = {
 
 DEFAULT_SYSTEM_PROMPT = (
     "You are an expert AI prompt engineer specializing in visual image analysis and prompt creation for modern "
-    "cloud image generation models like Google Gemini (Imagen 3) and ChatGPT (DALL-E 3).\n\n"
+    "cloud image generation models like Google Gemini (Imagen 3), Midjourney, and ChatGPT (DALL-E 3).\n\n"
     "Analyze this image and provide:\n"
     "1. A concise, catchy Title (name) for the image in {output_language}.\n"
     "2. A rich, highly descriptive Prompt in {output_language} to recreate this image accurately.\n\n"
     "Guidelines for the Prompt:\n"
     "- Character & Reference Face: If a person or character is in the image, identify their gender/type (e.g., a male character, a female character, a man, a woman) and explicitly describe in the prompt that their face is based on the reference image (e.g., 'a male character whose face and facial features are based on the reference image' / 'nhân vật nam dùng ảnh tham chiếu cho khuôn mặt'). Do NOT describe the specific facial features (eyes, nose, lips) from this analyzed image.\n"
+    "- Aspect Ratio: Replicate the original image aspect ratio ({aspect_ratio}).\n"
     "- Write the prompt in {output_language} using fluent, descriptive natural language sentences rather than comma-separated tags.\n"
-    "- Describe the subject's body, appearance, pose, clothing, actions, environment, background, setting, lighting, atmosphere, color palette, camera perspective, and artistic medium in rich detail.\n"
-    "- Avoid negative prompts, keyword spam, or model parameters (no '--ar', no weights like '(masterpiece:1.2)').\n\n"
-    "Format your output strictly as follows (do not include greetings or explanations):\n"
+    "- Describe the subject's body, appearance, pose, clothing, actions, environment, background, setting, lighting, atmosphere, color palette, camera perspective, and artistic medium in rich detail.\n\n"
+    "Format your output strictly as follows (use EXACTLY the label prefixes 'Title:' and 'Prompt:' as shown, do not translate or add language tags to these labels):\n"
     "Title: <concise title for the image in {output_language}>\n\n"
     "Prompt:\n"
     "<detailed generation prompt in {output_language}>"
@@ -51,6 +70,71 @@ class ImageToPromptError(RuntimeError):
     """Base error for the image to prompt pipeline."""
 
 
+def detect_image_dimensions_and_ratio(image_bytes: bytes) -> tuple[int, int, str]:
+    """Detect image width, height, and closest standard aspect ratio string (e.g. '16:9', '1:1')."""
+    if not image_bytes:
+        return 0, 0, "1:1"
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as img:
+            w, h = img.size
+    except Exception:
+        return 0, 0, "1:1"
+
+    if w <= 0 or h <= 0:
+        return 0, 0, "1:1"
+
+    ratio_val = w / h
+    best_ratio = "1:1"
+    min_diff = float("inf")
+    for rw, rh, name in STANDARD_RATIOS:
+        target = rw / rh
+        diff = abs(ratio_val - target)
+        if diff < min_diff:
+            min_diff = diff
+            best_ratio = name
+
+    # If the ratio deviates notably from standard ratios, calculate reduced fraction or decimal
+    if min_diff > 0.08:
+        g = math.gcd(w, h)
+        rw, rh = w // g, h // g
+        if rw <= 30 and rh <= 30:
+            best_ratio = f"{rw}:{rh}"
+        else:
+            best_ratio = f"{round(ratio_val, 2)}:1"
+
+    return w, h, best_ratio
+
+
+def apply_aspect_ratio_to_prompt(prompt: str, aspect_ratio: str, mode: str = "both") -> str:
+    """Append aspect ratio tags or descriptions to the prompt based on mode."""
+    if not prompt or not aspect_ratio or mode == "none":
+        return prompt
+
+    cleaned = prompt.strip()
+    ar_tag = f"--ar {aspect_ratio}"
+    natural_tag = f"Aspect ratio: {aspect_ratio}"
+
+    has_ar = bool(re.search(r"--ar\s+\d+:\d+", cleaned, re.IGNORECASE))
+    has_natural = bool(re.search(r"aspect\s+ratio:\s*\d+:\d+", cleaned, re.IGNORECASE))
+
+    if mode == "midjourney":
+        if not has_ar:
+            cleaned = f"{cleaned} {ar_tag}"
+    elif mode == "natural":
+        if not has_natural:
+            cleaned = f"{cleaned}\n\n{natural_tag}."
+    elif mode == "both":
+        additions = []
+        if not has_natural:
+            additions.append(f"{natural_tag}.")
+        if not has_ar:
+            additions.append(ar_tag)
+        if additions:
+            cleaned = f"{cleaned} {' '.join(additions)}"
+
+    return cleaned.strip()
+
+
 @dataclass
 class PromptConfig:
     """Runtime configuration for reverse prompt generation."""
@@ -59,23 +143,51 @@ class PromptConfig:
     model: str = DEFAULT_MODEL
     prompt: str = DEFAULT_SYSTEM_PROMPT
     language: str = "en"
+    character_description: str = DEFAULT_CHARACTER_DESC
+    aspect_ratio_mode: str = DEFAULT_ASPECT_RATIO_MODE
     temperature: float = 0.2
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
     overwrite: bool = False
     reference_face_bytes: Optional[bytes] = None
 
 
-def prepare_prompt(prompt: str, language: str = "en") -> str:
-    """Inject output language into the prompt template or append language requirement."""
+def prepare_prompt(
+    prompt: str,
+    language: str = "en",
+    character_description: str = "",
+    aspect_ratio: str = "",
+    width: int = 0,
+    height: int = 0,
+) -> str:
+    """Inject output language, character description, and aspect ratio into the prompt template."""
     lang_name = PROMPT_LANGUAGES.get(language, language)
     p = prompt or DEFAULT_SYSTEM_PROMPT
+
     if "{output_language}" in p:
-        return p.replace("{output_language}", lang_name)
-    if language.lower() not in ("en", "english"):
-        return (
+        p = p.replace("{output_language}", lang_name)
+    elif language.lower() not in ("en", "english"):
+        p = (
             f"{p}\n\nImportant Requirement: Both the Title (image name) and the generated image Prompt "
             f"MUST be written entirely in {lang_name}."
         )
+
+    # Character description
+    if "{character_description}" in p:
+        char_desc = character_description or DEFAULT_CHARACTER_DESC
+        p = p.replace("{character_description}", char_desc)
+    elif character_description:
+        p = f"{p}\n\nCharacter Guideline: {character_description}."
+
+    # Aspect ratio
+    if "{aspect_ratio}" in p:
+        p = p.replace("{aspect_ratio}", aspect_ratio or "1:1")
+    elif aspect_ratio:
+        dim_info = f" ({width}x{height})" if width and height else ""
+        p = f"{p}\n\nAspect Ratio Guideline: Original image aspect ratio is {aspect_ratio}{dim_info}. Replicate this ratio."
+
+    if width and height:
+        p = p.replace("{width}", str(width)).replace("{height}", str(height))
+
     return p
 
 
@@ -154,6 +266,70 @@ def clean_extracted_prompt(text: str) -> str:
     return text
 
 
+def clean_extracted_title(title: str) -> str:
+    """Clean extracted title, stripping parentheticals like (Title), (Tiêu đề), labels, and markdown."""
+    t = (title or "").strip()
+    if not t:
+        return ""
+    # Strip numbering at start: e.g. "1. ", "1 - "
+    t = re.sub(r"^(?:[\d\.\)\-\*\+]\s*)+", "", t).strip()
+    # Strip parenthetical annotations at the start like (Title), (Tiêu đề), (bằng tiếng Việt), (Vietnamese)...
+    t = re.sub(
+        r"^\s*\(?\s*(?:Image\s*Title|Title|Tiêu\s*đề(?:\s*ảnh)?|Tên\s*(?:ảnh|hình\s*ảnh)?|Name|tiếng\s*[^)]*|bằng\s*tiếng\s*[^)]*|vietnamese|english)\s*\)?\s*[:：\-]*(?:\*\*)?\s*",
+        "",
+        t,
+        flags=re.IGNORECASE,
+    ).strip()
+    t = re.sub(
+        r"^\s*\([^)]*(?:title|tên|tiêu đề|tiếng|vietnamese|english|ảnh|name)[^)]*\)\s*[:：\-]*(?:\*\*)?\s*",
+        "",
+        t,
+        flags=re.IGNORECASE,
+    ).strip()
+    # Strip residual label prefix: "Title:", "Tiêu đề:", "**Title:**"
+    t = re.sub(
+        r"^(?:#{1,6}\s*)?(?:\*\*)?(?:Image\s*Title|Title|Tiêu\s*đề(?:\s*ảnh)?|Tên\s*(?:ảnh|hình\s*ảnh)?|Name)(?:\s*\([^)]*\))?(?:\*\*)?\s*[:：\-]*(?:\*\*)?\s*",
+        "",
+        t,
+        flags=re.IGNORECASE,
+    ).strip()
+    # Strip any remaining leading/trailing punctuation or markdown symbols
+    t = re.sub(r"^[\s\*#_`:\-–—\(\)]+", "", t)
+    t = re.sub(r"[\s\*#_`:\-–—]+$", "", t)
+    if len(t) >= 2 and ((t[0] == '"' and t[-1] == '"') or (t[0] == "'" and t[-1] == "'")):
+        t = t[1:-1].strip()
+    return t
+
+
+def clean_extracted_prompt_body(prompt: str) -> str:
+    """Clean extracted prompt, removing leftover header markers like '(bằng tiếng Việt):**', etc."""
+    p = (prompt or "").strip()
+    if not p:
+        return ""
+    # Strip leading numbering if prompt starts with "2. " or "2 - "
+    p = re.sub(r"^(?:[\d\.\)\-\*\+]\s*)+", "", p).strip()
+    # Strip leading language or prompt label tags e.g. "(bằng tiếng Việt):**", "Prompt (bằng tiếng Việt):**"
+    p = re.sub(
+        r"^(?:#{1,6}\s*)?(?:\*\*)?(?:MAIN\s*PROMPT|Image\s*Prompt|Prompt|Gợi\s*ý\s*prompt|Mô\s*tả\s*prompt|Nội\s*dung\s*prompt)?"
+        r"\s*\([^)]*(?:tiếng|vietnamese|english|language|ngôn ngữ|prompt)[^)]*\)"
+        r"(?:\*\*)?"
+        r"\s*[:：\-]*(?:\*\*)?\s*[:：\-]*(?:\*\*)?\s*",
+        "",
+        p,
+        flags=re.IGNORECASE,
+    ).strip()
+    # Strip standalone parenthetical line at the top: e.g. "(bằng tiếng Việt):**\n"
+    p = re.sub(
+        r"^\s*\([^)]*(?:tiếng|vietnamese|english|language|ngôn ngữ|prompt)[^)]*\)\s*[:：\-]*(?:\*\*)?\s*",
+        "",
+        p,
+        flags=re.IGNORECASE,
+    ).strip()
+    # Strip residual dangling bold/markdown header prefix at prompt start e.g. "**", "##", ":**"
+    p = re.sub(r"^(?:\*\*|[:：\-\*#_`])+\s*", "", p).strip()
+    return p
+
+
 def parse_title_and_prompt(text: str) -> dict[str, str]:
     """Parse raw model output or existing txt content into a title and prompt dict."""
     cleaned = clean_extracted_prompt(text)
@@ -170,21 +346,40 @@ def parse_title_and_prompt(text: str) -> dict[str, str]:
                 prompt = str(data.get("prompt") or data.get("description") or "").strip()
                 if title or prompt:
                     return {
-                        "title": title.strip('"\'*# '),
-                        "prompt": prompt.strip('"\' '),
+                        "title": clean_extracted_title(title),
+                        "prompt": clean_extracted_prompt_body(prompt),
                     }
         except Exception:
             pass
 
     # 2. Markdown headers or labelled sections:
-    # Handles: # Image Title, Title:, **Title:**, # Prompt, Prompt:, etc.
+    # Handles: # Image Title, Title:, **Title:**, # Prompt, Prompt:, (Title):**, (bằng tiếng Việt):**, etc.
     title_pattern = re.compile(
-        r"(?:^|\n)\s*(?:#{1,3}\s*)?(?:\*\*)?(?:Image\s*Title|Title|Tiêu\s*đề|Tên\s*ảnh|Name)\s*[:：\-]?(?:\*\*)?\s*[:：\-]?(?:\*\*)?\s*\n*\s*([^\n\r#]+)",
+        r"(?:^|\n)\s*(?:[\d\.\)\-\*\+]\s*)*"
+        r"(?:#{1,6}\s*)?"
+        r"(?:\*\*)?"
+        r"\(?\s*"
+        r"(?:Image\s*Title|Title|Tiêu\s*đề(?:\s*ảnh)?|Tên\s*(?:ảnh|hình\s*ảnh)?|Name)"
+        r"(?:\s*\([^)]*\))?"
+        r"\)?\s*"
+        r"(?:\*\*)?"
+        r"\s*[:：\-]?(?:\*\*)?\s*[:：\-]?(?:\*\*)?\s*"
+        r"([^\n\r#]+)",
         re.IGNORECASE,
     )
 
     prompt_section_pattern = re.compile(
-        r"(?:^|\n)\s*(?:#{1,3}\s*)?(?:\*\*)?(?:MAIN\s*PROMPT|Image\s*Prompt|Prompt|Gợi\s*ý\s*prompt)\s*[:：\-]?(?:\*\*)?\s*[:：\-]?(?:\*\*)?\s*([\s\S]*?)(?=(?:\n\s*(?:#{1,3}\s*)?(?:\*\*)?Negative\s*Prompt\s*[:：\-]?(?:\*\*)?)|$)",
+        r"(?:^|\n)\s*(?:[\d\.\)\-\*\+]\s*)*"
+        r"(?:#{1,6}\s*)?"
+        r"(?:\*\*)?"
+        r"\(?\s*"
+        r"(?:MAIN\s*PROMPT|Image\s*Prompt|Prompt|Gợi\s*ý\s*prompt|Mô\s*tả\s*prompt|Nội\s*dung\s*prompt|bằng\s*tiếng\s*[^:：\*\n\)]+|tiếng\s*[^:：\*\n\)]+)"
+        r"(?:\s*\([^)]*\))?"
+        r"\)?\s*"
+        r"(?:\*\*)?"
+        r"\s*[:：\-]?(?:\*\*)?\s*[:：\-]?(?:\*\*)?\s*"
+        r"([\s\S]*?)"
+        r"(?=(?:\n\s*(?:#{1,6}\s*)?(?:\*\*)?Negative\s*Prompt\s*[:：\-]?(?:\*\*)?)|$)",
         re.IGNORECASE,
     )
 
@@ -239,12 +434,12 @@ def parse_title_and_prompt(text: str) -> dict[str, str]:
                 title = first_line[:60].strip()
                 prompt = "\n".join(lines).strip()
 
-    title = title.strip().strip('"\'*#')
-    prompt = prompt.strip().strip('"\'')
+    title = clean_extracted_title(title)
+    prompt = clean_extracted_prompt_body(prompt)
 
     if not title and prompt:
         first_sentence = re.split(r"[.!?\n]", prompt)[0].strip()
-        title = first_sentence[:60].strip() if len(first_sentence) > 60 else first_sentence
+        title = clean_extracted_title(first_sentence[:60].strip() if len(first_sentence) > 60 else first_sentence)
 
     return {
         "title": title,
@@ -274,13 +469,21 @@ async def resolve_model_name(requested_model: str, base_url: str = DEFAULT_OLLAM
 async def generate_prompt_for_image_bytes(
     image_bytes: bytes,
     config: PromptConfig,
-) -> dict[str, str]:
-    """Send image bytes (base64) to Ollama and return dict with 'title' and 'prompt'."""
+) -> dict[str, Any]:
+    """Send image bytes (base64) to Ollama and return dict with 'title', 'prompt', 'aspect_ratio', 'width', 'height'."""
     if not image_bytes:
         raise ImageToPromptError("Dữ liệu ảnh trống.")
 
+    w, h, aspect_ratio = detect_image_dimensions_and_ratio(image_bytes)
     model_to_use = await resolve_model_name(config.model, config.base_url)
-    base_prompt = prepare_prompt(config.prompt, config.language)
+    base_prompt = prepare_prompt(
+        prompt=config.prompt,
+        language=config.language,
+        character_description=config.character_description,
+        aspect_ratio=aspect_ratio,
+        width=w,
+        height=h,
+    )
 
     b64_img = base64.b64encode(image_bytes).decode("utf-8")
     images_payload = [b64_img]
@@ -317,6 +520,21 @@ async def generate_prompt_for_image_bytes(
         },
     }
 
+    def _package_result(raw_text: str) -> dict[str, Any]:
+        parsed = parse_title_and_prompt(raw_text)
+        final_prompt_text = apply_aspect_ratio_to_prompt(
+            parsed.get("prompt", ""),
+            aspect_ratio=aspect_ratio,
+            mode=config.aspect_ratio_mode,
+        )
+        return {
+            "title": parsed.get("title", ""),
+            "prompt": final_prompt_text,
+            "aspect_ratio": aspect_ratio,
+            "width": w,
+            "height": h,
+        }
+
     try:
         async with aiohttp.ClientSession(timeout=timeout) as session:
             # First attempt: POST /api/chat
@@ -326,7 +544,7 @@ async def generate_prompt_for_image_bytes(
                     content = data.get("message", {}).get("content", "")
                     cleaned = clean_extracted_prompt(content)
                     if cleaned:
-                        return parse_title_and_prompt(cleaned)
+                        return _package_result(cleaned)
                     raise ImageToPromptError("Ollama trả về nội dung rỗng.")
 
                 err_body = await resp.text()
@@ -347,7 +565,7 @@ async def generate_prompt_for_image_bytes(
                             retry_content = retry_data.get("message", {}).get("content", "")
                             cleaned = clean_extracted_prompt(retry_content)
                             if cleaned:
-                                return parse_title_and_prompt(cleaned)
+                                return _package_result(cleaned)
 
                 # If Ollama endpoint itself is not found (e.g. legacy Ollama), fallback to /api/generate
                 if resp.status == 404 and "404 page not found" in err_body.lower():
@@ -366,7 +584,7 @@ async def generate_prompt_for_image_bytes(
                             gen_content = gen_data.get("response", "")
                             cleaned = clean_extracted_prompt(gen_content)
                             if cleaned:
-                                return parse_title_and_prompt(cleaned)
+                                return _package_result(cleaned)
                             raise ImageToPromptError("Ollama trả về nội dung rỗng.")
                         gen_err = await gen_resp.text()
                         raise ImageToPromptError(extract_ollama_error(gen_err))
@@ -388,8 +606,8 @@ async def generate_prompt_for_image_bytes(
 async def generate_prompt_for_file(
     image_path: Path,
     config: PromptConfig,
-) -> dict[str, str]:
-    """Read image file and generate title and prompt."""
+) -> dict[str, Any]:
+    """Read image file and generate title, prompt, and aspect ratio."""
     try:
         raw_bytes = await asyncio.to_thread(image_path.read_bytes)
     except OSError as exc:
@@ -405,6 +623,14 @@ async def process_image_file(
     """Process a single image file, write .txt alongside it, and return status."""
     txt_path = image_path.with_suffix(".txt")
 
+    # Read dimensions/aspect ratio for metadata
+    try:
+        raw_bytes = await asyncio.to_thread(image_path.read_bytes)
+        w, h, ar = detect_image_dimensions_and_ratio(raw_bytes)
+    except Exception:
+        raw_bytes = b""
+        w, h, ar = 0, 0, "1:1"
+
     # Check if .txt file already exists
     if txt_path.exists() and not config.overwrite:
         try:
@@ -419,15 +645,21 @@ async def process_image_file(
             "txt_file": str(txt_path),
             "title": parsed.get("title", ""),
             "prompt": parsed.get("prompt", existing_content),
+            "aspect_ratio": ar,
+            "width": w,
+            "height": h,
             "reason": "File .txt đã tồn tại (đã bỏ qua vì không chọn ghi đè)",
         }
 
     try:
-        res = await generate_prompt_for_file(image_path, config)
+        res = await generate_prompt_for_image_bytes(raw_bytes, config) if raw_bytes else await generate_prompt_for_file(image_path, config)
         if isinstance(res, str):
             res = parse_title_and_prompt(res)
         title = res.get("title", "").strip()
         prompt_text = res.get("prompt", "").strip()
+        ar_res = res.get("aspect_ratio", ar)
+        w_res = res.get("width", w)
+        h_res = res.get("height", h)
 
         file_content = f"Title: {title}\n\nPrompt:\n{prompt_text}\n"
         await asyncio.to_thread(txt_path.write_text, file_content, encoding="utf-8")
@@ -438,6 +670,9 @@ async def process_image_file(
             "txt_file": str(txt_path),
             "title": title,
             "prompt": prompt_text,
+            "aspect_ratio": ar_res,
+            "width": w_res,
+            "height": h_res,
         }
     except Exception as exc:
         return {
@@ -445,5 +680,8 @@ async def process_image_file(
             "file": str(image_path),
             "filename": image_path.name,
             "txt_file": str(txt_path),
+            "aspect_ratio": ar,
+            "width": w,
+            "height": h,
             "error": str(exc),
         }

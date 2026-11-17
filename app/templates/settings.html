@@ -64,6 +64,13 @@
                         <textarea id="{{ block.id }}_{{ f.key }}" name="{{ block.id }}.{{ f.key }}"
                                   rows="6" placeholder="{{ field_placeholder }}"
                                   class="w-full rounded-xl border border-slate-200 dark:border-slate-700/80 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">{{ current }}</textarea>
+                        {% elif f.kind == "select" %}
+                        <select id="{{ block.id }}_{{ f.key }}" name="{{ block.id }}.{{ f.key }}"
+                                class="w-full rounded-xl border border-slate-200 dark:border-slate-700/80 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
+                            {% for opt in f.options %}
+                            <option value="{{ opt.value }}" {% if current == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+                            {% endfor %}
+                        </select>
                         {% elif f.kind == "number" %}
                         <input type="number" id="{{ block.id }}_{{ f.key }}" name="{{ block.id }}.{{ f.key }}"
                                value="{{ current }}" placeholder="{{ field_placeholder }}"
