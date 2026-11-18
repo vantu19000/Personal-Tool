@@ -39,6 +39,26 @@ async def get_ollama_models():
     return JSONResponse({"status": "success", "models": models})
 
 
+@router.get("/image-metadata/search-location", name="image-metadata-search-location")
+async def search_location_endpoint(
+    q: str = Query(..., description="Tên địa điểm cần tìm kiếm tọa độ"),
+    limit: int = Query(5, ge=1, le=20, description="Số lượng kết quả tối đa"),
+):
+    """Search for locations by name and return geographic coordinates (latitude, longitude, altitude)."""
+    clean_q = q.strip()
+    if not clean_q:
+        return JSONResponse({"status": "success", "results": []})
+
+    try:
+        results = await services.search_map_location(clean_q, limit=limit)
+        return JSONResponse({"status": "success", "query": clean_q, "results": results})
+    except Exception as exc:
+        return JSONResponse(
+            {"status": "error", "message": f"Không thể tìm kiếm địa điểm: {str(exc)}", "results": []},
+            status_code=500,
+        )
+
+
 @router.post("/image-metadata/generate-ai", name="image-metadata-generate-ai")
 async def generate_ai(
     topic: str = Form(""),

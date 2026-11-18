@@ -164,8 +164,8 @@
             </div>
         </div>
 
-        <!-- Row 2: Character Description & Aspect Ratio Mode -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+        <!-- Row 2: Character Description & Aspect Ratio Settings -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
             <!-- Mô tả nhân vật & tham chiếu khuôn mặt -->
             <div>
                 <div class="flex items-center justify-between mb-1.5">
@@ -187,7 +187,25 @@
                 <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.character_desc_hint') }}</p>
             </div>
 
-            <!-- Bắt chước tỷ lệ ảnh gốc (Aspect ratio) -->
+            <!-- Tỷ lệ khung hình mong muốn (Target Aspect Ratio) -->
+            <div>
+                <label for="target-aspect-ratio" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Tỷ lệ ảnh đầu ra (Aspect Ratio)
+                </label>
+                <select id="target-aspect-ratio"
+                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition font-semibold text-fuchsia-600 dark:text-fuchsia-400">
+                    <option value="4:5" {% if default_target_aspect_ratio == "4:5" or not default_target_aspect_ratio %}selected{% endif %}>4:5 (Cố định 4:5 - Chuẩn Prompt Pronto)</option>
+                    <option value="auto" {% if default_target_aspect_ratio == "auto" %}selected{% endif %}>Tự động đo theo kích thước ảnh gốc (Auto)</option>
+                    <option value="1:1" {% if default_target_aspect_ratio == "1:1" %}selected{% endif %}>1:1 (Vuông)</option>
+                    <option value="9:16" {% if default_target_aspect_ratio == "9:16" %}selected{% endif %}>9:16 (Dọc Story / Reels / Shorts)</option>
+                    <option value="16:9" {% if default_target_aspect_ratio == "16:9" %}selected{% endif %}>16:9 (Ngang Cinematic)</option>
+                    <option value="3:4" {% if default_target_aspect_ratio == "3:4" %}selected{% endif %}>3:4 (Dọc Portrait)</option>
+                    <option value="2:3" {% if default_target_aspect_ratio == "2:3" %}selected{% endif %}>2:3 (Dọc Photo)</option>
+                </select>
+                <p class="mt-1 text-[11px] text-slate-400">Cố định tỷ lệ 4:5 hoặc tự động đo theo kích thước file ảnh gốc.</p>
+            </div>
+
+            <!-- Định dạng gắn tỷ lệ (Mode) -->
             <div>
                 <label for="aspect-ratio-mode" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                     {{ t('image_to_prompt.aspect_ratio_label') }}
@@ -258,8 +276,12 @@
                 </div>
             </div>
 
-            <!-- Options: Overwrite & Recursive -->
+            <!-- Options: Auto-rename, Overwrite & Recursive -->
             <div class="flex flex-wrap items-center gap-6 pt-1">
+                <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" id="batch-auto-rename" checked class="rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500">
+                    <span class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-semibold">{{ t('image_to_prompt.opt_auto_rename')|safe }}</span>
+                </label>
                 <label class="inline-flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" id="batch-overwrite" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                     <span class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium">{{ t('image_to_prompt.opt_overwrite')|safe }}</span>
@@ -279,7 +301,12 @@
                     {{ t('image_to_prompt.ollama_notice_batch') }}
                 </span>
 
-                <div class="flex items-center gap-3 ml-auto">
+                <div class="flex items-center gap-2.5 ml-auto flex-wrap">
+                    <button type="button" id="batch-rename-btn"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-fuchsia-200 dark:border-fuchsia-800 bg-fuchsia-50 dark:bg-fuchsia-950/40 text-fuchsia-700 dark:text-fuchsia-300 text-xs sm:text-sm font-semibold hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900/60 transition shadow-2xs">
+                        <i data-lucide="file-signature" class="w-4 h-4"></i>
+                        <span>{{ t('image_to_prompt.btn_rename_now') }}</span>
+                    </button>
                     <button type="button" id="batch-scan-btn"
                             class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition">
                         <i data-lucide="scan-search" class="w-4 h-4"></i>
@@ -723,6 +750,8 @@
                 formData.append("prompt", document.getElementById("batch-prompt").value);
                 formData.append("character_desc", document.getElementById("character-desc").value);
                 formData.append("aspect_ratio_mode", document.getElementById("aspect-ratio-mode").value);
+                const targetAr = document.getElementById("target-aspect-ratio");
+                if (targetAr) formData.append("target_aspect_ratio", targetAr.value);
 
                 try {
                     const res = await fetch("/tools/image-to-prompt/save-defaults", {
@@ -802,8 +831,10 @@
         const folderInput = document.getElementById("batch-folder");
         const modelSelect = document.getElementById("batch-model");
         const promptInput = document.getElementById("batch-prompt");
+        const autoRenameCheck = document.getElementById("batch-auto-rename");
         const overwriteCheck = document.getElementById("batch-overwrite");
         const recursiveCheck = document.getElementById("batch-recursive");
+        const renameBtn = document.getElementById("batch-rename-btn");
         const scanBtn = document.getElementById("batch-scan-btn");
         const scanNote = document.getElementById("batch-scan-note");
         const form = document.getElementById("batch-form");
@@ -823,6 +854,48 @@
 
         let totalFiles = 0;
         let currentItemMap = new Map();
+
+        // Step 1 helper: Rename images directly
+        if (renameBtn) {
+            renameBtn.addEventListener("click", async () => {
+                const folder = folderInput.value.trim();
+                if (!folder) {
+                    alert(I18N.enter_folder_alert);
+                    folderInput.focus();
+                    return;
+                }
+                if (!confirm("Bạn có chắc chắn muốn đổi tên toàn bộ ảnh trong thư mục này về dạng image-1.ext, image-2.ext...?")) {
+                    return;
+                }
+
+                renameBtn.disabled = true;
+                scanNote.className = "p-3.5 rounded-xl border border-fuchsia-200 dark:border-fuchsia-900 bg-fuchsia-50 dark:bg-fuchsia-950/40 text-fuchsia-800 dark:text-fuchsia-300 text-xs sm:text-sm";
+                scanNote.innerHTML = `<div class="flex items-center gap-2"><svg class="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg><span>Đang đổi tên ảnh thành image-1, image-2...</span></div>`;
+                scanNote.classList.remove("hidden");
+
+                try {
+                    const fd = new FormData();
+                    fd.append("folder", folder);
+                    fd.append("recursive", recursiveCheck.checked ? "true" : "false");
+                    const res = await fetch("/tools/image-to-prompt/rename", {
+                        method: "POST",
+                        body: fd,
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                        throw new Error(data.detail || "Lỗi khi đổi tên file");
+                    }
+                    scanNote.className = "p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs sm:text-sm";
+                    scanNote.innerHTML = `✓ ${data.message}`;
+                    setTimeout(() => scanBtn.click(), 400);
+                } catch (err) {
+                    scanNote.className = "p-3.5 rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 text-xs sm:text-sm";
+                    scanNote.innerHTML = `❌ Lỗi: ${err.message}`;
+                } finally {
+                    renameBtn.disabled = false;
+                }
+            });
+        }
 
         // Scan folder button handler
         scanBtn.addEventListener("click", async () => {
@@ -868,6 +941,7 @@
         function setBusy(isBusy) {
             startBtn.disabled = isBusy;
             scanBtn.disabled = isBusy;
+            if (renameBtn) renameBtn.disabled = isBusy;
             spinner.classList.toggle("hidden", !isBusy);
             startIcon.classList.toggle("hidden", isBusy);
             startLabel.textContent = isBusy ? I18N.btn_busy : I18N.btn_start;
@@ -918,18 +992,45 @@
                 contentHtml += `<div class="mt-2.5 space-y-2">`;
 
                 if (title) {
-                    contentHtml += `
-                        <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                            <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-                                <span class="font-semibold text-fuchsia-600 dark:text-fuchsia-400 flex items-center gap-1">
-                                    <i data-lucide="tag" class="w-3 h-3"></i>
-                                    <span>${I18N.title_label}</span>
-                                </span>
-                                <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(title)}); this.innerHTML='✓ ${I18N.copied}'; setTimeout(() => this.innerHTML='${I18N.copy_title}', 1500);" class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-[11px]">${I18N.copy_title}</button>
+                    const titleLines = title.split('\n').map(l => l.trim()).filter(Boolean);
+                    if (titleLines.length > 1) {
+                        let titlesHtml = `<ul class="space-y-1.5 mt-2">`;
+                        titleLines.forEach((tLine) => {
+                            titlesHtml += `
+                                <li class="flex items-start justify-between gap-2 p-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-xs">
+                                    <span class="font-medium text-slate-800 dark:text-slate-100 select-all leading-relaxed">${tLine}</span>
+                                    <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(tLine)}); this.innerHTML='✓'; setTimeout(() => this.innerHTML='Copy', 1500);" class="shrink-0 px-2 py-0.5 rounded text-[11px] font-mono text-fuchsia-600 dark:text-fuchsia-400 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/50 transition">Copy</button>
+                                </li>
+                            `;
+                        });
+                        titlesHtml += `</ul>`;
+
+                        contentHtml += `
+                            <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                                <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+                                    <span class="font-bold text-fuchsia-600 dark:text-fuchsia-400 flex items-center gap-1">
+                                        <i data-lucide="tags" class="w-3.5 h-3.5"></i>
+                                        <span>5 Gợi ý Tiêu đề SEO (Titles)</span>
+                                    </span>
+                                    <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(title)}); this.innerHTML='✓ Đã copy'; setTimeout(() => this.innerHTML='Copy Tất cả 5 Tiêu đề', 1500);" class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-[11px] font-semibold">Copy Tất cả 5 Tiêu đề</button>
+                                </div>
+                                ${titlesHtml}
                             </div>
-                            <div class="font-semibold text-xs text-slate-800 dark:text-slate-100 select-all">${title}</div>
-                        </div>
-                    `;
+                        `;
+                    } else {
+                        contentHtml += `
+                            <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                                <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+                                    <span class="font-semibold text-fuchsia-600 dark:text-fuchsia-400 flex items-center gap-1">
+                                        <i data-lucide="tag" class="w-3 h-3"></i>
+                                        <span>${I18N.title_label}</span>
+                                    </span>
+                                    <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(title)}); this.innerHTML='✓ ${I18N.copied}'; setTimeout(() => this.innerHTML='${I18N.copy_title}', 1500);" class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-[11px]">${I18N.copy_title}</button>
+                                </div>
+                                <div class="font-semibold text-xs text-slate-800 dark:text-slate-100 select-all">${title}</div>
+                            </div>
+                        `;
+                    }
                 }
 
                 if (promptOrError) {
@@ -984,6 +1085,7 @@
             const languageSelect = document.getElementById("batch-language");
             const charDescInput = document.getElementById("character-desc");
             const arModeSelect = document.getElementById("aspect-ratio-mode");
+            const targetArSelect = document.getElementById("target-aspect-ratio");
 
             const formData = new FormData();
             formData.append("folder", folder);
@@ -992,6 +1094,8 @@
             if (languageSelect) formData.append("language", languageSelect.value);
             if (charDescInput) formData.append("character_desc", charDescInput.value);
             if (arModeSelect) formData.append("aspect_ratio_mode", arModeSelect.value);
+            if (targetArSelect) formData.append("target_aspect_ratio", targetArSelect.value);
+            if (autoRenameCheck) formData.append("auto_rename", autoRenameCheck.checked ? "true" : "false");
             formData.append("overwrite", overwriteCheck.checked ? "true" : "false");
             formData.append("recursive", recursiveCheck.checked ? "true" : "false");
 
@@ -1023,7 +1127,15 @@
 
                 const stream = readNdjsonLines(res.body);
                 for await (const event of stream.events()) {
-                    if (event.type === "start") {
+                    if (event.type === "rename_done") {
+                        finalStatus.classList.remove("hidden");
+                        finalStatus.className = "text-xs sm:text-sm font-semibold p-3.5 rounded-xl bg-fuchsia-50 text-fuchsia-800 dark:bg-fuchsia-950/40 dark:text-fuchsia-300 border border-fuchsia-200 dark:border-fuchsia-900";
+                        finalStatus.textContent = event.message || `✓ Step 1: Đã đổi tên ${event.renamed_count} ảnh thành image-1.ext, image-2.ext...`;
+                    } else if (event.type === "rename_warning") {
+                        finalStatus.classList.remove("hidden");
+                        finalStatus.className = "text-xs sm:text-sm font-semibold p-3.5 rounded-xl bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900";
+                        finalStatus.textContent = event.error || "Cảnh báo đổi tên file.";
+                    } else if (event.type === "start") {
                         totalFiles = event.total || 0;
                         progressCount.textContent = `0 / ${totalFiles}`;
                     } else if (event.type === "file_start") {
@@ -1187,6 +1299,7 @@
             const languageSelect = document.getElementById("batch-language");
             const charDescInput = document.getElementById("character-desc");
             const arModeSelect = document.getElementById("aspect-ratio-mode");
+            const targetArSelect = document.getElementById("target-aspect-ratio");
 
             const formData = new FormData();
             formData.append("file", file);
@@ -1195,6 +1308,7 @@
             if (languageSelect) formData.append("language", languageSelect.value);
             if (charDescInput) formData.append("character_desc", charDescInput.value);
             if (arModeSelect) formData.append("aspect_ratio_mode", arModeSelect.value);
+            if (targetArSelect) formData.append("target_aspect_ratio", targetArSelect.value);
 
             try {
                 const res = await fetch("/tools/image-to-prompt/single", {

@@ -24,10 +24,16 @@ print("1. Kiểm tra trang giao diện Image to Prompt render thành công...")
 r = client.get("/tools/image-to-prompt")
 assert r.status_code == 200, f"Status code: {r.status_code}"
 assert "Image to Prompt" in r.text
-assert "qween3.8" in r.text
+assert "qwen 3.8" in r.text
 assert "ollama-status-pill" in r.text
 assert "ollama-offline-banner" in r.text
 print("   -> OK!")
+
+print("1b. Kiểm tra alias URL /tools/prompt-pronto...")
+r_alias = client.get("/tools/prompt-pronto")
+assert r_alias.status_code == 200
+assert "Prompt Pronto" in r_alias.text
+print("   -> OK! Alias /tools/prompt-pronto hoạt động tốt.")
 
 print("2. Kiểm tra Dashboard và Sidebar hiển thị công cụ...")
 r = client.get("/")
@@ -41,7 +47,7 @@ assert r.status_code == 200
 body = r.json()
 assert "online" in body
 assert "models" in body
-assert body["default"] == "qween3.8"
+assert body["default"] == "qwen 3.8"
 print(f"   -> OK! (online={body['online']}, models={len(body['models'])})")
 
 print("4. Kiểm tra quét thư mục ảnh (/scan)...")
@@ -78,8 +84,9 @@ try:
 
         data = {
             "folder": str(temp_dir),
-            "model": "qween3.8",
+            "model": "qwen 3.8",
             "prompt": "Test prompt",
+            "auto_rename": "false",
             "overwrite": "false",
             "recursive": "false",
         }
@@ -110,7 +117,7 @@ try:
             "prompt": "Cyberpunk city street at night, neon reflections",
         }
         files = {"file": ("test.png", b"\x89PNGdummy", "image/png")}
-        r = client.post("/tools/image-to-prompt/single", files=files, data={"model": "qween3.8"})
+        r = client.post("/tools/image-to-prompt/single", files=files, data={"model": "qwen 3.8"})
         assert r.status_code == 200
         single_body = r.json()
         assert single_body["title"] == "Neon Cyberpunk City"
@@ -234,16 +241,70 @@ try:
 
     print("14. Kiểm tra endpoint lưu cấu hình mặc định (/save-defaults)...")
     save_data = {
-        "model": "qween3.8",
-        "language": "vi",
+        "model": "qwen 3.8",
+        "language": "pt-BR",
         "prompt": "Custom prompt description for Ollama",
-        "character_desc": "nhân vật nam dùng ảnh tham chiếu cho khuôn mặt",
+        "character_desc": "nhân vật nữ dùng ảnh tham chiếu cho khuôn mặt",
         "aspect_ratio_mode": "both",
     }
     r = client.post("/tools/image-to-prompt/save-defaults", data=save_data)
     assert r.status_code == 200
     assert r.json()["status"] == "ok"
     print("   -> OK! Lưu cấu hình mô tả và tỷ lệ cho Ollama vào settings.json thành công.")
+
+    print("15. Kiểm tra Step 1: Đổi tên ảnh thành image-1, image-2... (/rename & services)...")
+    from app.tools.image_to_prompt.services import rename_images_to_standard_format
+    test_rename_dir = Path(tempfile.mkdtemp(prefix="test_rename_"))
+    try:
+        (test_rename_dir / "zebra.png").write_bytes(b"\x89PNGdummy")
+        (test_rename_dir / "apple.jpg").write_bytes(b"\xFF\xD8\xFFdummy")
+        (test_rename_dir / "apple.txt").write_text("apple prompt", encoding="utf-8")
+        (test_rename_dir / "mango.webp").write_bytes(b"RIFFdummy")
+
+        r_rename = client.post("/tools/image-to-prompt/rename", data={"folder": str(test_rename_dir)})
+        assert r_rename.status_code == 200
+        rename_res = r_rename.json()
+        assert rename_res["status"] == "ok"
+        assert rename_res["count"] == 3
+
+        # apple -> image-1.jpg, mango -> image-2.webp, zebra -> image-3.png
+        assert (test_rename_dir / "image-1.jpg").exists()
+        assert (test_rename_dir / "image-1.txt").exists()
+        assert (test_rename_dir / "image-1.txt").read_text(encoding="utf-8") == "apple prompt"
+        assert (test_rename_dir / "image-2.webp").exists()
+        assert (test_rename_dir / "image-3.png").exists()
+        print("   -> OK! Đã đổi tên thành công thành image-1.jpg, image-2.webp, image-3.png và di chuyển file txt tương ứng.")
+    finally:
+        shutil.rmtree(test_rename_dir, ignore_errors=True)
+
+    print("16. Kiểm tra parse 5 gợi ý tiêu đề SEO tiếng Brazil & format Title: <list title> Prompt: <prompt>...")
+    sample_5_titles_output = (
+        "Title:\n"
+        "1. Retrato de uma mulher elegante olhando suavemente para a câmera em iluminação dourada\n"
+        "2. Foto Editorial de uma mulher feminina com olhar lateral pensativo em cenário urbano\n"
+        "3. Foto Executiva de uma mulher elegante com postura confiante em escritório contemporâneo\n"
+        "4. Retrato de uma mulher feminina em close-up com luz suave e sombras dramáticas\n"
+        "5. Foto Editorial de uma mulher elegante com vestido sofisticado e fundo desfocado\n\n"
+        "Prompt:\n"
+        "Uma fotografia profissional de altíssima resolução com proporção 4:5. O rosto e os traços faciais devem ser estritamente baseados na imagem de referência anexada.\n"
+        "Aspect ratio: 4:5. --ar 4:5"
+    )
+    p_5 = parse_title_and_prompt(sample_5_titles_output)
+    assert "Retrato de uma mulher elegante" in p_5["title"]
+    assert "5. Foto Editorial de uma mulher elegante" in p_5["title"]
+    assert p_5["title"].count("\n") == 4  # 5 lines
+    assert "imagem de referência anexada" in p_5["prompt"]
+    assert "--ar 4:5" in p_5["prompt"]
+    print("   -> OK! parse_title_and_prompt bóc tách chính xác 5 tiêu đề SEO chuẩn format và prompt chi tiết.")
+
+    print("17. Kiểm tra ép tỷ lệ ảnh mục tiêu (target_aspect_ratio='4:5') ghi đè tỷ lệ ảnh gốc (2:3)...")
+    from app.tools.image_to_prompt.services import apply_aspect_ratio_to_prompt
+    raw_prompt = "Foto profissional de alta resolução. Aspect ratio: 2:3. --ar 2:3"
+    fixed_prompt = apply_aspect_ratio_to_prompt(raw_prompt, aspect_ratio="4:5", mode="both")
+    assert "--ar 4:5" in fixed_prompt
+    assert "Aspect ratio: 4:5" in fixed_prompt
+    assert "2:3" not in fixed_prompt
+    print("   -> OK! Target aspect ratio 4:5 đã thay thế hoàn toàn và ghi đè 2:3 thành công.")
 
 finally:
     shutil.rmtree(temp_dir, ignore_errors=True)

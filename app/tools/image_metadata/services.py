@@ -10,13 +10,14 @@ from pathlib import Path
 import re
 import time
 from typing import Any
+import urllib.parse
 import zipfile
 
 import aiohttp
 from PIL import ExifTags, Image
 
 from app.core.config import get_ollama_base_url, get_ollama_timeout
-from app.core.logger import log_outgoing_api
+from app.core.logger import api_logger, log_outgoing_api
 
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 DEFAULT_OLLAMA_MODEL = "llama3:latest"
@@ -25,6 +26,7 @@ DEFAULT_OLLAMA_TIMEOUT = 600.0  # 10 phút cho các model lớn (27B+)
 RESPONSE_LANGUAGES: dict[str, str] = {
     "vi": "Tiếng Việt (Vietnamese)",
     "en": "English",
+    "pt-BR": "Tiếng Bồ Đào Nha - Brazil (Portuguese - Brazil)",
     "ja": "Tiếng Nhật (Japanese)",
     "ko": "Tiếng Hàn (Korean)",
     "zh": "Tiếng Trung (Chinese)",
@@ -744,7 +746,11 @@ async def generate_ai_metadata(
     effective_timeout = timeout_seconds if timeout_seconds is not None else get_ollama_timeout()
     url = f"{effective_base}/api/generate"
 
-    lang_name = RESPONSE_LANGUAGES.get(language, language) or "Tiếng Việt"
+    lang_key = (language or "vi").strip()
+    if lang_key.lower() in ("pt", "pt-br", "pt_br", "brazil", "tiếng brazil", "tieng brazil"):
+        lang_name = RESPONSE_LANGUAGES.get("pt-BR", "Tiếng Bồ Đào Nha - Brazil (Portuguese - Brazil)")
+    else:
+        lang_name = RESPONSE_LANGUAGES.get(lang_key, lang_key) or "Tiếng Việt"
 
     template = prompt_template.strip() or DEFAULT_AI_METADATA_PROMPT
     if "{language}" in template:
@@ -958,4 +964,109 @@ async def process_folder_ai_image(
         "latitude": ai_meta.get("latitude"),
         "longitude": ai_meta.get("longitude"),
     }
+
+
+async def search_map_location(query: str, limit: int = 5) -> list[dict[str, Any]]:
+    """Search for geographic coordinates using multiple geocoding providers (Photon/OSM, Open-Meteo, Nominatim).
+
+    Returns a list of location dicts with keys:
+    - name: Short place name
+    - display_name: Full hierarchical address description
+    - lat: Latitude (float)
+    - lon: Longitude (float)
+    - altitude: Altitude/Elevation in meters if available (float or None)
+    """
+    clean_q = query.strip()
+    if not clean_q:
+        return []
+
+    results: list[dict[str, Any]] = []
+
+    # 1. Primary provider: Photon (by Komoot - OpenStreetMap index, fast, no auth, global)
+    try:
+        url = f"https://photon.komoot.io/api/?q={urllib.parse.quote(clean_q)}&limit={limit}"
+        timeout = aiohttp.ClientTimeout(total=5.0)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(url, headers={"User-Agent": "PersonalTool/1.0"}) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    for feat in data.get("features", []):
+                        coords = feat.get("geometry", {}).get("coordinates", [])
+                        if len(coords) >= 2:
+                            lon, lat = float(coords[0]), float(coords[1])
+                            props = feat.get("properties", {})
+                            name = props.get("name") or props.get("street") or clean_q
+                            parts = [name]
+                            for key in ("district", "city", "state", "country"):
+                                val = props.get(key)
+                                if val and val not in parts:
+                                    parts.append(val)
+                            results.append({
+                                "name": name,
+                                "display_name": ", ".join(parts),
+                                "lat": round(lat, 6),
+                                "lon": round(lon, 6),
+                                "altitude": None,
+                            })
+    except Exception as exc:
+        api_logger.debug(f"[image-metadata] Photon geocode search failed for '{clean_q}': {exc}")
+
+    if results:
+        return results
+
+    # 2. Secondary provider: Open-Meteo Geocoding API (fast, reliable, provides elevation/altitude)
+    try:
+        url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote(clean_q)}&count={limit}&language=vi&format=json"
+        timeout = aiohttp.ClientTimeout(total=5.0)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(url, headers={"User-Agent": "PersonalTool/1.0"}) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    for item in data.get("results", []):
+                        lat = item.get("latitude")
+                        lon = item.get("longitude")
+                        if lat is not None and lon is not None:
+                            name = item.get("name", clean_q)
+                            parts = [name]
+                            for key in ("admin1", "country"):
+                                val = item.get(key)
+                                if val and val not in parts:
+                                    parts.append(val)
+                            results.append({
+                                "name": name,
+                                "display_name": ", ".join(parts),
+                                "lat": round(float(lat), 6),
+                                "lon": round(float(lon), 6),
+                                "altitude": item.get("elevation"),
+                            })
+    except Exception as exc:
+        api_logger.debug(f"[image-metadata] Open-Meteo geocode search failed for '{clean_q}': {exc}")
+
+    if results:
+        return results
+
+    # 3. Tertiary fallback: OpenStreetMap Nominatim with custom User-Agent
+    try:
+        url = f"https://nominatim.openstreetmap.org/search?format=json&q={urllib.parse.quote(clean_q)}&limit={limit}"
+        timeout = aiohttp.ClientTimeout(total=5.0)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(url, headers={"User-Agent": "PersonalToolApp/1.0 (contact@personaltool.local)"}) as resp:
+                if resp.status == 200:
+                    items = await resp.json()
+                    for item in items:
+                        lat = float(item.get("lat"))
+                        lon = float(item.get("lon"))
+                        display_name = item.get("display_name", clean_q)
+                        name = display_name.split(",")[0].strip()
+                        results.append({
+                            "name": name,
+                            "display_name": display_name,
+                            "lat": round(lat, 6),
+                            "lon": round(lon, 6),
+                            "altitude": None,
+                        })
+    except Exception as exc:
+        api_logger.debug(f"[image-metadata] Nominatim geocode search failed for '{clean_q}': {exc}")
+
+    return results
 

@@ -114,7 +114,7 @@ def test_image_to_prompt_screen_i18n():
     assert "Dịch hàng loạt thư mục" in resp_vi.text
     assert "Thử nghiệm 1 ảnh" in resp_vi.text
     assert "Cấu hình dịch ngược ảnh trong thư mục" in resp_vi.text
-    assert "Bắt đầu dịch ngược ảnh → Prompt" in resp_vi.text
+    assert "Bắt đầu tạo Tiêu đề" in resp_vi.text
 
     # 2. Image to prompt in English
     resp_en = client.get("/tools/image-to-prompt?lang=en")
@@ -122,7 +122,7 @@ def test_image_to_prompt_screen_i18n():
     assert "Batch Folder Processing" in resp_en.text
     assert "Single Image Test" in resp_en.text
     assert "Batch Folder Reverse-Prompt Configuration" in resp_en.text
-    assert "Start Reverse Prompting Image → Prompt" in resp_en.text
+    assert "Start Generating Titles" in resp_en.text
 
 
 def test_srt_translator_screen_i18n():

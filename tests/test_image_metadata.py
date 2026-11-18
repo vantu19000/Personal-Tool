@@ -249,6 +249,75 @@ def test_folder_scan_and_ai_process():
             assert meta1["date_taken"] != ""
 
 
+def test_brazil_language_support():
+    import asyncio
+    from unittest.mock import AsyncMock, patch
+
+    # 1. Verify pt-BR in RESPONSE_LANGUAGES
+    assert "pt-BR" in services.RESPONSE_LANGUAGES
+    assert "Brazil" in services.RESPONSE_LANGUAGES["pt-BR"]
+
+    # 2. Verify rendered in template
+    resp = client.get("/tools/image-metadata")
+    assert resp.status_code == 200
+    assert 'value="pt-BR"' in resp.text
+    assert "Brazil" in resp.text
+
+    # 3. Verify AI prompt injection with pt-BR and alias 'brazil'
+    mock_resp = AsyncMock()
+    mock_resp.status = 200
+    mock_resp.json = AsyncMock(return_value={
+        "response": '{"title": "Foto bonita no Brasil", "description": "Uma foto incrivel", "keywords": "brasil; rio", "software": "18.1"}'
+    })
+
+    captured_payload = {}
+
+    class MockSession:
+        def __init__(self, *args, **kwargs):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            pass
+        def post(self, url, json=None):
+            captured_payload.update(json or {})
+            class ContextManager:
+                async def __aenter__(self):
+                    return mock_resp
+                async def __aexit__(self, *args):
+                    pass
+            return ContextManager()
+
+    with patch("aiohttp.ClientSession", MockSession):
+        res = asyncio.run(services.generate_ai_metadata(
+            topic="Praia de Copacabana",
+            model="llama3:latest",
+            language="brazil"
+        ))
+        assert res["title"] == "Foto bonita no Brasil"
+        assert "Tiếng Bồ Đào Nha - Brazil" in captured_payload.get("prompt", "")
+
+
+def test_search_location_endpoint():
+    # 1. Empty query should return empty results
+    resp_empty = client.get("/tools/image-metadata/search-location?q=")
+    assert resp_empty.status_code == 200
+    assert resp_empty.json()["results"] == []
+
+    # 2. Search for a well-known city
+    resp = client.get("/tools/image-metadata/search-location?q=Hanoi")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "success"
+    assert len(data["results"]) > 0
+    first = data["results"][0]
+    assert "lat" in first
+    assert "lon" in first
+    assert "display_name" in first
+    assert abs(first["lat"] - 21.0) < 1.0
+    assert abs(first["lon"] - 105.8) < 1.0
+
+
 if __name__ == "__main__":
     test_page_loads()
     print("✓ test_page_loads passed")
@@ -266,4 +335,8 @@ if __name__ == "__main__":
     print("✓ test_ai_prompt_language_formatting passed")
     test_folder_scan_and_ai_process()
     print("✓ test_folder_scan_and_ai_process passed")
+    test_brazil_language_support()
+    print("✓ test_brazil_language_support passed")
+    test_search_location_endpoint()
+    print("✓ test_search_location_endpoint passed")
     print("\nALL IMAGE METADATA TESTS PASSED SUCCESSFULLY!")

@@ -1232,19 +1232,26 @@
         showToast("{{ t('image_metadata.toast_gps_cleared') }}", "info");
     }
 
-    // OpenStreetMap Nominatim Geocoding Search
+    // Map Geocoding Search via backend proxy (Photon/OSM & Open-Meteo)
     async function searchLocation() {
         const query = document.getElementById('map-search-input').value.trim();
         if (!query) return;
 
         try {
-            const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+            const resp = await fetch(`/tools/image-metadata/search-location?q=${encodeURIComponent(query)}`);
+            if (!resp.ok) {
+                const errData = await resp.json().catch(() => ({}));
+                throw new Error(errData.message || `HTTP ${resp.status}`);
+            }
             const data = await resp.json();
-            if (data && data.length > 0) {
-                const first = data[0];
+            if (data && data.status === 'success' && data.results && data.results.length > 0) {
+                const first = data.results[0];
                 const lat = parseFloat(first.lat);
                 const lon = parseFloat(first.lon);
                 setMapCoordinates(lat, lon, true);
+                if (first.altitude !== null && first.altitude !== undefined) {
+                    document.getElementById('meta-alt').value = Math.round(first.altitude);
+                }
                 if (map) map.setView([lat, lon], 15);
                 showToast(`Đã tìm thấy: ${first.display_name.split(',')[0]}`, 'success');
             } else {
@@ -1717,13 +1724,21 @@
         if (!query) return;
 
         try {
-            const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+            const resp = await fetch(`/tools/image-metadata/search-location?q=${encodeURIComponent(query)}`);
+            if (!resp.ok) {
+                const errData = await resp.json().catch(() => ({}));
+                throw new Error(errData.message || `HTTP ${resp.status}`);
+            }
             const data = await resp.json();
-            if (data && data.length > 0) {
-                const first = data[0];
+            if (data && data.status === 'success' && data.results && data.results.length > 0) {
+                const first = data.results[0];
                 const lat = parseFloat(first.lat);
                 const lon = parseFloat(first.lon);
                 setFolderMapCoordinates(lat, lon, true);
+                if (first.altitude !== null && first.altitude !== undefined) {
+                    const altInput = document.getElementById('folder-meta-alt');
+                    if (altInput) altInput.value = Math.round(first.altitude);
+                }
                 if (folderMap) folderMap.setView([lat, lon], 15);
                 showToast(`Đã định vị: ${first.display_name.split(',')[0]}`, 'success');
             } else {

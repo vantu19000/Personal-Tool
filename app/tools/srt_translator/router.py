@@ -27,6 +27,7 @@ router = APIRouter()
 LANGUAGES = {
     "vi": ("Tiếng Việt", "vi"),
     "en": ("English", "en"),
+    "pt-BR": ("Tiếng Bồ Đào Nha - Brazil", "pt-br"),
     "ja": ("Tiếng Nhật", "ja"),
     "ko": ("Tiếng Hàn", "ko"),
     "zh": ("Tiếng Trung", "zh"),

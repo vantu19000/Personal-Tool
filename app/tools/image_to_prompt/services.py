@@ -16,10 +16,11 @@ import aiohttp
 from PIL import Image
 
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
-DEFAULT_MODEL = "qween3.8"
+DEFAULT_MODEL = "qwen 3.8"
 DEFAULT_TIMEOUT_SECONDS = 1200.0  # 20 phút (20 * 60s)
-DEFAULT_CHARACTER_DESC = "nhân vật nam dùng ảnh tham chiếu cho khuôn mặt"
+DEFAULT_CHARACTER_DESC = "nhân vật nữ dùng ảnh tham chiếu cho khuôn mặt"
 DEFAULT_ASPECT_RATIO_MODE = "both"
+DEFAULT_TARGET_ASPECT_RATIO = "4:5"
 
 STANDARD_RATIOS = [
     (1, 1, "1:1"),
@@ -36,6 +37,7 @@ STANDARD_RATIOS = [
 ]
 
 PROMPT_LANGUAGES = {
+    "pt-BR": "Português - Brasil (Tiếng Bồ Đào Nha - Brazil)",
     "en": "English",
     "vi": "Vietnamese (Tiếng Việt)",
     "ja": "Japanese (Tiếng Nhật)",
@@ -46,21 +48,49 @@ PROMPT_LANGUAGES = {
     "es": "Spanish (Tiếng Tây Ban Nha)",
 }
 
+PROMPT_LANG_NAMES = {
+    "pt-BR": "Portuguese (Brazil)",
+    "en": "English",
+    "vi": "Vietnamese",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "zh": "Chinese",
+    "fr": "French",
+    "de": "German",
+    "es": "Spanish",
+}
+
 DEFAULT_SYSTEM_PROMPT = (
-    "You are an expert AI prompt engineer specializing in visual image analysis and prompt creation for modern "
-    "cloud image generation models like Google Gemini (Imagen 3), Midjourney, and ChatGPT (DALL-E 3).\n\n"
-    "Analyze this image and provide:\n"
-    "1. A concise, catchy Title (name) for the image in {output_language}.\n"
-    "2. A rich, highly descriptive Prompt in {output_language} to recreate this image accurately.\n\n"
-    "Guidelines for the Prompt:\n"
-    "- Character & Reference Face: If a person or character is in the image, identify their gender/type (e.g., a male character, a female character, a man, a woman) and explicitly describe in the prompt that their face is based on the reference image (e.g., 'a male character whose face and facial features are based on the reference image' / 'nhân vật nam dùng ảnh tham chiếu cho khuôn mặt'). Do NOT describe the specific facial features (eyes, nose, lips) from this analyzed image.\n"
-    "- Aspect Ratio: Replicate the original image aspect ratio ({aspect_ratio}).\n"
-    "- Write the prompt in {output_language} using fluent, descriptive natural language sentences rather than comma-separated tags.\n"
-    "- Describe the subject's body, appearance, pose, clothing, actions, environment, background, setting, lighting, atmosphere, color palette, camera perspective, and artistic medium in rich detail.\n\n"
-    "Format your output strictly as follows (use EXACTLY the label prefixes 'Title:' and 'Prompt:' as shown, do not translate or add language tags to these labels):\n"
-    "Title: <concise title for the image in {output_language}>\n\n"
+    "Dịch ngược bức ảnh thành prompt tạo ảnh AI chi tiết, dùng để chia sẻ cho người khác.\n\n"
+    "YÊU CẦU QUAN TRỌNG VỀ KHUÔN MẶT THAM CHIẾU:\n"
+    "Prompt này sẽ được chia sẻ cho người khác. Khi họ dùng prompt, họ sẽ tải lên kèm khuôn mặt của họ để làm ảnh tham chiếu (reference image / face reference). "
+    "Do đó, trong nội dung prompt BẮT BUỘC phải nhắc đến việc: khuôn mặt và đặc điểm nhận diện của nhân vật / người phụ nữ (female character / model) sẽ dựa trên ảnh tham chiếu "
+    "do người dùng tải lên (ví dụ bằng {output_language}: 'o rosto e os traços faciais devem ser exatamente baseados na imagem de referência anexada'). "
+    "Tuyệt đối không mô tả chi tiết khuôn mặt gốc trong ảnh để người dùng dễ thay thế khuôn mặt của họ.\n\n"
+    "BẮT CHƯỚC TOÀN BỘ CÁC YẾU TỐ CÒN LẠI TỪ BỨC ẢNH GỐC:\n"
+    "- Không gian & Môi trường: Ánh sáng, bóng đổ, không khí xung quanh, nhiệt độ màu.\n"
+    "- Phong cách: Phong cách nhiếp ảnh chân thực, độ nét cao, chất lượng hình ảnh cao cấp.\n"
+    "- Khoảng cách camera: Cận cảnh (close-up), trung cảnh (medium shot) hoặc toàn thân (full-body).\n"
+    "- Vị trí & góc máy camera: Góc ngang tầm mắt (eye-level), góc thấp (low-angle), góc cao, v.v.\n"
+    "- Dáng người, hành động, hành vi & cảm xúc: Tư thế, cử chỉ tay, dáng người, cảm xúc tinh tế và chi tiết tới mức cô gái đang nhìn vào đâu (ví dụ: nhìn thẳng vào ống kính, nhìn nghiêng 45 độ, ánh mắt suy tư...).\n"
+    "- Tông màu: Bảng màu chủ đạo, độ tương phản và ánh sáng.\n"
+    "- Background: Hậu cảnh, bối cảnh xung quanh, chi tiết nội thất/ngoại cảnh và độ sâu trường ảnh (bokeh).\n"
+    "- Tỷ lệ ảnh: {aspect_ratio} (hoặc 4:5).\n\n"
+    "GỢI Ý 5 TIÊU ĐỀ CHO PROMPT (TỐI ƯU SEO):\n"
+    "Gợi ý cho tôi 5 cái tên (tiêu đề) cho prompt, tối ưu SEO tốt bằng {output_language}.\n"
+    "Định dạng bắt buộc cho từng tiêu đề:\n"
+    "[Loại ảnh: Retrato / Foto Editorial / Foto Executiva] + [Chủ thể: de uma mulher elegante / Feminina] + [Tư thế/Bối cảnh/Điểm nhấn]\n\n"
+    "NGÔN NGỮ ĐẦU RA:\n"
+    "- Cả 5 Tiêu đề và Nội dung Prompt BẮT BUỘC phải viết bằng: {output_language}.\n\n"
+    "ĐỊNH DẠNG TRẢ VỀ (Bắt buộc giữ đúng các nhãn 'Title:' và 'Prompt:'):\n"
+    "Title:\n"
+    "1. <Tiêu đề 1>\n"
+    "2. <Tiêu đề 2>\n"
+    "3. <Tiêu đề 3>\n"
+    "4. <Tiêu đề 4>\n"
+    "5. <Tiêu đề 5>\n\n"
     "Prompt:\n"
-    "<detailed generation prompt in {output_language}>"
+    "<Nội dung prompt dài, mô tả cực kỳ chi tiết bằng {output_language}, kết thúc với: Aspect ratio: {aspect_ratio}. --ar {aspect_ratio}>"
 )
 
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tiff"}
@@ -106,13 +136,19 @@ def detect_image_dimensions_and_ratio(image_bytes: bytes) -> tuple[int, int, str
 
 
 def apply_aspect_ratio_to_prompt(prompt: str, aspect_ratio: str, mode: str = "both") -> str:
-    """Append aspect ratio tags or descriptions to the prompt based on mode."""
+    """Append or correct aspect ratio tags/descriptions in the prompt based on mode."""
     if not prompt or not aspect_ratio or mode == "none":
         return prompt
 
     cleaned = prompt.strip()
     ar_tag = f"--ar {aspect_ratio}"
     natural_tag = f"Aspect ratio: {aspect_ratio}"
+
+    # If the prompt already has a mismatching --ar or Aspect ratio (e.g. model generated 2:3 instead of 4:5), replace it
+    if re.search(r"--ar\s+\d+:\d+", cleaned, re.IGNORECASE):
+        cleaned = re.sub(r"--ar\s+\d+:\d+", ar_tag, cleaned, flags=re.IGNORECASE)
+    if re.search(r"aspect\s+ratio:\s*\d+:\d+", cleaned, re.IGNORECASE):
+        cleaned = re.sub(r"aspect\s+ratio:\s*\d+:\d+", natural_tag, cleaned, flags=re.IGNORECASE)
 
     has_ar = bool(re.search(r"--ar\s+\d+:\d+", cleaned, re.IGNORECASE))
     has_natural = bool(re.search(r"aspect\s+ratio:\s*\d+:\d+", cleaned, re.IGNORECASE))
@@ -142,9 +178,10 @@ class PromptConfig:
     base_url: str = DEFAULT_OLLAMA_BASE_URL
     model: str = DEFAULT_MODEL
     prompt: str = DEFAULT_SYSTEM_PROMPT
-    language: str = "en"
+    language: str = "pt-BR"
     character_description: str = DEFAULT_CHARACTER_DESC
     aspect_ratio_mode: str = DEFAULT_ASPECT_RATIO_MODE
+    target_aspect_ratio: str = DEFAULT_TARGET_ASPECT_RATIO
     temperature: float = 0.2
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
     overwrite: bool = False
@@ -153,7 +190,7 @@ class PromptConfig:
 
 def prepare_prompt(
     prompt: str,
-    language: str = "en",
+    language: str = "pt-BR",
     character_description: str = "",
     aspect_ratio: str = "",
     width: int = 0,
@@ -167,7 +204,7 @@ def prepare_prompt(
         p = p.replace("{output_language}", lang_name)
     elif language.lower() not in ("en", "english"):
         p = (
-            f"{p}\n\nImportant Requirement: Both the Title (image name) and the generated image Prompt "
+            f"{p}\n\nImportant Requirement: Both the Titles (SEO names) and the generated image Prompt "
             f"MUST be written entirely in {lang_name}."
         )
 
@@ -180,7 +217,7 @@ def prepare_prompt(
 
     # Aspect ratio
     if "{aspect_ratio}" in p:
-        p = p.replace("{aspect_ratio}", aspect_ratio or "1:1")
+        p = p.replace("{aspect_ratio}", aspect_ratio or "4:5")
     elif aspect_ratio:
         dim_info = f" ({width}x{height})" if width and height else ""
         p = f"{p}\n\nAspect Ratio Guideline: Original image aspect ratio is {aspect_ratio}{dim_info}. Replicate this ratio."
@@ -226,6 +263,75 @@ def scan_image_files(folder: str | Path, recursive: bool = False) -> list[Path]:
             files.append(p)
 
     return sorted(files, key=lambda x: str(x).lower())
+
+
+def rename_images_to_standard_format(folder: str | Path, recursive: bool = False) -> list[dict[str, str]]:
+    """Step 1: Rename all images in folder to image-1.ext, image-2.ext...
+    
+    Also renames any existing corresponding .txt file (e.g. old_name.txt -> image-1.txt).
+    Uses a 2-pass rename with unique temporary names to prevent overwrite collisions.
+    Returns list of dicts: [{'old_name': str, 'new_name': str, 'path': str}].
+    """
+    root = Path(folder).expanduser().resolve()
+    if not root.is_dir():
+        raise ImageToPromptError(f"Thư mục không tồn tại: {root}")
+
+    files = scan_image_files(root, recursive=recursive)
+    if not files:
+        return []
+
+    # Sort files naturally so image1, image2, image10 are ordered properly
+    def natural_sort_key(p: Path):
+        return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", p.name)]
+
+    files = sorted(files, key=natural_sort_key)
+
+    import uuid
+    session_id = uuid.uuid4().hex[:8]
+
+    # Plan renames: (orig_img, temp_img, target_img, orig_txt_opt, temp_txt_opt, target_txt)
+    plan = []
+    for idx, img_path in enumerate(files, start=1):
+        ext = img_path.suffix.lower()
+        target_name = f"image-{idx}{ext}"
+        target_path = img_path.parent / target_name
+
+        temp_name = f"__pronto_tmp_{session_id}_{idx}__{ext}"
+        temp_path = img_path.parent / temp_name
+
+        orig_txt = img_path.with_suffix(".txt")
+        has_txt = orig_txt.exists() and orig_txt.is_file()
+        temp_txt = img_path.parent / f"__pronto_tmp_{session_id}_{idx}__.txt" if has_txt else None
+        target_txt = target_path.with_suffix(".txt")
+
+        plan.append({
+            "orig_img": img_path,
+            "temp_img": temp_path,
+            "target_img": target_path,
+            "orig_txt": orig_txt if has_txt else None,
+            "temp_txt": temp_txt,
+            "target_txt": target_txt,
+        })
+
+    # Pass 1: rename all images and corresponding existing .txt to temporary names
+    for item in plan:
+        item["orig_img"].rename(item["temp_img"])
+        if item["orig_txt"] and item["temp_txt"] and item["orig_txt"].exists():
+            item["orig_txt"].rename(item["temp_txt"])
+
+    # Pass 2: rename from temporary names to final image-{idx}.ext
+    records = []
+    for item in plan:
+        item["temp_img"].rename(item["target_img"])
+        if item["temp_txt"] and item["temp_txt"].exists():
+            item["temp_txt"].rename(item["target_txt"])
+        records.append({
+            "old_name": item["orig_img"].name,
+            "new_name": item["target_img"].name,
+            "path": str(item["target_img"]),
+        })
+
+    return records
 
 
 def extract_ollama_error(raw_response: str) -> str:
@@ -330,6 +436,38 @@ def clean_extracted_prompt_body(prompt: str) -> str:
     return p
 
 
+def clean_multiline_title(text: str) -> str:
+    """Clean multiline title section (e.g. 5 SEO titles), preserving numbered list or bullets."""
+    raw = (text or "").strip()
+    if not raw:
+        return ""
+    lines = [line.strip() for line in raw.split("\n") if line.strip()]
+    if not lines:
+        return ""
+    if len(lines) == 1:
+        return clean_extracted_title(lines[0])
+
+    cleaned_lines = []
+    for line in lines:
+        l = line.strip()
+        # If line is wrapped in bold e.g. **1. Retrato...** -> 1. Retrato...
+        if l.startswith("**") and l.endswith("**") and len(l) > 4:
+            l = l[2:-2].strip()
+        # Remove markdown heading hashes if present
+        l = re.sub(r"^#{1,6}\s*", "", l).strip()
+        # Strip redundant labels if present on standalone line
+        if re.match(
+            r"^(?:Image\s*Title|Titles|Title|Tiêu\s*đề(?:\s*ảnh)?|Tên\s*(?:ảnh|hình\s*ảnh)?|Name|Sugestões\s*de\s*Títulos)\s*[:：\-]*(?:\*\*)?\s*$",
+            l,
+            re.IGNORECASE,
+        ):
+            continue
+        if l:
+            cleaned_lines.append(l)
+
+    return "\n".join(cleaned_lines).strip()
+
+
 def parse_title_and_prompt(text: str) -> dict[str, str]:
     """Parse raw model output or existing txt content into a title and prompt dict."""
     cleaned = clean_extracted_prompt(text)
@@ -342,97 +480,107 @@ def parse_title_and_prompt(text: str) -> dict[str, str]:
         try:
             data = json.loads(json_match.group(0))
             if isinstance(data, dict):
-                title = str(data.get("title") or data.get("name") or data.get("tieu_de") or "").strip()
+                title = data.get("title") or data.get("titles") or data.get("name") or data.get("tieu_de") or ""
+                if isinstance(title, list):
+                    title_str = "\n".join(str(t).strip() for t in title if str(t).strip())
+                else:
+                    title_str = str(title).strip()
                 prompt = str(data.get("prompt") or data.get("description") or "").strip()
-                if title or prompt:
+                if title_str or prompt:
                     return {
-                        "title": clean_extracted_title(title),
+                        "title": clean_multiline_title(title_str) if "\n" in title_str else clean_extracted_title(title_str),
                         "prompt": clean_extracted_prompt_body(prompt),
                     }
         except Exception:
             pass
 
-    # 2. Markdown headers or labelled sections:
-    # Handles: # Image Title, Title:, **Title:**, # Prompt, Prompt:, (Title):**, (bằng tiếng Việt):**, etc.
-    title_pattern = re.compile(
-        r"(?:^|\n)\s*(?:[\d\.\)\-\*\+]\s*)*"
-        r"(?:#{1,6}\s*)?"
-        r"(?:\*\*)?"
-        r"\(?\s*"
-        r"(?:Image\s*Title|Title|Tiêu\s*đề(?:\s*ảnh)?|Tên\s*(?:ảnh|hình\s*ảnh)?|Name)"
+    # 2. Section matching: Look for Title section and Prompt section
+    # Handles: Title:, **Title:**, # Image Title, Sugestões de Títulos:, Prompt:, etc.
+    title_header_regex = re.compile(
+        r"(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?"
+        r"(?:Image\s*Title|Titles|Title|Tiêu\s*đề(?:\s*ảnh)?|Tên\s*(?:ảnh|hình\s*ảnh)?|Name|Sugestões\s*de\s*Títulos)"
         r"(?:\s*\([^)]*\))?"
-        r"\)?\s*"
-        r"(?:\*\*)?"
-        r"\s*[:：\-]?(?:\*\*)?\s*[:：\-]?(?:\*\*)?\s*"
-        r"([^\n\r#]+)",
+        r"(?:\*\*)?\s*[:：\-]*(?:\*\*)?\s*",
+        re.IGNORECASE,
+    )
+    prompt_header_regex = re.compile(
+        r"(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?"
+        r"(?:MAIN\s*PROMPT|Image\s*Prompt|Prompt|Gợi\s*ý\s*prompt|Mô\s*tả\s*prompt|Nội\s*dung\s*prompt)"
+        r"(?:\s*\([^)]*\))?"
+        r"(?:\*\*)?\s*[:：\-]*(?:\*\*)?\s*",
         re.IGNORECASE,
     )
 
-    prompt_section_pattern = re.compile(
-        r"(?:^|\n)\s*(?:[\d\.\)\-\*\+]\s*)*"
-        r"(?:#{1,6}\s*)?"
-        r"(?:\*\*)?"
-        r"\(?\s*"
-        r"(?:MAIN\s*PROMPT|Image\s*Prompt|Prompt|Gợi\s*ý\s*prompt|Mô\s*tả\s*prompt|Nội\s*dung\s*prompt|bằng\s*tiếng\s*[^:：\*\n\)]+|tiếng\s*[^:：\*\n\)]+)"
-        r"(?:\s*\([^)]*\))?"
-        r"\)?\s*"
-        r"(?:\*\*)?"
-        r"\s*[:：\-]?(?:\*\*)?\s*[:：\-]?(?:\*\*)?\s*"
-        r"([\s\S]*?)"
-        r"(?=(?:\n\s*(?:#{1,6}\s*)?(?:\*\*)?Negative\s*Prompt\s*[:：\-]?(?:\*\*)?)|$)",
-        re.IGNORECASE,
-    )
-
-    prompt_match = prompt_section_pattern.search(cleaned)
-    title_match = title_pattern.search(cleaned)
+    p_match = prompt_header_regex.search(cleaned)
+    t_match = title_header_regex.search(cleaned)
 
     title = ""
     prompt = ""
 
-    if prompt_match:
-        prompt = prompt_match.group(1).strip()
-        if title_match:
-            if title_match.start() < prompt_match.start():
-                title = title_match.group(1).strip()
-            else:
-                title = title_match.group(1).strip()
+    if t_match and p_match:
+        if t_match.start() < p_match.start():
+            raw_title = cleaned[t_match.end() : p_match.start()].strip()
+            raw_prompt = cleaned[p_match.end() :].strip()
         else:
-            pre = cleaned[:prompt_match.start()].strip()
-            pre = re.sub(
-                r"^(?:#{1,3}\s*)?(?:\*\*)?(?:Image\s*Title|Title|Tiêu\s*đề|Tên\s*ảnh|Name)\s*[:：\-]?(?:\*\*)?\s*[:：\-]?(?:\*\*)?\s*",
-                "",
-                pre,
-                flags=re.IGNORECASE,
-            ).strip()
-            if pre:
-                title = pre.split("\n")[0].strip()
-    elif title_match:
-        title = title_match.group(1).strip()
-        after_title = cleaned[title_match.end():].strip()
-        prompt = after_title
-    else:
-        lines = [line.strip() for line in cleaned.split("\n") if line.strip()]
+            raw_prompt = cleaned[p_match.end() : t_match.start()].strip()
+            raw_title = cleaned[t_match.end() :].strip()
+
+        title = clean_multiline_title(raw_title) if "\n" in raw_title else clean_extracted_title(raw_title)
+        prompt = clean_extracted_prompt_body(raw_prompt)
+        return {"title": title, "prompt": prompt}
+
+    elif p_match:
+        pre = cleaned[: p_match.start()].strip()
+        raw_prompt = cleaned[p_match.end() :].strip()
+        pre = re.sub(
+            r"^(?:#{1,3}\s*)?(?:\*\*)?(?:Image\s*Title|Titles|Title|Tiêu\s*đề|Tên\s*ảnh|Name)\s*[:：\-]?(?:\*\*)?\s*",
+            "",
+            pre,
+            flags=re.IGNORECASE,
+        ).strip()
+        title = clean_multiline_title(pre) if "\n" in pre else clean_extracted_title(pre)
+        prompt = clean_extracted_prompt_body(raw_prompt)
+        return {"title": title, "prompt": prompt}
+
+    elif t_match:
+        after = cleaned[t_match.end() :].strip()
+        lines = [ln.strip() for ln in after.split("\n") if ln.strip()]
         if len(lines) == 1:
-            full = lines[0]
-            if len(full) > 60:
-                first_clause = re.split(r"[,;:.!?]", full)[0].strip()
-                if 10 <= len(first_clause) <= 60:
-                    title = first_clause
-                else:
-                    split_at = full[:60].rfind(" ")
-                    title = full[:split_at].strip() if split_at > 20 else full[:50].strip()
-                prompt = full
+            title = clean_extracted_title(lines[0])
+            prompt = ""
+        elif len(lines) <= 5 and any(re.match(r"^\d+[\.\)]", ln) for ln in lines):
+            title = clean_multiline_title(after)
+            prompt = ""
+        else:
+            title = clean_extracted_title(lines[0])
+            prompt = clean_extracted_prompt_body("\n".join(lines[1:]))
+        return {"title": title, "prompt": prompt}
+
+    # Fallback heuristics
+    lines = [line.strip() for line in cleaned.split("\n") if line.strip()]
+    if not lines:
+        return {"title": "", "prompt": ""}
+    if len(lines) == 1:
+        full = lines[0]
+        if len(full) > 60:
+            first_clause = re.split(r"[,;:.!?]", full)[0].strip()
+            if 10 <= len(first_clause) <= 60:
+                title = first_clause
             else:
-                title = full
-                prompt = full
-        elif len(lines) > 1:
-            first_line = lines[0]
-            if len(first_line) <= 80:
-                title = first_line
-                prompt = "\n".join(lines[1:]).strip()
-            else:
-                title = first_line[:60].strip()
-                prompt = "\n".join(lines).strip()
+                split_at = full[:60].rfind(" ")
+                title = full[:split_at].strip() if split_at > 20 else full[:50].strip()
+            prompt = full
+        else:
+            title = full
+            prompt = full
+    elif len(lines) > 1:
+        first_line = lines[0]
+        if len(first_line) <= 80:
+            title = first_line
+            prompt = "\n".join(lines[1:]).strip()
+        else:
+            title = first_line[:60].strip()
+            prompt = "\n".join(lines).strip()
 
     title = clean_extracted_title(title)
     prompt = clean_extracted_prompt_body(prompt)
@@ -455,11 +603,11 @@ async def resolve_model_name(requested_model: str, base_url: str = DEFAULT_OLLAM
         available = await list_ollama_models(base_url, timeout_seconds=3.0)
         if requested_model in available:
             return requested_model
-        # Check aliases: qween -> qwen, match tags
-        clean_req = requested_model.lower().replace("qween", "qwen").replace(":latest", "")
+        # Check aliases: qwen 3.8 -> qwen3.8:latest, qween -> qwen, match tags
+        clean_req = requested_model.lower().replace(" ", "").replace("qween", "qwen").replace(":latest", "")
         for m in available:
-            clean_m = m.lower().replace(":latest", "")
-            if clean_req == clean_m or clean_m.startswith(clean_req):
+            clean_m = m.lower().replace(" ", "").replace(":latest", "")
+            if clean_req == clean_m or clean_m.startswith(clean_req) or clean_req in clean_m:
                 return m
     except Exception:
         pass
@@ -474,7 +622,13 @@ async def generate_prompt_for_image_bytes(
     if not image_bytes:
         raise ImageToPromptError("Dữ liệu ảnh trống.")
 
-    w, h, aspect_ratio = detect_image_dimensions_and_ratio(image_bytes)
+    w, h, detected_ar = detect_image_dimensions_and_ratio(image_bytes)
+    # Use target aspect ratio if specified and not 'auto', else fall back to physical image aspect ratio
+    if config.target_aspect_ratio and config.target_aspect_ratio.strip().lower() != "auto":
+        aspect_ratio = config.target_aspect_ratio.strip()
+    else:
+        aspect_ratio = detected_ar
+
     model_to_use = await resolve_model_name(config.model, config.base_url)
     base_prompt = prepare_prompt(
         prompt=config.prompt,
@@ -661,7 +815,10 @@ async def process_image_file(
         w_res = res.get("width", w)
         h_res = res.get("height", h)
 
-        file_content = f"Title: {title}\n\nPrompt:\n{prompt_text}\n"
+        if "\n" in title:
+            file_content = f"Title:\n{title}\n\nPrompt:\n{prompt_text}\n"
+        else:
+            file_content = f"Title: {title}\n\nPrompt:\n{prompt_text}\n"
         await asyncio.to_thread(txt_path.write_text, file_content, encoding="utf-8")
         return {
             "status": "ok",

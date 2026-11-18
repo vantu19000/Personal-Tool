@@ -98,28 +98,49 @@ class PdfToMdSettings(BaseModel):
 class ImageToPromptSettings(BaseModel):
     """Image to Prompt settings block."""
 
-    default_model: str = Field("qween3.8", max_length=100)
-    default_language: str = Field("en", max_length=20)
+    default_model: str = Field("qwen 3.8", max_length=100)
+    default_language: str = Field("pt-BR", max_length=20)
     character_description: str = Field(
-        "nhân vật nam dùng ảnh tham chiếu cho khuôn mặt",
+        "nhân vật nữ dùng ảnh tham chiếu cho khuôn mặt",
         max_length=500,
     )
     aspect_ratio_mode: str = Field("both", max_length=50)
+    target_aspect_ratio: str = Field("4:5", max_length=50)
     system_prompt: str = Field(..., min_length=5, max_length=8000)
     timeout_seconds: int = Field(1200, ge=30, le=7200)
 
 
 DEFAULT_IMAGE_TO_PROMPT = (
-    "You are an expert AI prompt engineer specializing in prompt creation for modern cloud image generation "
-    "models like Google Gemini (Imagen 3) and ChatGPT (DALL-E 3).\n\n"
-    "Analyze this image and write a rich, highly descriptive prompt in {output_language} to recreate this image accurately.\n\n"
-    "Guidelines for Gemini & ChatGPT:\n"
-    "- Write the prompt in {output_language} using fluent, descriptive natural language sentences rather than comma-separated tags.\n"
-    "- Describe the subject(s) in detail: appearance, facial expression, pose, clothing, and actions.\n"
-    "- Describe the environment, background, setting, lighting (e.g., golden hour, soft studio light, volumetric rays), atmosphere, and color palette.\n"
-    "- Specify the artistic medium and camera perspective (e.g., cinematic photography, eye-level shot, 35mm film still, digital illustration).\n"
-    "- Avoid negative prompts, keyword spam, or model parameters (no '--ar', no weights like '(masterpiece:1.2)').\n"
-    "- Return ONLY the final prompt text. Do not include any greeting, introduction, explanation, or markdown quotes."
+    "Dịch ngược bức ảnh thành prompt tạo ảnh AI chi tiết, dùng để chia sẻ cho người khác.\n\n"
+    "YÊU CẦU QUAN TRỌNG VỀ KHUÔN MẶT THAM CHIẾU:\n"
+    "Prompt này sẽ được chia sẻ cho người khác. Khi họ dùng prompt, họ sẽ tải lên kèm khuôn mặt của họ để làm ảnh tham chiếu (reference image / face reference). "
+    "Do đó, trong nội dung prompt BẮT BUỘC phải nhắc đến việc: khuôn mặt và đặc điểm nhận diện của nhân vật / người phụ nữ (female character / model) sẽ dựa trên ảnh tham chiếu "
+    "do người dùng tải lên (ví dụ bằng {output_language}: 'o rosto e os traços faciais devem ser exatamente baseados na imagem de referência anexada'). "
+    "Tuyệt đối không mô tả chi tiết khuôn mặt gốc trong ảnh để người dùng dễ thay thế khuôn mặt của họ.\n\n"
+    "BẮT CHƯỚC TOÀN BỘ CÁC YẾU TỐ CÒN LẠI TỪ BỨC ẢNH GỐC:\n"
+    "- Không gian & Môi trường: Ánh sáng, bóng đổ, không khí xung quanh, nhiệt độ màu.\n"
+    "- Phong cách: Phong cách nhiếp ảnh chân thực, độ nét cao, chất lượng hình ảnh cao cấp.\n"
+    "- Khoảng cách camera: Cận cảnh (close-up), trung cảnh (medium shot) hoặc toàn thân (full-body).\n"
+    "- Vị trí & góc máy camera: Góc ngang tầm mắt (eye-level), góc thấp (low-angle), góc cao, v.v.\n"
+    "- Dáng người, hành động, hành vi & cảm xúc: Tư thế, cử chỉ tay, dáng người, cảm xúc tinh tế và chi tiết tới mức cô gái đang nhìn vào đâu (ví dụ: nhìn thẳng vào ống kính, nhìn nghiêng 45 độ, ánh mắt suy tư...).\n"
+    "- Tông màu: Bảng màu chủ đạo, độ tương phản và ánh sáng.\n"
+    "- Background: Hậu cảnh, bối cảnh xung quanh, chi tiết nội thất/ngoại cảnh và độ sâu trường ảnh (bokeh).\n"
+    "- Tỷ lệ ảnh: {aspect_ratio} (hoặc 4:5).\n\n"
+    "GỢI Ý 5 TIÊU ĐỀ CHO PROMPT (TỐI ƯU SEO):\n"
+    "Gợi ý cho tôi 5 cái tên (tiêu đề) cho prompt, tối ưu SEO tốt bằng {output_language}.\n"
+    "Định dạng bắt buộc cho từng tiêu đề:\n"
+    "[Loại ảnh: Retrato / Foto Editorial / Foto Executiva] + [Chủ thể: de uma mulher elegante / Feminina] + [Tư thế/Bối cảnh/Điểm nhấn]\n\n"
+    "NGÔN NGỮ ĐẦU RA:\n"
+    "- Cả 5 Tiêu đề và Nội dung Prompt BẮT BUỘC phải viết bằng: {output_language}.\n\n"
+    "ĐỊNH DẠNG TRẢ VỀ (Bắt buộc giữ đúng các nhãn 'Title:' và 'Prompt:'):\n"
+    "Title:\n"
+    "1. <Tiêu đề 1>\n"
+    "2. <Tiêu đề 2>\n"
+    "3. <Tiêu đề 3>\n"
+    "4. <Tiêu đề 4>\n"
+    "5. <Tiêu đề 5>\n\n"
+    "Prompt:\n"
+    "<Nội dung prompt dài, mô tả cực kỳ chi tiết bằng {output_language}, kết thúc với: Aspect ratio: {aspect_ratio}. --ar {aspect_ratio}>"
 )
 
 
