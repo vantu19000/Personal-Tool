@@ -104,7 +104,7 @@ class ImageToPromptSettings(BaseModel):
         "nhân vật nữ dùng ảnh tham chiếu cho khuôn mặt",
         max_length=500,
     )
-    aspect_ratio_mode: str = Field("both", max_length=50)
+    aspect_ratio_mode: str = Field("none", max_length=50)
     target_aspect_ratio: str = Field("4:5", max_length=50)
     system_prompt: str = Field(..., min_length=5, max_length=8000)
     timeout_seconds: int = Field(1200, ge=30, le=7200)
@@ -227,10 +227,11 @@ BLOCKS: Dict[str, BlockDef] = {
         description="Cấu hình cho tool dịch ngược ảnh sang prompt AI qua Ollama Vision.",
         model=ImageToPromptSettings,
         default={
-            "default_model": "qween3.8",
-            "default_language": "en",
-            "character_description": "nhân vật nam dùng ảnh tham chiếu cho khuôn mặt",
-            "aspect_ratio_mode": "both",
+            "default_model": "qwen 3.8",
+            "default_language": "pt-BR",
+            "character_description": "nhân vật nữ dùng ảnh tham chiếu cho khuôn mặt",
+            "aspect_ratio_mode": "none",
+            "target_aspect_ratio": "4:5",
             "system_prompt": DEFAULT_IMAGE_TO_PROMPT,
             "timeout_seconds": 1200,
         },

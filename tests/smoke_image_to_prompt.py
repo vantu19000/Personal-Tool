@@ -245,7 +245,8 @@ try:
         "language": "pt-BR",
         "prompt": "Custom prompt description for Ollama",
         "character_desc": "nhân vật nữ dùng ảnh tham chiếu cho khuôn mặt",
-        "aspect_ratio_mode": "both",
+        "aspect_ratio_mode": "none",
+        "target_aspect_ratio": "4:5",
     }
     r = client.post("/tools/image-to-prompt/save-defaults", data=save_data)
     assert r.status_code == 200

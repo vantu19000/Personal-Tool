@@ -182,7 +182,7 @@ async def image_to_prompt_save_defaults(
     language: str = Form("pt-BR"),
     prompt: str = Form(""),
     character_desc: str = Form(""),
-    aspect_ratio_mode: str = Form("both"),
+    aspect_ratio_mode: str = Form("none"),
     target_aspect_ratio: str = Form("4:5"),
 ):
     """Save current descriptions and options as application defaults."""

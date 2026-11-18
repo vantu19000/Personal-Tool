@@ -19,7 +19,7 @@ DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 DEFAULT_MODEL = "qwen 3.8"
 DEFAULT_TIMEOUT_SECONDS = 1200.0  # 20 phút (20 * 60s)
 DEFAULT_CHARACTER_DESC = "nhân vật nữ dùng ảnh tham chiếu cho khuôn mặt"
-DEFAULT_ASPECT_RATIO_MODE = "both"
+DEFAULT_ASPECT_RATIO_MODE = "none"
 DEFAULT_TARGET_ASPECT_RATIO = "4:5"
 
 STANDARD_RATIOS = [
@@ -195,6 +195,7 @@ def prepare_prompt(
     aspect_ratio: str = "",
     width: int = 0,
     height: int = 0,
+    aspect_ratio_mode: str = "none",
 ) -> str:
     """Inject output language, character description, and aspect ratio into the prompt template."""
     lang_name = PROMPT_LANGUAGES.get(language, language)
@@ -218,7 +219,7 @@ def prepare_prompt(
     # Aspect ratio
     if "{aspect_ratio}" in p:
         p = p.replace("{aspect_ratio}", aspect_ratio or "4:5")
-    elif aspect_ratio:
+    elif aspect_ratio and aspect_ratio_mode != "none":
         dim_info = f" ({width}x{height})" if width and height else ""
         p = f"{p}\n\nAspect Ratio Guideline: Original image aspect ratio is {aspect_ratio}{dim_info}. Replicate this ratio."
 
@@ -623,8 +624,10 @@ async def generate_prompt_for_image_bytes(
         raise ImageToPromptError("Dữ liệu ảnh trống.")
 
     w, h, detected_ar = detect_image_dimensions_and_ratio(image_bytes)
-    # Use target aspect ratio if specified and not 'auto', else fall back to physical image aspect ratio
-    if config.target_aspect_ratio and config.target_aspect_ratio.strip().lower() != "auto":
+    # If aspect_ratio_mode is 'none', do not imitate physical image aspect ratio
+    if config.aspect_ratio_mode == "none":
+        aspect_ratio = config.target_aspect_ratio.strip() if (config.target_aspect_ratio and config.target_aspect_ratio.strip().lower() != "auto") else "4:5"
+    elif config.target_aspect_ratio and config.target_aspect_ratio.strip().lower() != "auto":
         aspect_ratio = config.target_aspect_ratio.strip()
     else:
         aspect_ratio = detected_ar
@@ -637,6 +640,7 @@ async def generate_prompt_for_image_bytes(
         aspect_ratio=aspect_ratio,
         width=w,
         height=h,
+        aspect_ratio_mode=config.aspect_ratio_mode,
     )
 
     b64_img = base64.b64encode(image_bytes).decode("utf-8")
