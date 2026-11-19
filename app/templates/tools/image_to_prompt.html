@@ -915,6 +915,28 @@
         const batchErrorBanner = document.getElementById("batch-error-banner");
         const batchErrorMessage = document.getElementById("batch-error-message");
 
+        const STORAGE_KEY_FOLDER = "image_to_prompt_folder";
+
+        // Restore saved folder path from localStorage on page load
+        try {
+            const savedFolder = localStorage.getItem(STORAGE_KEY_FOLDER);
+            if (savedFolder && folderInput && !folderInput.value) {
+                folderInput.value = savedFolder;
+            }
+        } catch (_) {}
+
+        // Persist folder path to localStorage on input, change, or blur
+        if (folderInput) {
+            const persistFolder = () => {
+                try {
+                    localStorage.setItem(STORAGE_KEY_FOLDER, folderInput.value.trim());
+                } catch (_) {}
+            };
+            folderInput.addEventListener("input", persistFolder);
+            folderInput.addEventListener("change", persistFolder);
+            folderInput.addEventListener("blur", persistFolder);
+        }
+
         let totalFiles = 0;
         let currentItemMap = new Map();
 

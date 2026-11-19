@@ -380,7 +380,8 @@ try:
     assert 'id="openai-api-key"' not in r_page.text
     assert 'id="openai-base-url"' not in r_page.text
     assert "OpenAI API Key & Base URL được tự động lấy từ Cấu hình chung hệ thống" in r_page.text
-    print("   -> OK! Màn hình image-to-prompt đã loại bỏ hoàn toàn ô nhập Key/URL và hiển thị chỉ dẫn lấy từ config hệ thống.")
+    assert "image_to_prompt_folder" in r_page.text
+    print("   -> OK! Màn hình image-to-prompt đã loại bỏ hoàn toàn ô nhập Key/URL và có lưu localStorage thư mục ảnh.")
 
 finally:
     shutil.rmtree(temp_dir, ignore_errors=True)
