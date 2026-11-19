@@ -191,11 +191,12 @@ try:
 
     print("   -> OK! parse_title_and_prompt xử lý sạch sẽ hoàn toàn '(Title):**' và '(bằng tiếng Việt):**'.")
 
-    print("11. Kiểm tra chỉ thị nhân vật dùng ảnh tham chiếu trong prompt...")
+    print("11. Kiểm tra chỉ thị nhân vật dùng ảnh tham chiếu và giới hạn tiêu đề dưới 80 ký tự trong prompt...")
     from app.tools.image_to_prompt.services import DEFAULT_SYSTEM_PROMPT
     assert "reference image" in DEFAULT_SYSTEM_PROMPT.lower()
     assert "character" in DEFAULT_SYSTEM_PROMPT.lower()
-    print("   -> OK! DEFAULT_SYSTEM_PROMPT chỉ thị rõ ràng nhân vật nam/nữ dùng ảnh tham chiếu.")
+    assert "80 ký tự" in DEFAULT_SYSTEM_PROMPT
+    print("   -> OK! DEFAULT_SYSTEM_PROMPT chỉ thị rõ ràng nhân vật nam/nữ dùng ảnh tham chiếu và giới hạn tiêu đề dưới 80 ký tự.")
 
     print("12. Kiểm tra hàm nhận diện tỷ lệ khung hình ảnh (detect_image_dimensions_and_ratio)...")
     from app.tools.image_to_prompt.services import detect_image_dimensions_and_ratio
