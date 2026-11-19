@@ -546,7 +546,23 @@
                         <span>{{ t('image_to_prompt.copy_title') }}</span>
                     </button>
                 </div>
-                <div id="single-result-title" class="p-3.5 rounded-xl bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold text-xs sm:text-sm font-sans select-all leading-relaxed"></div>
+                <div id="single-result-title" class="p-3.5 rounded-xl bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold text-xs sm:text-sm font-sans select-all leading-relaxed whitespace-pre-wrap"></div>
+            </div>
+
+            <!-- 1.5. Slug URL chuẩn SEO -->
+            <div id="single-result-slug-container" class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <i data-lucide="link-2" class="w-3.5 h-3.5 text-violet-600 dark:text-violet-400"></i>
+                        <span>Slug URL (SEO)</span>
+                    </label>
+                    <button type="button" id="copy-single-slug-btn"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition">
+                        <i data-lucide="copy" class="w-3 h-3"></i>
+                        <span>Copy Slug</span>
+                    </button>
+                </div>
+                <div id="single-result-slug" class="p-3.5 rounded-xl bg-violet-50/50 dark:bg-violet-950/20 border border-violet-200/80 dark:border-violet-900/50 text-violet-700 dark:text-violet-300 font-mono text-xs sm:text-sm select-all leading-relaxed whitespace-pre-wrap"></div>
             </div>
 
             <!-- 2. Prompt để tạo ra ảnh -->
@@ -1073,7 +1089,7 @@
             startLabel.textContent = isBusy ? I18N.btn_busy : I18N.btn_start;
         }
 
-        function createOrUpdateRow(file, status, textPath, promptOrError, title, aspect_ratio, width, height, result_image, image_error, ref_image) {
+        function createOrUpdateRow(file, status, textPath, promptOrError, title, aspect_ratio, width, height, result_image, image_error, ref_image, slug) {
             let li = currentItemMap.get(file);
             if (!li) {
                 li = document.createElement("li");
@@ -1134,13 +1150,24 @@
 
                 if (title) {
                     const titleLines = title.split('\n').map(l => l.trim()).filter(Boolean);
+                    const slugLines = (slug || '').split('\n').map(l => l.trim()).filter(Boolean);
+
                     if (titleLines.length > 1) {
                         let titlesHtml = `<ul class="space-y-1.5 mt-2">`;
-                        titleLines.forEach((tLine) => {
+                        titleLines.forEach((tLine, idx) => {
+                            const rawSlug = slugLines[idx] || '';
+                            const cleanSlug = rawSlug.replace(/^\d+[\.\)]\s*/, '').trim();
                             titlesHtml += `
-                                <li class="flex items-start justify-between gap-2 p-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-xs">
-                                    <span class="font-medium text-slate-800 dark:text-slate-100 select-all leading-relaxed">${tLine}</span>
-                                    <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(tLine)}); this.innerHTML='✓'; setTimeout(() => this.innerHTML='Copy', 1500);" class="shrink-0 px-2 py-0.5 rounded text-[11px] font-mono text-fuchsia-600 dark:text-fuchsia-400 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/50 transition">Copy</button>
+                                <li class="space-y-1.5 p-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-xs">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <span class="font-medium text-slate-800 dark:text-slate-100 select-all leading-relaxed">${tLine}</span>
+                                        <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(tLine)}); this.innerHTML='✓'; setTimeout(() => this.innerHTML='Copy', 1500);" class="shrink-0 px-2 py-0.5 rounded text-[11px] font-mono text-fuchsia-600 dark:text-fuchsia-400 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/50 transition">Copy</button>
+                                    </div>
+                                    ${cleanSlug ? `
+                                    <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-900">
+                                        <span class="font-mono text-[11px] text-violet-600 dark:text-violet-400 select-all truncate">/${cleanSlug}</span>
+                                        <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(cleanSlug)}); this.innerHTML='✓'; setTimeout(() => this.innerHTML='Copy Slug', 1500);" class="shrink-0 px-2 py-0.5 rounded text-[10px] font-mono text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/50 transition">Copy Slug</button>
+                                    </div>` : ''}
                                 </li>
                             `;
                         });
@@ -1148,17 +1175,21 @@
 
                         contentHtml += `
                             <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                                <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+                                <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1 flex-wrap gap-1">
                                     <span class="font-bold text-fuchsia-600 dark:text-fuchsia-400 flex items-center gap-1">
                                         <i data-lucide="tags" class="w-3.5 h-3.5"></i>
-                                        <span>5 Gợi ý Tiêu đề SEO (Titles)</span>
+                                        <span>5 Gợi ý Tiêu đề & Slug SEO</span>
                                     </span>
-                                    <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(title)}); this.innerHTML='✓ Đã copy'; setTimeout(() => this.innerHTML='Copy Tất cả 5 Tiêu đề', 1500);" class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-[11px] font-semibold">Copy Tất cả 5 Tiêu đề</button>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(title)}); this.innerHTML='✓ Đã copy'; setTimeout(() => this.innerHTML='Copy 5 Tiêu đề', 1500);" class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-[11px] font-semibold">Copy 5 Tiêu đề</button>
+                                        ${slug ? `<button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(slug)}); this.innerHTML='✓ Đã copy'; setTimeout(() => this.innerHTML='Copy 5 Slug', 1500);" class="text-violet-600 dark:text-violet-400 hover:underline font-mono text-[11px] font-semibold">Copy 5 Slug</button>` : ''}
+                                    </div>
                                 </div>
                                 ${titlesHtml}
                             </div>
                         `;
                     } else {
+                        const cleanSingleSlug = (slug || '').replace(/^\d+[\.\)]\s*/, '').trim();
                         contentHtml += `
                             <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                                 <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
@@ -1169,6 +1200,11 @@
                                     <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(title)}); this.innerHTML='✓ ${I18N.copied}'; setTimeout(() => this.innerHTML='${I18N.copy_title}', 1500);" class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-[11px]">${I18N.copy_title}</button>
                                 </div>
                                 <div class="font-semibold text-xs text-slate-800 dark:text-slate-100 select-all">${title}</div>
+                                ${cleanSingleSlug ? `
+                                <div class="flex items-center justify-between gap-2 pt-1.5 mt-1.5 border-t border-slate-200/60 dark:border-slate-800 text-[11px]">
+                                    <span class="font-mono text-violet-600 dark:text-violet-400 truncate select-all">/${cleanSingleSlug}</span>
+                                    <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(cleanSingleSlug)}); this.innerHTML='✓'; setTimeout(() => this.innerHTML='Copy Slug', 1500);" class="shrink-0 text-violet-600 dark:text-violet-400 hover:underline font-mono text-[10px]">Copy Slug</button>
+                                </div>` : ''}
                             </div>
                         `;
                     }
@@ -1184,7 +1220,7 @@
                                 </span>
                                 <button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(promptOrError)}); this.innerHTML='✓ ${I18N.copied}'; setTimeout(() => this.innerHTML='${I18N.copy_prompt}', 1500);" class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-[11px]">${I18N.copy_prompt}</button>
                             </div>
-                            <p class="font-mono text-xs text-slate-700 dark:text-slate-300 line-clamp-3 select-all">${promptOrError}</p>
+                            <pre class="font-mono text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed select-all max-h-60 overflow-y-auto">${promptOrError}</pre>
                         </div>
                     `;
                 }
@@ -1293,13 +1329,13 @@
                         totalFiles = event.total || 0;
                         progressCount.textContent = `0 / ${totalFiles}`;
                     } else if (event.type === "file_start") {
-                        createOrUpdateRow(event.file, "processing", "", "");
+                        createOrUpdateRow(event.file, "processing", "", "", "", "", "", "", null, null, null, "");
                     } else if (event.type === "file_done") {
-                        createOrUpdateRow(event.file, "ok", event.txt_file, event.prompt, event.title, event.aspect_ratio, event.width, event.height, event.result_image, event.image_error, event.ref_image);
+                        createOrUpdateRow(event.file, "ok", event.txt_file, event.prompt, event.title, event.aspect_ratio, event.width, event.height, event.result_image, event.image_error, event.ref_image, event.slug);
                     } else if (event.type === "file_skipped") {
-                        createOrUpdateRow(event.file, "skipped", event.txt_file, event.prompt, event.title, event.aspect_ratio, event.width, event.height, event.result_image, event.image_error, event.ref_image);
+                        createOrUpdateRow(event.file, "skipped", event.txt_file, event.prompt, event.title, event.aspect_ratio, event.width, event.height, event.result_image, event.image_error, event.ref_image, event.slug);
                     } else if (event.type === "file_error") {
-                        createOrUpdateRow(event.file, "error", event.txt_file, event.error, "", event.aspect_ratio, event.width, event.height, event.result_image, event.image_error, event.ref_image);
+                        createOrUpdateRow(event.file, "error", event.txt_file, event.error, "", event.aspect_ratio, event.width, event.height, event.result_image, event.image_error, event.ref_image, "");
                         if (batchErrorBanner && batchErrorMessage) {
                             batchErrorBanner.classList.remove("hidden");
                             batchErrorMessage.textContent = event.error || "Ollama error";
@@ -1371,9 +1407,11 @@
         const submitLabel = document.getElementById("single-submit-label");
         const resultBox = document.getElementById("single-result-box");
         const resultTitle = document.getElementById("single-result-title");
+        const resultSlug = document.getElementById("single-result-slug");
         const resultText = document.getElementById("single-result-text");
         const copyBtn = document.getElementById("copy-single-prompt-btn");
         const copyTitleBtn = document.getElementById("copy-single-title-btn");
+        const copySlugBtn = document.getElementById("copy-single-slug-btn");
         const copyAllBtn = document.getElementById("copy-single-all-btn");
         const singleErrorBox = document.getElementById("single-error-box");
         const singleErrorText = document.getElementById("single-error-text");
@@ -1418,11 +1456,29 @@
             });
         }
 
+        if (copySlugBtn) {
+            copySlugBtn.addEventListener("click", () => {
+                if (resultSlug && resultSlug.textContent) {
+                    navigator.clipboard.writeText(resultSlug.textContent).then(() => {
+                        const original = copySlugBtn.innerHTML;
+                        copySlugBtn.innerHTML = `<span class="text-emerald-500 font-bold">✓ ${I18N.copied}</span>`;
+                        setTimeout(() => { copySlugBtn.innerHTML = original; }, 1800);
+                    });
+                }
+            });
+        }
+
         if (copyAllBtn) {
             copyAllBtn.addEventListener("click", () => {
                 const titleStr = resultTitle ? resultTitle.textContent.trim() : "";
+                const slugStr = resultSlug ? resultSlug.textContent.trim() : "";
                 const promptStr = resultText ? resultText.textContent.trim() : "";
-                const combined = `Title: ${titleStr}\n\nPrompt:\n${promptStr}`;
+                let combined = "";
+                if (slugStr) {
+                    combined = `Title:\n${titleStr}\n\nSlug:\n${slugStr}\n\nPrompt:\n${promptStr}`;
+                } else {
+                    combined = `Title: ${titleStr}\n\nPrompt:\n${promptStr}`;
+                }
                 navigator.clipboard.writeText(combined).then(() => {
                     const original = copyAllBtn.innerHTML;
                     copyAllBtn.innerHTML = `<span class="text-emerald-500 font-bold">✓ ${I18N.copied}</span>`;
@@ -1489,6 +1545,15 @@
                 }
 
                 if (resultTitle) resultTitle.textContent = data.title || "";
+                if (resultSlug) {
+                    const slugContainer = document.getElementById("single-result-slug-container");
+                    if (data.slug) {
+                        resultSlug.textContent = data.slug;
+                        if (slugContainer) slugContainer.classList.remove("hidden");
+                    } else if (slugContainer) {
+                        slugContainer.classList.add("hidden");
+                    }
+                }
                 resultText.textContent = data.prompt || "";
 
                 // Display OpenAI Generated Image (if any)

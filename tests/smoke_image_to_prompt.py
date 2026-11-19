@@ -432,6 +432,133 @@ try:
         assert called_kwargs.get("reference_image_filename") in ("face1.jpg", "face2.png")
     print("   -> OK! process_image_file đã tự động lấy ngẫu nhiên 1 ảnh từ thư mục tham chiếu và truyền cho OpenAI API.")
 
+    print("24. Kiểm tra tính năng tạo và trả về slug URL chuẩn SEO...")
+    from app.tools.image_to_prompt.services import (
+        slugify_text,
+        generate_slugs_from_title_text,
+        parse_title_and_prompt,
+    )
+    # Test slugify_text
+    assert slugify_text("Retrato de Uma Mulher Elegante") == "retrato-de-uma-mulher-elegante"
+    assert slugify_text("Café na Praça São Paulo - Edição Especial!") == "cafe-na-praca-sao-paulo-edicao-especial"
+    assert slugify_text("Đường dẫn tĩnh cho ảnh đại diện") == "duong-dan-tinh-cho-anh-dai-dien"
+
+    # Test multiline titles slug generation
+    sample_5_titles = (
+        "1. Mulher Elegante em Paris\n"
+        "2. Retrato Urbano de Moda\n"
+        "3. Estilo de Rua Sofisticado\n"
+        "4. Ensaio Fotográfico Noturno\n"
+        "5. Beleza Natural em Foco"
+    )
+    slugs_gen = generate_slugs_from_title_text(sample_5_titles)
+    slug_lines = slugs_gen.split("\n")
+    assert len(slug_lines) == 5
+    assert slug_lines[0] == "1. mulher-elegante-em-paris"
+    assert slug_lines[1] == "2. retrato-urbano-de-moda"
+    assert slug_lines[4] == "5. beleza-natural-em-foco"
+
+    # Test parsing when Slug section is explicitly provided
+    ai_output_with_slug = f"Title:\n{sample_5_titles}\n\nSlug:\n{slugs_gen}\n\nPrompt:\nA beautiful portrait photograph."
+    parsed_with_slug = parse_title_and_prompt(ai_output_with_slug)
+    assert parsed_with_slug["slug"] == slugs_gen
+    assert parsed_with_slug["prompt"] == "A beautiful portrait photograph."
+
+    # Test parsing when Slug is missing (fallback auto-generation)
+    ai_output_no_slug = f"Title:\n{sample_5_titles}\n\nPrompt:\nA beautiful portrait photograph."
+    parsed_no_slug = parse_title_and_prompt(ai_output_no_slug)
+    assert parsed_no_slug["slug"] == slugs_gen
+
+    # Test process_image_file saving Slug into .txt and returning slug
+    test_img_path3 = temp_dir / "image-3.jpg"
+    test_img_path3.write_bytes(buf_res.getvalue())
+    with patch(
+        "app.tools.image_to_prompt.services.generate_prompt_for_image_bytes",
+        new_callable=AsyncMock,
+    ) as mock_p3:
+        mock_p3.return_value = {
+            "title": sample_5_titles,
+            "slug": slugs_gen,
+            "prompt": "Portrait test prompt",
+            "aspect_ratio": "4:5",
+            "width": 800,
+            "height": 1000,
+        }
+        cfg3 = PromptConfig(overwrite=True)
+        res3 = asyncio.run(process_image_file(test_img_path3, cfg3))
+        assert res3["status"] == "ok"
+        assert res3["slug"] == slugs_gen
+        txt3_content = (temp_dir / "image-3.txt").read_text(encoding="utf-8")
+        assert "Title:\n" in txt3_content
+        assert "Slug:\n" in txt3_content
+        assert "Prompt:\n" in txt3_content
+        assert "1. mulher-elegante-em-paris" in txt3_content
+
+    # Test /tools/image-to-prompt/single returning slug
+    with patch(
+        "app.tools.image_to_prompt.services.generate_prompt_for_image_bytes",
+        new_callable=AsyncMock,
+    ) as mock_p_single:
+        mock_p_single.return_value = {
+            "title": "Retrato Clássico",
+            "slug": "retrato-classico",
+            "prompt": "Test prompt single",
+            "aspect_ratio": "4:5",
+        }
+        r_single = client.post(
+            "/tools/image-to-prompt/single",
+            files={"file": ("test.jpg", buf_res.getvalue(), "image/jpeg")},
+        )
+        assert r_single.status_code == 200
+        single_json = r_single.json()
+        assert single_json["title"] == "Retrato Clássico"
+        assert single_json["slug"] == "retrato-classico"
+
+    # Test template contains slug UI elements
+    r_page_slug = client.get("/tools/image-to-prompt")
+    assert r_page_slug.status_code == 200
+    assert 'id="single-result-slug"' in r_page_slug.text
+    assert 'id="copy-single-slug-btn"' in r_page_slug.text
+    assert "Copy Slug" in r_page_slug.text
+    print("   -> OK! Đã sinh slug chuẩn SEO, lưu vào file .txt, trả về qua API và hiển thị trên giao diện.")
+
+    print("25. Kiểm tra tính năng cấu trúc Prompt theo từng phần xuống dòng (Subject, Pose, Background...)...")
+    from app.tools.image_to_prompt.services import format_prompt_sections
+    # Test format_prompt_sections splits sections on one line into separate lines
+    single_line_prompt = (
+        "Subject: Um homem elegante, traços baseados na imagem de referência anexada. "
+        "Pose: Em pé com a mão esquerda no bolso da calça. "
+        "Expression: Olhar confiante e sereno olhando diretamente para a câmera. "
+        "Clothing: Terno de alfaiataria azul marinho com camisa branca. "
+        "Background: Salão moderno com grandes janelas de vidro e bokeh suave. "
+        "Lighting: Luz suave natural vinda da lateral com sombras delicadas. "
+        "Camera: Plano médio na altura dos olhos com lente de 85mm. "
+        "Style: Fotografia profissional e hiper-realista em alta resolução."
+    )
+    formatted = format_prompt_sections(single_line_prompt)
+    lines_fmt = formatted.split("\n")
+    assert len(lines_fmt) == 8
+    assert lines_fmt[0].startswith("Subject:")
+    assert lines_fmt[1].startswith("Pose:")
+    assert lines_fmt[2].startswith("Expression:")
+    assert lines_fmt[3].startswith("Clothing:")
+    assert lines_fmt[4].startswith("Background:")
+    assert lines_fmt[5].startswith("Lighting:")
+    assert lines_fmt[6].startswith("Camera:")
+    assert lines_fmt[7].startswith("Style:")
+
+    # Test DEFAULT_SYSTEM_PROMPT includes prompt sections
+    from app.tools.image_to_prompt.services import DEFAULT_SYSTEM_PROMPT
+    assert "CẤU TRÚC PHẦN PROMPT (BẮT BUỘC CHIA THEO TỪNG PHẦN, MỖI PHẦN XUỐNG DÒNG)" in DEFAULT_SYSTEM_PROMPT
+    assert "Pose:" in DEFAULT_SYSTEM_PROMPT
+    assert "Background:" in DEFAULT_SYSTEM_PROMPT
+    assert "Lighting:" in DEFAULT_SYSTEM_PROMPT
+    assert "Camera:" in DEFAULT_SYSTEM_PROMPT
+
+    # Test batch template preserves whitespace-pre-wrap for multiline prompts
+    assert 'whitespace-pre-wrap leading-relaxed select-all max-h-60 overflow-y-auto' in r_page_slug.text
+    print("   -> OK! Prompt đã được cấu trúc rõ ràng theo từng phần xuống dòng (Subject, Pose, Expression, Clothing, Background, Lighting, Camera, Style).")
+
 finally:
     shutil.rmtree(temp_dir, ignore_errors=True)
 

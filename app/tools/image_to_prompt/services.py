@@ -96,22 +96,46 @@ DEFAULT_SYSTEM_PROMPT = (
     "- Tông màu: Bảng màu chủ đạo, độ tương phản và ánh sáng.\n"
     "- Background: Hậu cảnh, bối cảnh xung quanh, chi tiết nội thất/ngoại cảnh và độ sâu trường ảnh (bokeh).\n"
     "- Tỷ lệ ảnh: {aspect_ratio}.\n\n"
-    "GỢI Ý 5 TIÊU ĐỀ CHO PROMPT (TỐI ƯU SEO):\n"
-    "Gợi ý cho tôi 5 cái tên (tiêu đề) cho prompt, tối ưu SEO tốt bằng {output_language}.\n"
+    "GỢI Ý 5 TIÊU ĐỀ CHO PROMPT & SLUG (TỐI ƯU SEO):\n"
+    "Gợi ý cho tôi 5 cái tên (tiêu đề) cho prompt và slug tương ứng, tối ưu SEO tốt bằng {output_language}.\n"
     "Yêu cầu độ dài: Mỗi tiêu đề BẮT BUỘC phải ngắn gọn, súc tích và GIỚI HẠN DƯỚI 80 KÝ TỰ (tối đa 80 ký tự) để tối ưu hiển thị SEO.\n"
     "Định dạng bắt buộc cho từng tiêu đề (nhận diện đúng chủ thể nam hoặc nữ từ ảnh gốc):\n"
     "[Loại ảnh: Retrato / Foto Editorial / Foto Executiva] + [Chủ thể: de uma mulher elegante / Feminina (nếu là nữ) hoặc de um homem elegante / Masculino (nếu là nam)] + [Tư thế/Bối cảnh/Điểm nhấn]\n\n"
+    "CẤU TRÚC PHẦN PROMPT (BẮT BUỘC CHIA THEO TỪNG PHẦN, MỖI PHẦN XUỐNG DÒNG):\n"
+    "Trong mục 'Prompt:', KHÔNG ĐƯỢC viết thành một đoạn văn duy nhất. BẮT BUỘC phải chia theo từng phần rõ ràng, mỗi phần nằm trên một dòng riêng biệt:\n"
+    "- Subject: Mô tả chủ thể (nam hoặc nữ), độ tuổi ước tính và chỉ định khuôn mặt dựa trên ảnh tham chiếu đính kèm bằng {output_language}.\n"
+    "- Pose: Tư thế, dáng đứng/ngồi, cử chỉ tay chân, hướng cơ thể bằng {output_language}.\n"
+    "- Expression: Biểu cảm khuôn mặt, ánh mắt nhìn thẳng vào ống kính máy ảnh hoặc nhìn nghiêng bằng {output_language}.\n"
+    "- Clothing: Trang phục, phụ kiện, màu sắc, chất liệu vải bằng {output_language}.\n"
+    "- Background: Hậu cảnh, bối cảnh không gian, chi tiết nội thất/ngoại cảnh, độ mờ trường ảnh (bokeh) bằng {output_language}.\n"
+    "- Lighting: Ánh sáng, bóng đổ, nguồn sáng, nhiệt độ màu, ánh sáng tự nhiên/studio bằng {output_language}.\n"
+    "- Camera: Khoảng cách camera (close-up/medium shot/full-body), góc máy, tiêu cự ống kính bằng {output_language}.\n"
+    "- Style: Phong cách nhiếp ảnh chân thực (photorealistic), độ sắc nét cao cấp bằng {output_language}.\n\n"
     "NGÔN NGỮ ĐẦU RA:\n"
-    "- Cả 5 Tiêu đề và Nội dung Prompt BẮT BUỘC phải viết bằng: {output_language}.\n\n"
-    "ĐỊNH DẠNG TRẢ VỀ (Bắt buộc giữ đúng các nhãn 'Title:' và 'Prompt:'):\n"
+    "- Cả 5 Tiêu đề và Nội dung các phần trong Prompt BẮT BUỘC phải viết bằng: {output_language}.\n"
+    "- Slug: là slug URL chuẩn SEO viết thường, không dấu, ngăn cách bằng dấu gạch ngang (-) cho từng tiêu đề tương ứng.\n\n"
+    "ĐỊNH DẠNG TRẢ VỀ (Bắt buộc giữ đúng các nhãn 'Title:', 'Slug:' và 'Prompt:'):\n"
     "Title:\n"
     "1. <Tiêu đề 1 dưới 80 ký tự>\n"
     "2. <Tiêu đề 2 dưới 80 ký tự>\n"
     "3. <Tiêu đề 3 dưới 80 ký tự>\n"
     "4. <Tiêu đề 4 dưới 80 ký tự>\n"
     "5. <Tiêu đề 5 dưới 80 ký tự>\n\n"
+    "Slug:\n"
+    "1. <slug-tieu-de-1>\n"
+    "2. <slug-tieu-de-2>\n"
+    "3. <slug-tieu-de-3>\n"
+    "4. <slug-tieu-de-4>\n"
+    "5. <slug-tieu-de-5>\n\n"
     "Prompt:\n"
-    "<Nội dung prompt dài, mô tả cực kỳ chi tiết bằng {output_language}, kết thúc với: Aspect ratio: {aspect_ratio}. --ar {aspect_ratio}>"
+    "Subject: <mô tả chủ thể & khuôn mặt tham chiếu bằng {output_language}>\n"
+    "Pose: <mô tả tư thế, cử chỉ bằng {output_language}>\n"
+    "Expression: <mô tả biểu cảm, ánh mắt bằng {output_language}>\n"
+    "Clothing: <mô tả trang phục bằng {output_language}>\n"
+    "Background: <mô tả bối cảnh, hậu cảnh bằng {output_language}>\n"
+    "Lighting: <mô tả ánh sáng, không khí bằng {output_language}>\n"
+    "Camera: <mô tả góc máy, khoảng cách bằng {output_language}>\n"
+    "Style: <mô tả phong cách ảnh bằng {output_language}>"
 )
 
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tiff"}
@@ -435,6 +459,29 @@ def clean_extracted_title(title: str) -> str:
     return t
 
 
+def format_prompt_sections(prompt: str) -> str:
+    """Ensure prompt sections (Subject, Pose, Expression, Clothing, Background, Lighting, Camera, Style...)
+    are separated and each section begins on a new line."""
+    if not prompt:
+        return ""
+    p = prompt.strip()
+
+    # Pattern for section headers like "Pose:", "**Pose:**", "- Pose:", "Background:"
+    # If preceded by any non-newline character, insert a newline before it
+    pattern = re.compile(
+        r"(?<=[^\n])\s+(?=(?:[-*•]\s*)?(?:\*\*)?"
+        r"(?:Subject|Pose|Expression|Clothing|Outfit|Background|Lighting|Camera|Angle|Shot|Style|Color(?:s)?|Mood|Atmosphere|"
+        r"Sujeito|Rosto|Expressão|Roupa|Vestimenta|Cenário|Fundo|Iluminação|Luz|Câmera|Ângulo|Estilo|Cores|Ambiente)"
+        r"(?:\*\*)?\s*[:：])",
+        re.IGNORECASE,
+    )
+    p = pattern.sub("\n", p)
+
+    # Clean redundant empty lines (more than 2 consecutive newlines)
+    p = re.sub(r"\n{3,}", "\n\n", p)
+    return p.strip()
+
+
 def clean_extracted_prompt_body(prompt: str) -> str:
     """Clean extracted prompt, removing leftover header markers like '(bằng tiếng Việt):**', etc."""
     p = (prompt or "").strip()
@@ -461,6 +508,7 @@ def clean_extracted_prompt_body(prompt: str) -> str:
     ).strip()
     # Strip residual dangling bold/markdown header prefix at prompt start e.g. "**", "##", ":**"
     p = re.sub(r"^(?:\*\*|[:：\-\*#_`])+\s*", "", p).strip()
+    p = format_prompt_sections(p)
     return p
 
 
@@ -496,11 +544,78 @@ def clean_multiline_title(text: str) -> str:
     return "\n".join(cleaned_lines).strip()
 
 
+def slugify_text(text: str) -> str:
+    """Convert text into a URL-friendly slug (lowercase, unaccented ASCII, hyphen-separated).
+    Handles Vietnamese, Portuguese, and other Latin alphabets.
+    """
+    import unicodedata
+
+    if not text:
+        return ""
+    # Strip leading numbering like '1. ', '1) ', '1 - '
+    t = re.sub(r"^\s*\d+[\.\)\-:]\s*", "", text).strip()
+    # Normalize 'đ'/'Đ'
+    t = t.replace("đ", "d").replace("Đ", "D")
+    # Decompose unicode to separate base letters from diacritics
+    normalized = unicodedata.normalize("NFD", t)
+    # Strip combining marks (accents: tilde, acute, grave, cedilla, etc.)
+    stripped = "".join(ch for ch in normalized if unicodedata.category(ch)[0] != "M")
+    # Lowercase and convert non-alphanumeric chars to hyphens
+    slug = "".join(ch if ("a" <= ch <= "z" or "0" <= ch <= "9") else "-" for ch in stripped.lower())
+    # Collapse multiple hyphens and strip edges
+    slug = re.sub(r"-{2,}", "-", slug).strip("-")
+    return slug
+
+
+def generate_slugs_from_title_text(title_text: str) -> str:
+    """Generate numbered slugs matching each line of title_text."""
+    if not title_text or not title_text.strip():
+        return ""
+    lines = [ln.strip() for ln in title_text.strip().split("\n") if ln.strip()]
+    if not lines:
+        return ""
+    if len(lines) == 1:
+        return slugify_text(lines[0])
+
+    slug_lines = []
+    for idx, line in enumerate(lines, 1):
+        s = slugify_text(line)
+        if s:
+            slug_lines.append(f"{idx}. {s}")
+    return "\n".join(slug_lines)
+
+
+def clean_multiline_slug(text: str) -> str:
+    """Clean multiline slug section, preserving numbered list."""
+    raw = (text or "").strip()
+    if not raw:
+        return ""
+    lines = [line.strip() for line in raw.split("\n") if line.strip()]
+    if not lines:
+        return ""
+    if len(lines) == 1:
+        s = slugify_text(lines[0])
+        return s
+
+    cleaned_lines = []
+    for idx, line in enumerate(lines, 1):
+        l = line.strip()
+        if l.startswith("**") and l.endswith("**") and len(l) > 4:
+            l = l[2:-2].strip()
+        l = re.sub(r"^#{1,6}\s*", "", l).strip()
+        if re.match(r"^(?:URL\s*Slugs?|Slugs?|Đường\s*dẫn\s*slug)\s*[:：\-]*(?:\*\*)?\s*$", l, re.IGNORECASE):
+            continue
+        s = slugify_text(l)
+        if s:
+            cleaned_lines.append(f"{idx}. {s}")
+    return "\n".join(cleaned_lines).strip()
+
+
 def parse_title_and_prompt(text: str) -> dict[str, str]:
-    """Parse raw model output or existing txt content into a title and prompt dict."""
+    """Parse raw model output or existing txt content into a title, slug, and prompt dict."""
     cleaned = clean_extracted_prompt(text)
     if not cleaned:
-        return {"title": "", "prompt": ""}
+        return {"title": "", "slug": "", "prompt": ""}
 
     # 1. Try JSON parsing
     json_match = re.search(r"\{[\s\S]*\}", cleaned)
@@ -513,20 +628,36 @@ def parse_title_and_prompt(text: str) -> dict[str, str]:
                     title_str = "\n".join(str(t).strip() for t in title if str(t).strip())
                 else:
                     title_str = str(title).strip()
+
+                slug = data.get("slug") or data.get("slugs") or ""
+                if isinstance(slug, list):
+                    slug_str = "\n".join(str(s).strip() for s in slug if str(s).strip())
+                else:
+                    slug_str = str(slug).strip()
+
                 prompt = str(data.get("prompt") or data.get("description") or "").strip()
                 if title_str or prompt:
+                    cleaned_title = clean_multiline_title(title_str) if "\n" in title_str else clean_extracted_title(title_str)
+                    cleaned_slug = clean_multiline_slug(slug_str) if slug_str else generate_slugs_from_title_text(cleaned_title)
                     return {
-                        "title": clean_multiline_title(title_str) if "\n" in title_str else clean_extracted_title(title_str),
+                        "title": cleaned_title,
+                        "slug": cleaned_slug,
                         "prompt": clean_extracted_prompt_body(prompt),
                     }
         except Exception:
             pass
 
-    # 2. Section matching: Look for Title section and Prompt section
-    # Handles: Title:, **Title:**, # Image Title, Sugestões de Títulos:, Prompt:, etc.
+    # 2. Section matching: Look for Title, Slug, and Prompt sections
     title_header_regex = re.compile(
         r"(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?"
         r"(?:Image\s*Title|Titles|Title|Tiêu\s*đề(?:\s*ảnh)?|Tên\s*(?:ảnh|hình\s*ảnh)?|Name|Sugestões\s*de\s*Títulos)"
+        r"(?:\s*\([^)]*\))?"
+        r"(?:\*\*)?\s*[:：\-]*(?:\*\*)?\s*",
+        re.IGNORECASE,
+    )
+    slug_header_regex = re.compile(
+        r"(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?"
+        r"(?:URL\s*Slugs?|Slugs?|Đường\s*dẫn\s*slug)"
         r"(?:\s*\([^)]*\))?"
         r"(?:\*\*)?\s*[:：\-]*(?:\*\*)?\s*",
         re.IGNORECASE,
@@ -539,55 +670,39 @@ def parse_title_and_prompt(text: str) -> dict[str, str]:
         re.IGNORECASE,
     )
 
-    p_match = prompt_header_regex.search(cleaned)
     t_match = title_header_regex.search(cleaned)
+    s_match = slug_header_regex.search(cleaned)
+    p_match = prompt_header_regex.search(cleaned)
 
-    title = ""
-    prompt = ""
+    sections: list[tuple[int, int, str]] = []
+    if t_match:
+        sections.append((t_match.start(), t_match.end(), "title"))
+    if s_match:
+        sections.append((s_match.start(), s_match.end(), "slug"))
+    if p_match:
+        sections.append((p_match.start(), p_match.end(), "prompt"))
 
-    if t_match and p_match:
-        if t_match.start() < p_match.start():
-            raw_title = cleaned[t_match.end() : p_match.start()].strip()
-            raw_prompt = cleaned[p_match.end() :].strip()
-        else:
-            raw_prompt = cleaned[p_match.end() : t_match.start()].strip()
-            raw_title = cleaned[t_match.end() :].strip()
+    if sections:
+        sections.sort(key=lambda x: x[0])
+        extracted: dict[str, str] = {}
+        for i, (_, end, kind) in enumerate(sections):
+            next_start = sections[i + 1][0] if i + 1 < len(sections) else len(cleaned)
+            extracted[kind] = cleaned[end:next_start].strip()
+
+        raw_title = extracted.get("title", "")
+        raw_slug = extracted.get("slug", "")
+        raw_prompt = extracted.get("prompt", "")
 
         title = clean_multiline_title(raw_title) if "\n" in raw_title else clean_extracted_title(raw_title)
+        slug = clean_multiline_slug(raw_slug) if raw_slug else generate_slugs_from_title_text(title)
         prompt = clean_extracted_prompt_body(raw_prompt)
-        return {"title": title, "prompt": prompt}
 
-    elif p_match:
-        pre = cleaned[: p_match.start()].strip()
-        raw_prompt = cleaned[p_match.end() :].strip()
-        pre = re.sub(
-            r"^(?:#{1,3}\s*)?(?:\*\*)?(?:Image\s*Title|Titles|Title|Tiêu\s*đề|Tên\s*ảnh|Name)\s*[:：\-]?(?:\*\*)?\s*",
-            "",
-            pre,
-            flags=re.IGNORECASE,
-        ).strip()
-        title = clean_multiline_title(pre) if "\n" in pre else clean_extracted_title(pre)
-        prompt = clean_extracted_prompt_body(raw_prompt)
-        return {"title": title, "prompt": prompt}
-
-    elif t_match:
-        after = cleaned[t_match.end() :].strip()
-        lines = [ln.strip() for ln in after.split("\n") if ln.strip()]
-        if len(lines) == 1:
-            title = clean_extracted_title(lines[0])
-            prompt = ""
-        elif len(lines) <= 5 and any(re.match(r"^\d+[\.\)]", ln) for ln in lines):
-            title = clean_multiline_title(after)
-            prompt = ""
-        else:
-            title = clean_extracted_title(lines[0])
-            prompt = clean_extracted_prompt_body("\n".join(lines[1:]))
-        return {"title": title, "prompt": prompt}
+        return {"title": title, "slug": slug, "prompt": prompt}
 
     # Fallback heuristics
     lines = [line.strip() for line in cleaned.split("\n") if line.strip()]
     if not lines:
-        return {"title": "", "prompt": ""}
+        return {"title": "", "slug": "", "prompt": ""}
     if len(lines) == 1:
         full = lines[0]
         if len(full) > 60:
@@ -617,8 +732,10 @@ def parse_title_and_prompt(text: str) -> dict[str, str]:
         first_sentence = re.split(r"[.!?\n]", prompt)[0].strip()
         title = clean_extracted_title(first_sentence[:60].strip() if len(first_sentence) > 60 else first_sentence)
 
+    slug = generate_slugs_from_title_text(title)
     return {
         "title": title,
+        "slug": slug,
         "prompt": prompt,
     }
 
@@ -712,8 +829,11 @@ async def generate_prompt_for_image_bytes(
             aspect_ratio=aspect_ratio,
             mode=config.aspect_ratio_mode,
         )
+        t_val = parsed.get("title", "")
+        s_val = parsed.get("slug", "") or generate_slugs_from_title_text(t_val)
         return {
-            "title": parsed.get("title", ""),
+            "title": t_val,
+            "slug": s_val,
             "prompt": final_prompt_text,
             "aspect_ratio": aspect_ratio,
             "width": w,
@@ -1070,6 +1190,8 @@ async def process_image_file(
             existing_content = ""
         parsed = parse_title_and_prompt(existing_content)
         prompt_text = parsed.get("prompt", existing_content)
+        title_text = parsed.get("title", "")
+        slug_text = parsed.get("slug", "") or generate_slugs_from_title_text(title_text)
 
         # If generate_image is requested and the result image does not exist yet, generate it
         result_img_path_str = str(expected_result_img) if expected_result_img.exists() else None
@@ -1114,7 +1236,8 @@ async def process_image_file(
             "result_image_path": result_img_path_str,
             "ref_image": ref_used_name,
             "image_error": img_err,
-            "title": parsed.get("title", ""),
+            "title": title_text,
+            "slug": slug_text,
             "prompt": prompt_text,
             "aspect_ratio": ar,
             "width": w,
@@ -1127,15 +1250,16 @@ async def process_image_file(
         if isinstance(res, str):
             res = parse_title_and_prompt(res)
         title = res.get("title", "").strip()
+        slug_text = res.get("slug", "").strip() or generate_slugs_from_title_text(title)
         prompt_text = res.get("prompt", "").strip()
         ar_res = res.get("aspect_ratio", ar)
         w_res = res.get("width", w)
         h_res = res.get("height", h)
 
         if "\n" in title:
-            file_content = f"Title:\n{title}\n\nPrompt:\n{prompt_text}\n"
+            file_content = f"Title:\n{title}\n\nSlug:\n{slug_text}\n\nPrompt:\n{prompt_text}\n"
         else:
-            file_content = f"Title: {title}\n\nPrompt:\n{prompt_text}\n"
+            file_content = f"Title: {title}\nSlug: {slug_text}\n\nPrompt:\n{prompt_text}\n"
         await asyncio.to_thread(txt_path.write_text, file_content, encoding="utf-8")
 
         result_img_path_str = None
@@ -1178,6 +1302,7 @@ async def process_image_file(
             "ref_image": ref_used_name,
             "image_error": img_err,
             "title": title,
+            "slug": slug_text,
             "prompt": prompt_text,
             "aspect_ratio": ar_res,
             "width": w_res,

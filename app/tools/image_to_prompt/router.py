@@ -273,8 +273,12 @@ async def image_to_prompt_single(
             except Exception as img_exc:
                 image_gen_error = str(img_exc)
 
+        prompt_title = result.get("title", "")
+        slug_text = result.get("slug", "") or services.generate_slugs_from_title_text(prompt_title)
+
         return JSONResponse({
-            "title": result.get("title", ""),
+            "title": prompt_title,
+            "slug": slug_text,
             "prompt": prompt_text,
             "aspect_ratio": result.get("aspect_ratio", "4:5"),
             "width": result.get("width", 0),
