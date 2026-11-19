@@ -81,6 +81,13 @@ async def image_to_prompt_page(request: Request):
         default_openai_key,
         default_openai_url,
     ) = _get_configured_defaults()
+
+    try:
+        from app.prompt_templates.services import prompt_template_repo
+        prompt_templates = await prompt_template_repo.get_all_templates()
+    except Exception:
+        prompt_templates = []
+
     return templates.TemplateResponse(
         request,
         "tools/image_to_prompt.html",
@@ -102,6 +109,7 @@ async def image_to_prompt_page(request: Request):
             "image_models": services.SUPPORTED_IMAGE_MODELS,
             "image_qualities": services.SUPPORTED_IMAGE_QUALITIES,
             "languages": services.PROMPT_LANGUAGES,
+            "prompt_templates": prompt_templates,
         },
     )
 

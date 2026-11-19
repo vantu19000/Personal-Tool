@@ -100,6 +100,11 @@
       "desc": "Dịch ngược ảnh thành prompt tạo ảnh AI (Gemini, ChatGPT, DALL-E 3) qua Ollama",
       "badge": "✦ Vision AI"
     },
+    "prompt-templates": {
+      "name": "Mẫu Prompt",
+      "desc": "Quản lý kho mẫu prompt tạo ảnh AI lưu trữ trong MongoDB",
+      "badge": "✦ Mongo"
+    },
     "srt-translator": {
       "name": "SRT Translator",
       "desc": "Dịch file SRT tự động bằng AI, hỗ trợ nhiều ngôn ngữ",

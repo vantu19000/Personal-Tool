@@ -275,6 +275,64 @@
             </div>
         </div>
 
+        <!-- Row 2.5: Prompt Template Selector (Lưu trữ MongoDB) -->
+        <div class="rounded-2xl bg-gradient-to-r from-fuchsia-50/70 via-indigo-50/40 to-fuchsia-50/70 dark:from-fuchsia-950/20 dark:via-indigo-950/20 dark:to-fuchsia-950/20 border border-fuchsia-200/80 dark:border-fuchsia-900/50 p-4 space-y-3">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <label for="prompt-template-select" class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <i data-lucide="bookmark" class="w-4 h-4 text-fuchsia-600 dark:text-fuchsia-400"></i>
+                    <span>Mẫu Prompt (Template từ MongoDB)</span>
+                    <span id="selected-template-badge" class="hidden text-[10px] font-semibold px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950/80 dark:text-fuchsia-300"></span>
+                </label>
+
+                <div class="flex items-center gap-2.5">
+                    <button type="button"
+                            id="btn-refresh-templates"
+                            class="text-[11px] font-medium text-slate-500 hover:text-fuchsia-600 dark:text-slate-400 dark:hover:text-fuchsia-400 flex items-center gap-1 transition cursor-pointer"
+                            title="Tải lại danh sách template từ database">
+                        <i data-lucide="rotate-cw" class="w-3 h-3"></i>
+                        <span>Làm mới</span>
+                    </button>
+
+                    <a href="/tools/prompt-templates"
+                       target="_blank"
+                       class="text-[11px] font-semibold text-fuchsia-600 dark:text-fuchsia-400 hover:underline flex items-center gap-1">
+                        <span>Quản lý Kho Mẫu</span>
+                        <i data-lucide="external-link" class="w-3 h-3"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
+                <div class="sm:col-span-8">
+                    <select id="prompt-template-select"
+                            class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 cursor-pointer shadow-2xs">
+                        <option value="">-- Chọn Mẫu Prompt đã lưu (hoặc dùng mặc định bên dưới) --</option>
+                        {% for tpl in prompt_templates %}
+                        <option value="{{ tpl.id }}"
+                                data-name="{{ tpl.name }}"
+                                data-lang="{{ tpl.language or 'pt-BR' }}"
+                                data-category="{{ tpl.category or 'Chân dung' }}"
+                                {% if tpl.is_default %}data-default="true"{% endif %}>
+                            {% if tpl.is_default %}★ {% endif %}[{{ tpl.category }}] {{ tpl.name }} ({{ tpl.language or 'pt-BR' }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="sm:col-span-4 flex items-center gap-2">
+                    <button type="button"
+                            id="btn-apply-template"
+                            class="w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/40 text-slate-800 dark:text-slate-200 hover:text-fuchsia-600 dark:hover:text-fuchsia-400 transition shadow-2xs cursor-pointer">
+                        <i data-lucide="check" class="w-3.5 h-3.5 text-fuchsia-500"></i>
+                        <span>Nạp Template vào ô dưới</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Template description preview -->
+            <p id="template-desc-preview" class="text-[11px] text-slate-500 dark:text-slate-400 italic hidden"></p>
+        </div>
+
         <!-- Row 3: Custom Prompt Instruction (Collapsible / Toggleable) -->
         <div id="custom-prompt-container" class="space-y-1.5 pt-1">
             <div class="flex items-center justify-between">
@@ -799,17 +857,149 @@
         const promptTextarea = document.getElementById("batch-prompt");
         const resetPromptBtn = document.getElementById("reset-prompt-btn");
 
-        presetSelect.addEventListener("change", () => {
-            const val = presetSelect.value;
-            if (val !== "custom" && promptPresets[val]) {
-                promptTextarea.value = promptPresets[val];
-            }
-        });
+        if (presetSelect) {
+            presetSelect.addEventListener("change", () => {
+                const val = presetSelect.value;
+                if (val !== "custom" && promptPresets[val]) {
+                    promptTextarea.value = promptPresets[val];
+                }
+            });
+        }
 
-        resetPromptBtn.addEventListener("click", () => {
-            promptTextarea.value = promptPresets.detailed;
-            presetSelect.value = "detailed";
-        });
+        if (resetPromptBtn) {
+            resetPromptBtn.addEventListener("click", () => {
+                promptTextarea.value = promptPresets.detailed;
+                if (presetSelect) presetSelect.value = "detailed";
+            });
+        }
+
+        // ===== Prompt Templates from MongoDB =====
+        const tplSelect = document.getElementById("prompt-template-select");
+        const applyTplBtn = document.getElementById("btn-apply-template");
+        const refreshTplBtn = document.getElementById("btn-refresh-templates");
+        const tplDescPreview = document.getElementById("template-desc-preview");
+        const tplBadge = document.getElementById("selected-template-badge");
+        const languageSelect = document.getElementById("batch-language");
+
+        // Initial in-memory cache of templates passed from server
+        let templatesCache = {{ prompt_templates|tojson|safe }};
+
+        function applyTemplateById(templateId) {
+            if (!templateId) return;
+            const tpl = templatesCache.find(t => String(t.id) === String(templateId));
+            if (!tpl) {
+                // Fetch from API if not in cache
+                fetch(`/api/prompt-templates/${templateId}`)
+                    .then(res => res.json())
+                    .then(json => {
+                        if (json.status === "ok" && json.data) {
+                            templatesCache.push(json.data);
+                            renderTemplateToForm(json.data);
+                        }
+                    })
+                    .catch(err => console.error("Error loading template:", err));
+                return;
+            }
+            renderTemplateToForm(tpl);
+        }
+
+        function renderTemplateToForm(tpl) {
+            if (!tpl) return;
+            if (promptTextarea && tpl.prompt_content) {
+                promptTextarea.value = tpl.prompt_content;
+            }
+            if (languageSelect && tpl.language) {
+                languageSelect.value = tpl.language;
+            }
+            if (tplDescPreview) {
+                if (tpl.description) {
+                    tplDescPreview.textContent = `ℹ️ ${tpl.description}`;
+                    tplDescPreview.classList.remove("hidden");
+                } else {
+                    tplDescPreview.classList.add("hidden");
+                }
+            }
+            if (tplBadge) {
+                tplBadge.textContent = `✓ Đã chọn: ${tpl.name}`;
+                tplBadge.classList.remove("hidden");
+            }
+            // Save to localStorage
+            try {
+                localStorage.setItem("image_to_prompt_selected_template_id", String(tpl.id));
+            } catch (e) {}
+        }
+
+        if (tplSelect) {
+            tplSelect.addEventListener("change", () => {
+                const selectedId = tplSelect.value;
+                if (selectedId) {
+                    applyTemplateById(selectedId);
+                } else {
+                    if (tplBadge) tplBadge.classList.add("hidden");
+                    if (tplDescPreview) tplDescPreview.classList.add("hidden");
+                    try { localStorage.removeItem("image_to_prompt_selected_template_id"); } catch (e) {}
+                }
+            });
+
+            // Restore template from localStorage or default
+            try {
+                const savedTplId = localStorage.getItem("image_to_prompt_selected_template_id");
+                if (savedTplId && tplSelect.querySelector(`option[value="${savedTplId}"]`)) {
+                    tplSelect.value = savedTplId;
+                    applyTemplateById(savedTplId);
+                } else {
+                    // Check if there's a default template in the dropdown
+                    const defaultOption = tplSelect.querySelector(`option[data-default="true"]`);
+                    if (defaultOption) {
+                        tplSelect.value = defaultOption.value;
+                        applyTemplateById(defaultOption.value);
+                    }
+                }
+            } catch (e) {}
+        }
+
+        if (applyTplBtn && tplSelect) {
+            applyTplBtn.addEventListener("click", () => {
+                const selectedId = tplSelect.value;
+                if (!selectedId) {
+                    alert("Vui lòng chọn một mẫu template từ danh sách.");
+                    return;
+                }
+                applyTemplateById(selectedId);
+                const originalText = applyTplBtn.innerHTML;
+                applyTplBtn.innerHTML = `<span class="text-emerald-500 font-bold">✓ Đã nạp</span>`;
+                setTimeout(() => { applyTplBtn.innerHTML = originalText; }, 1400);
+            });
+        }
+
+        if (refreshTplBtn && tplSelect) {
+            refreshTplBtn.addEventListener("click", async () => {
+                refreshTplBtn.classList.add("animate-spin");
+                try {
+                    const res = await fetch("/api/prompt-templates");
+                    const json = await res.json();
+                    if (json.status === "ok" && Array.isArray(json.data)) {
+                        templatesCache = json.data;
+                        const currentVal = tplSelect.value;
+                        tplSelect.innerHTML = `<option value="">-- Chọn Mẫu Prompt đã lưu (hoặc dùng mặc định bên dưới) --</option>`;
+                        json.data.forEach(t => {
+                            const opt = document.createElement("option");
+                            opt.value = t.id;
+                            opt.textContent = `${t.is_default ? '★ ' : ''}[${t.category || 'Chân dung'}] ${t.name} (${t.language || 'pt-BR'})`;
+                            if (t.is_default) opt.setAttribute("data-default", "true");
+                            tplSelect.appendChild(opt);
+                        });
+                        if (currentVal && tplSelect.querySelector(`option[value="${currentVal}"]`)) {
+                            tplSelect.value = currentVal;
+                        }
+                    }
+                } catch (err) {
+                    console.error("Failed to refresh templates:", err);
+                } finally {
+                    refreshTplBtn.classList.remove("animate-spin");
+                }
+            });
+        }
 
         // Toggle OpenAI Image Generation Options
         const genImgToggle = document.getElementById("generate-image-toggle");

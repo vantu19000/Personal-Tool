@@ -31,6 +31,7 @@ from app.tools.hash_calculator import router as hash_calculator_router
 from app.tools.image_compressor import router as image_compressor_router
 from app.tools.image_metadata import router as image_metadata_router
 from app.tools.image_to_prompt import router as image_to_prompt_router
+from app.prompt_templates import router as prompt_templates_router
 from app.tools.pdf_to_md import router as pdf_to_md_router
 from app.tools.slufy import router as slufy_router
 from app.tools.srt_translator import router as srt_translator_router
@@ -115,6 +116,7 @@ def create_app() -> FastAPI:
     app.include_router(image_compressor_router, prefix="/tools", tags=["image-compressor"])
     app.include_router(image_metadata_router, prefix="/tools", tags=["image-metadata"])
     app.include_router(image_to_prompt_router, prefix="/tools", tags=["image-to-prompt"])
+    app.include_router(prompt_templates_router, tags=["prompt-templates"])
     app.include_router(srt_translator_router, prefix="/tools", tags=["srt-translator"])
 
     # Register Slufy's router.

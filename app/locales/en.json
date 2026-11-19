@@ -100,6 +100,11 @@
       "desc": "Reverse engineer images into AI prompts (Gemini, ChatGPT, DALL-E 3) via Ollama",
       "badge": "✦ Vision AI"
     },
+    "prompt-templates": {
+      "name": "Prompt Templates",
+      "desc": "Manage AI image prompt templates stored in MongoDB",
+      "badge": "✦ Mongo"
+    },
     "srt-translator": {
       "name": "SRT Translator",
       "desc": "Translate subtitle SRT files automatically using AI, multi-language support",

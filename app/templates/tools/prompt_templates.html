@@ -1,0 +1,669 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý Mẫu Prompt (Prompt Templates) · {{ settings.APP_NAME }}{% endblock %}
+{% block page_title %}Mẫu Prompt AI{% endblock %}
+
+{% block content %}
+<div class="space-y-6 w-full pb-12">
+
+    <!-- ===== Header Section ===== -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0d1527] via-[#161c36] to-[#0d1527] text-white p-6 sm:p-8 border border-indigo-950/80 shadow-xl">
+        <div class="absolute -top-24 -left-12 w-80 h-80 bg-fuchsia-600/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 right-1/4 w-80 h-80 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="space-y-2.5">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                        <span>AI Image Prompts</span>
+                    </span>
+
+                    {% if db_connected %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>MongoDB Connected</span>
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span>Bộ nhớ Cục bộ (Local Cache)</span>
+                    </span>
+                    {% endif %}
+                </div>
+
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                    <i data-lucide="bookmark" class="w-7 h-7 text-fuchsia-400"></i>
+                    <span>Kho Mẫu Prompt (Prompt Templates)</span>
+                </h1>
+
+                <p class="text-xs sm:text-sm text-slate-300/90 max-w-2xl leading-relaxed">
+                    Tạo, tùy biến và quản lý các mẫu prompt tạo ảnh AI lưu trữ trong cơ sở dữ liệu MongoDB. Dễ dàng phân loại theo chủ đề (Chân dung, Thời trang, Doanh nhân, Điện ảnh...) và nạp nhanh vào màn hình <strong>Image to Prompt</strong>.
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="shrink-0 flex items-center gap-3 flex-wrap">
+                <a href="/tools/image-to-prompt"
+                   class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold border border-white/20 backdrop-blur-sm transition active:scale-95">
+                    <i data-lucide="arrow-left" class="w-4 h-4 text-fuchsia-300"></i>
+                    <span>Sang Image to Prompt</span>
+                </a>
+
+                <button type="button"
+                        onclick="triggerResetDefaults()"
+                        class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold border border-white/20 backdrop-blur-sm transition active:scale-95 cursor-pointer">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4 text-amber-300"></i>
+                    <span>Khôi phục Mẫu chuẩn</span>
+                </button>
+
+                <button type="button"
+                        onclick="openTemplateModal()"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-fuchsia-600/30 transition active:scale-95 cursor-pointer">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Tạo Template Mới</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== KPI Cards ===== -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- 1. Tổng template -->
+        <div class="rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tổng số Templates</p>
+                <p class="text-2xl font-extrabold text-slate-900 dark:text-white font-mono mt-1" id="stat-total">{{ total_count }}</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-fuchsia-50 dark:bg-fuchsia-950/50 text-fuchsia-600 dark:text-fuchsia-400 flex items-center justify-center">
+                <i data-lucide="layout-template" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- 2. Danh mục -->
+        <div class="rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Danh mục chủ đề</p>
+                <p class="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 font-mono mt-1">{{ categories|length }}</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <i data-lucide="tags" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- 3. Mẫu mặc định -->
+        <div class="rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs flex items-center justify-between">
+            <div class="min-w-0 pr-2">
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mẫu Mặc định</p>
+                <p class="text-sm font-bold text-amber-600 dark:text-amber-400 mt-1 truncate" title="{{ default_template.name if default_template else 'Chưa đặt' }}">
+                    ★ {{ default_template.name if default_template else 'Chưa đặt' }}
+                </p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <i data-lucide="star" class="w-5 h-5"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Search & Filter Bar ===== -->
+    <div class="rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/90 dark:border-slate-800/80 p-4 shadow-xs">
+        <form method="GET" action="/tools/prompt-templates" class="flex flex-col sm:flex-row items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-3 w-full sm:w-auto flex-1">
+                <!-- Search input -->
+                <div class="relative flex-1 min-w-[200px]">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                    <input type="text"
+                           name="search"
+                           value="{{ current_search }}"
+                           placeholder="Tìm theo tên template, mô tả, từ khóa prompt..."
+                           class="w-full pl-9 pr-3 py-2 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40">
+                </div>
+
+                <!-- Category dropdown filter -->
+                <div class="w-auto">
+                    <select name="category"
+                            onchange="this.form.submit()"
+                            class="px-3 py-2 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 cursor-pointer">
+                        <option value="all" {% if current_category == 'all' %}selected{% endif %}>Tất cả Danh mục</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 self-end sm:self-auto">
+                <button type="submit"
+                        class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white transition cursor-pointer">
+                    Tìm kiếm
+                </button>
+                {% if current_search or current_category != 'all' %}
+                <a href="/tools/prompt-templates"
+                   class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition">
+                    Xóa lọc
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- ===== Templates List (Cards Grid) ===== -->
+    <div class="space-y-4">
+        {% if templates and templates|length > 0 %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5" id="template-card-container">
+            {% for item in templates %}
+            <div class="group relative rounded-2xl bg-white dark:bg-[#0c1220] border {% if item.is_default %}border-amber-400 dark:border-amber-600 shadow-md shadow-amber-500/5 ring-1 ring-amber-400/30{% else %}border-slate-200/90 dark:border-slate-800/80 shadow-xs hover:border-fuchsia-300 dark:hover:border-fuchsia-800 hover:shadow-md{% endif %} p-5 transition-all flex flex-col justify-between">
+                
+                <!-- Card Header -->
+                <div class="space-y-2.5">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <!-- Category Badge -->
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold
+                                {% if item.category == 'Chân dung' %}bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950/60 dark:text-fuchsia-300
+                                {% elif item.category == 'Thời trang' %}bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300
+                                {% elif item.category == 'Doanh nhân' %}bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300
+                                {% elif item.category == 'Điện ảnh' %}bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300
+                                {% else %}bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300{% endif %}">
+                                <i data-lucide="tag" class="w-3 h-3"></i>
+                                <span>{{ item.category or 'Chân dung' }}</span>
+                            </span>
+
+                            <!-- Language Badge -->
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                <i data-lucide="globe" class="w-3 h-3"></i>
+                                <span>{{ item.language or 'pt-BR' }}</span>
+                            </span>
+
+                            <!-- Default Badge -->
+                            {% if item.is_default %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                                <i data-lucide="star" class="w-3 h-3 text-amber-500 fill-amber-500"></i>
+                                <span>Mặc định</span>
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Quick Template ID -->
+                        <span class="text-[10px] font-mono text-slate-400">ID: #{{ item.id }}</span>
+                    </div>
+
+                    <!-- Template Title & Description -->
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-400 transition-colors">
+                            <span>{{ item.name }}</span>
+                        </h3>
+                        {% if item.description %}
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                            {{ item.description }}
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Prompt Preview Box -->
+                    <div class="relative mt-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 p-3">
+                        <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1.5 pb-1 border-b border-slate-200/60 dark:border-slate-800/80">
+                            <span class="font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                                <i data-lucide="code" class="w-3 h-3 text-fuchsia-500"></i>
+                                <span>Cấu trúc Prompt</span>
+                            </span>
+                            <button type="button"
+                                    onclick="copyPromptContent(this, {{ item.id }})"
+                                    class="inline-flex items-center gap-1 text-[11px] font-mono text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
+                                <i data-lucide="copy" class="w-3 h-3"></i>
+                                <span>Copy</span>
+                            </button>
+                        </div>
+                        <pre id="prompt-preview-{{ item.id }}" class="font-mono text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed line-clamp-4 select-all">{{ item.prompt_content }}</pre>
+                    </div>
+                </div>
+
+                <!-- Card Footer Actions -->
+                <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                    <div class="flex items-center gap-2">
+                        <!-- Set Default Button -->
+                        {% if not item.is_default %}
+                        <button type="button"
+                                onclick="setDefaultTemplate({{ item.id }})"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
+                                title="Đặt làm template mặc định khi mở Image to Prompt">
+                            <i data-lucide="star" class="w-3.5 h-3.5"></i>
+                            <span>Đặt mặc định</span>
+                        </button>
+                        {% endif %}
+
+                        <!-- Clone / Duplicate Button -->
+                        <button type="button"
+                                onclick="cloneTemplate({{ item.id }})"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
+                                title="Nhân bản mẫu này thành mẫu mới">
+                            <i data-lucide="copy-plus" class="w-3.5 h-3.5"></i>
+                            <span>Nhân bản</span>
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-1.5">
+                        <!-- Edit Button -->
+                        <button type="button"
+                                onclick="openEditModal({{ item.id }})"
+                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/50 dark:text-fuchsia-300 hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900/50 border border-fuchsia-200 dark:border-fuchsia-800 transition cursor-pointer">
+                            <i data-lucide="pencil" class="w-3 h-3"></i>
+                            <span>Sửa</span>
+                        </button>
+
+                        <!-- Delete Button -->
+                        <button type="button"
+                                onclick="confirmDeleteTemplate({{ item.id }}, '{{ item.name|replace("'", "\\'") }}')"
+                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-transparent hover:border-rose-200 dark:hover:border-rose-800 transition cursor-pointer"
+                                title="Xóa template">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-16 px-4 rounded-3xl bg-white dark:bg-[#0c1220] border border-slate-200/90 dark:border-slate-800/80 shadow-xs">
+            <div class="w-16 h-16 rounded-2xl bg-fuchsia-50 dark:bg-fuchsia-950/50 text-fuchsia-500 mx-auto flex items-center justify-center mb-4">
+                <i data-lucide="inbox" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-800 dark:text-slate-200">Không tìm thấy Template nào</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1 mb-6">
+                Chưa có mẫu prompt nào phù hợp với bộ lọc tìm kiếm hiện tại hoặc cơ sở dữ liệu đang rỗng.
+            </p>
+            <div class="flex items-center justify-center gap-3">
+                <button type="button"
+                        onclick="triggerResetDefaults()"
+                        class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition cursor-pointer">
+                    Khôi phục 5 Mẫu Mặc định
+                </button>
+                <button type="button"
+                        onclick="openTemplateModal()"
+                        class="px-4 py-2 rounded-xl text-xs font-semibold bg-fuchsia-600 hover:bg-fuchsia-700 text-white shadow-sm transition cursor-pointer">
+                    + Tạo Template Mới
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- ===== MODAL THÊM / SỬA TEMPLATE PROMPT ===== -->
+<div id="template-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="relative w-full max-w-3xl rounded-3xl bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+        
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-fuchsia-100 dark:bg-fuchsia-950/60 text-fuchsia-600 dark:text-fuchsia-400 flex items-center justify-center">
+                    <i data-lucide="bookmark" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 id="modal-title" class="text-lg font-bold text-slate-900 dark:text-white">Tạo Mẫu Prompt Mới</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Lưu vào cơ sở dữ liệu MongoDB để sử dụng trong Image to Prompt</p>
+                </div>
+            </div>
+            <button type="button"
+                    onclick="closeTemplateModal()"
+                    class="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Modal Form -->
+        <form id="template-form" onsubmit="handleTemplateSubmit(event)" class="space-y-4">
+            <input type="hidden" id="tpl-id" value="">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Tên template -->
+                <div class="space-y-1.5 sm:col-span-2">
+                    <label class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                        <span>Tên Template <span class="text-rose-500">*</span></span>
+                        <span class="text-[10px] text-slate-400 font-normal">Ví dụ: Chân dung Nữ Chuẩn SEO</span>
+                    </label>
+                    <input type="text"
+                           id="tpl-name"
+                           required
+                           placeholder="Nhập tên mẫu template..."
+                           class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40">
+                </div>
+
+                <!-- Danh mục -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        Danh mục / Thể loại
+                    </label>
+                    <input type="text"
+                           id="tpl-category"
+                           list="category-suggestions"
+                           placeholder="Chân dung, Thời trang, Doanh nhân..."
+                           value="Chân dung"
+                           class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40">
+                    <datalist id="category-suggestions">
+                        <option value="Chân dung">
+                        <option value="Thời trang">
+                        <option value="Doanh nhân">
+                        <option value="Điện ảnh">
+                        <option value="Sản phẩm">
+                        <option value="Tự do">
+                    </datalist>
+                </div>
+
+                <!-- Ngôn ngữ prompt -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        Ngôn ngữ sinh Prompt
+                    </label>
+                    <select id="tpl-language"
+                            class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 cursor-pointer">
+                        <option value="pt-BR" selected>Português - Brasil (pt-BR)</option>
+                        <option value="en">English (en)</option>
+                        <option value="vi">Vietnamese (vi)</option>
+                        <option value="ja">Japanese (ja)</option>
+                        <option value="ko">Korean (ko)</option>
+                        <option value="zh">Chinese (zh)</option>
+                        <option value="fr">French (fr)</option>
+                        <option value="de">German (de)</option>
+                        <option value="es">Spanish (es)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Mô tả ngắn -->
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Mô tả ngắn gọn (Tùy chọn)
+                </label>
+                <input type="text"
+                       id="tpl-desc"
+                       placeholder="Mô tả phong cách ảnh hoặc mục đích dùng của template..."
+                       class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40">
+            </div>
+
+            <!-- Nội dung Prompt -->
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-fuchsia-500"></i>
+                        <span>Nội dung System Prompt <span class="text-rose-500">*</span></span>
+                    </label>
+
+                    <!-- Quick Structure Button -->
+                    <button type="button"
+                            onclick="insertStandardPromptStructure()"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/60 dark:text-fuchsia-300 border border-fuchsia-200 dark:border-fuchsia-800 hover:bg-fuchsia-100 transition cursor-pointer">
+                        <i data-lucide="plus-circle" class="w-3 h-3"></i>
+                        <span>Chèn Cấu trúc Chuẩn (Subject, Pose, Background...)</span>
+                    </button>
+                </div>
+
+                <textarea id="tpl-content"
+                          rows="10"
+                          required
+                          placeholder="Nhập nội dung system prompt..."
+                          class="w-full p-3.5 rounded-2xl text-xs font-mono bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 leading-relaxed"></textarea>
+                
+                <p class="text-[11px] text-slate-400">
+                    Các biến tự động thay thế: <code class="font-mono text-fuchsia-600 dark:text-fuchsia-400">{output_language}</code> (Ngôn ngữ đã chọn), <code class="font-mono text-fuchsia-600 dark:text-fuchsia-400">{aspect_ratio}</code> (Tỷ lệ khung hình).
+                </p>
+            </div>
+
+            <!-- Is Default Checkbox -->
+            <div class="flex items-center gap-2 pt-1">
+                <input type="checkbox"
+                       id="tpl-default"
+                       class="w-4 h-4 rounded text-fuchsia-600 border-slate-300 dark:border-slate-700 focus:ring-fuchsia-500 cursor-pointer">
+                <label for="tpl-default" class="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                    Đặt làm Mẫu mặc định khi mở công cụ Image to Prompt
+                </label>
+            </div>
+
+            <!-- Modal Action Buttons -->
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button type="button"
+                        onclick="closeTemplateModal()"
+                        class="px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition cursor-pointer">
+                    Hủy bỏ
+                </button>
+                <button type="submit"
+                        id="btn-save-tpl"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white shadow-md shadow-fuchsia-600/30 transition cursor-pointer">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    <span>Lưu vào MongoDB</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+    // Standard prompt template with individual lines
+    const STANDARD_TEMPLATE_BODY = `Dịch ngược bức ảnh thành prompt tạo ảnh AI chi tiết, dùng để chia sẻ cho người khác.
+
+YÊU CẦU QUAN TRỌNG VỀ KHUÔN MẶT THAM CHIẾU:
+Prompt này sẽ được chia sẻ cho người khác. Khi họ dùng prompt, họ sẽ tải lên kèm khuôn mặt của họ để làm ảnh tham chiếu (reference image / face reference).
+Do đó, trong nội dung prompt BẮT BUỘC phải nhắc đến việc: khuôn mặt và đặc điểm nhận diện của nhân vật (nhân vật nam hoặc nữ / male or female character / model tùy theo người trong ảnh gốc) sẽ dựa trên ảnh tham chiếu do người dùng tải lên (ví dụ bằng {output_language}: 'o rosto e os traços faciais devem ser exatamente baseados na imagem de referência anexada'). Tuyệt đối không mô tả chi tiết khuôn mặt gốc trong ảnh để người dùng dễ thay thế khuôn mặt của họ.
+
+GỢI Ý 5 TIÊU ĐỀ CHO PROMPT & SLUG (TỐI ƯU SEO):
+Gợi ý cho tôi 5 cái tên (tiêu đề) cho prompt và slug tương ứng, tối ưu SEO tốt bằng {output_language}.
+Yêu cầu độ dài: Mỗi tiêu đề BẮT BUỘC phải ngắn gọn, súc tích và GIỚI HẠN DƯỚI 80 KÝ TỰ (tối đa 80 ký tự) để tối ưu hiển thị SEO.
+Định dạng bắt buộc cho từng tiêu đề (nhận diện đúng chủ thể nam hoặc nữ từ ảnh gốc):
+[Loại ảnh: Retrato / Foto Editorial / Foto Executiva] + [Chủ thể: de uma mulher elegante / Feminina (nếu là nữ) hoặc de um homem elegante / Masculino (nếu là nam)] + [Tư thế/Bối cảnh/Điểm nhấn]
+
+CẤU TRÚC PHẦN PROMPT (BẮT BUỘC CHIA THEO TỪNG PHẦN, MỖI PHẦN XUỐNG DÒNG):
+Trong mục 'Prompt:', KHÔNG ĐƯỢC viết thành một đoạn văn duy nhất. BẮT BUỘC phải chia theo từng phần rõ ràng, mỗi phần nằm trên một dòng riêng biệt:
+- Subject: Mô tả chủ thể (nam hoặc nữ), độ tuổi ước tính và chỉ định khuôn mặt dựa trên ảnh tham chiếu đính kèm bằng {output_language}.
+- Pose: Tư thế, dáng đứng/ngồi, cử chỉ tay chân, hướng cơ thể bằng {output_language}.
+- Expression: Biểu cảm khuôn mặt, ánh mắt nhìn thẳng vào ống kính máy ảnh hoặc nhìn nghiêng bằng {output_language}.
+- Clothing: Trang phục, phụ kiện, màu sắc, chất liệu vải bằng {output_language}.
+- Background: Hậu cảnh, bối cảnh không gian, chi tiết nội thất/ngoại cảnh, độ mờ trường ảnh (bokeh) bằng {output_language}.
+- Lighting: Ánh sáng, bóng đổ, nguồn sáng, nhiệt độ màu, ánh sáng tự nhiên/studio bằng {output_language}.
+- Camera: Khoảng cách camera (close-up/medium shot/full-body), góc máy, tiêu cự ống kính bằng {output_language}.
+- Style: Phong cách nhiếp ảnh chân thực (photorealistic), độ sắc nét cao cấp bằng {output_language}.
+
+NGÔN NGỮ ĐẦU RA:
+- Cả 5 Tiêu đề và Nội dung các phần trong Prompt BẮT BUỘC phải viết bằng: {output_language}.
+- Slug: là slug URL chuẩn SEO viết thường, không dấu, ngăn cách bằng dấu gạch ngang (-) cho từng tiêu đề tương ứng.
+
+ĐỊNH DẠNG TRẢ VỀ (Bắt buộc giữ đúng các nhãn 'Title:', 'Slug:' và 'Prompt:'):
+Title:
+1. <Tiêu đề 1 dưới 80 ký tự>
+2. <Tiêu đề 2 dưới 80 ký tự>
+3. <Tiêu đề 3 dưới 80 ký tự>
+4. <Tiêu đề 4 dưới 80 ký tự>
+5. <Tiêu đề 5 dưới 80 ký tự>
+
+Slug:
+1. <slug-tieu-de-1>
+2. <slug-tieu-de-2>
+3. <slug-tieu-de-3>
+4. <slug-tieu-de-4>
+5. <slug-tieu-de-5>
+
+Prompt:
+Subject: <mô tả chủ thể & khuôn mặt tham chiếu bằng {output_language}>
+Pose: <mô tả tư thế, cử chỉ bằng {output_language}>
+Expression: <mô tả biểu cảm, ánh mắt bằng {output_language}>
+Clothing: <mô tả trang phục bằng {output_language}>
+Background: <mô tả bối cảnh, hậu cảnh bằng {output_language}>
+Lighting: <mô tả ánh sáng, không khí bằng {output_language}>
+Camera: <mô tả góc máy, khoảng cách bằng {output_language}>
+Style: <mô tả phong cách ảnh bằng {output_language}>`;
+
+    function insertStandardPromptStructure() {
+        const area = document.getElementById("tpl-content");
+        if (!area) return;
+        if (area.value.trim().length > 0) {
+            if (!confirm("Thao tác này sẽ thay thế nội dung prompt hiện tại bằng khung cấu trúc chuẩn. Bạn có muốn tiếp tục?")) {
+                return;
+            }
+        }
+        area.value = STANDARD_TEMPLATE_BODY;
+        area.focus();
+    }
+
+    function openTemplateModal() {
+        document.getElementById("modal-title").textContent = "Tạo Mẫu Prompt Mới";
+        document.getElementById("tpl-id").value = "";
+        document.getElementById("tpl-name").value = "";
+        document.getElementById("tpl-desc").value = "";
+        document.getElementById("tpl-category").value = "Chân dung";
+        document.getElementById("tpl-language").value = "pt-BR";
+        document.getElementById("tpl-content").value = STANDARD_TEMPLATE_BODY;
+        document.getElementById("tpl-default").checked = false;
+        document.getElementById("template-modal").classList.remove("hidden");
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function closeTemplateModal() {
+        document.getElementById("template-modal").classList.add("hidden");
+    }
+
+    async function openEditModal(templateId) {
+        try {
+            const res = await fetch(`/api/prompt-templates/${templateId}`);
+            if (!res.ok) throw new Error("Không thể tải thông tin template");
+            const json = await res.json();
+            const data = json.data;
+
+            document.getElementById("modal-title").textContent = `Chỉnh sửa: ${data.name}`;
+            document.getElementById("tpl-id").value = data.id;
+            document.getElementById("tpl-name").value = data.name || "";
+            document.getElementById("tpl-desc").value = data.description || "";
+            document.getElementById("tpl-category").value = data.category || "Chân dung";
+            document.getElementById("tpl-language").value = data.language || "pt-BR";
+            document.getElementById("tpl-content").value = data.prompt_content || "";
+            document.getElementById("tpl-default").checked = !!data.is_default;
+
+            document.getElementById("template-modal").classList.remove("hidden");
+            if (window.lucide) window.lucide.createIcons();
+        } catch (err) {
+            alert(err.message || "Lỗi khi tải thông tin template");
+        }
+    }
+
+    async function cloneTemplate(templateId) {
+        try {
+            const res = await fetch(`/api/prompt-templates/${templateId}`);
+            if (!res.ok) throw new Error("Không thể tải thông tin template");
+            const json = await res.json();
+            const data = json.data;
+
+            document.getElementById("modal-title").textContent = `Nhân bản: ${data.name} (Bản sao)`;
+            document.getElementById("tpl-id").value = ""; // empty id for new creation
+            document.getElementById("tpl-name").value = `${data.name} (Bản sao)`;
+            document.getElementById("tpl-desc").value = data.description || "";
+            document.getElementById("tpl-category").value = data.category || "Chân dung";
+            document.getElementById("tpl-language").value = data.language || "pt-BR";
+            document.getElementById("tpl-content").value = data.prompt_content || "";
+            document.getElementById("tpl-default").checked = false;
+
+            document.getElementById("template-modal").classList.remove("hidden");
+            if (window.lucide) window.lucide.createIcons();
+        } catch (err) {
+            alert(err.message || "Lỗi khi nhân bản template");
+        }
+    }
+
+    async function handleTemplateSubmit(e) {
+        e.preventDefault();
+        const saveBtn = document.getElementById("btn-save-tpl");
+        const tplId = document.getElementById("tpl-id").value;
+        const isEdit = !!tplId;
+
+        const payload = {
+            name: document.getElementById("tpl-name").value.trim(),
+            description: document.getElementById("tpl-desc").value.trim(),
+            category: document.getElementById("tpl-category").value.trim() || "Chân dung",
+            language: document.getElementById("tpl-language").value,
+            prompt_content: document.getElementById("tpl-content").value.trim(),
+            is_default: document.getElementById("tpl-default").checked,
+        };
+
+        if (!payload.name || !payload.prompt_content) {
+            alert("Vui lòng điền tên template và nội dung prompt.");
+            return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `<span>Đang lưu...</span>`;
+
+        try {
+            const url = isEdit ? `/api/prompt-templates/${tplId}` : `/api/prompt-templates`;
+            const method = isEdit ? "PUT" : "POST";
+
+            const res = await fetch(url, {
+                method: method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || data.message || "Lỗi lưu template");
+
+            closeTemplateModal();
+            window.location.reload();
+        } catch (err) {
+            alert(err.message || "Có lỗi xảy ra khi lưu template.");
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i><span>Lưu vào MongoDB</span>`;
+            if (window.lucide) window.lucide.createIcons();
+        }
+    }
+
+    async function setDefaultTemplate(templateId) {
+        try {
+            const res = await fetch(`/api/prompt-templates/${templateId}/set-default`, { method: "POST" });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "Không thể đặt làm mặc định");
+            window.location.reload();
+        } catch (err) {
+            alert(err.message || "Lỗi đặt template mặc định");
+        }
+    }
+
+    async function confirmDeleteTemplate(templateId, templateName) {
+        if (!confirm(`Bạn có chắc chắn muốn xóa template "${templateName}" khỏi MongoDB?`)) {
+            return;
+        }
+        try {
+            const res = await fetch(`/api/prompt-templates/${templateId}`, { method: "DELETE" });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "Không thể xóa template");
+            window.location.reload();
+        } catch (err) {
+            alert(err.message || "Lỗi khi xóa template");
+        }
+    }
+
+    async function triggerResetDefaults() {
+        if (!confirm("Bạn có chắc muốn khôi phục kho template về các mẫu mặc định ban đầu của hệ thống?")) {
+            return;
+        }
+        try {
+            const res = await fetch(`/api/prompt-templates/reset-defaults`, { method: "POST" });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "Không thể khôi phục mặc định");
+            window.location.reload();
+        } catch (err) {
+            alert(err.message || "Lỗi khôi phục mẫu mặc định");
+        }
+    }
+
+    function copyPromptContent(btn, templateId) {
+        const pre = document.getElementById(`prompt-preview-${templateId}`);
+        if (!pre || !pre.textContent) return;
+        navigator.clipboard.writeText(pre.textContent).then(() => {
+            const original = btn.innerHTML;
+            btn.innerHTML = `<span class="text-emerald-500 font-bold">✓ Đã copy</span>`;
+            setTimeout(() => { btn.innerHTML = original; }, 1600);
+        });
+    }
+</script>
+{% endblock %}
