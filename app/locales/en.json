@@ -151,6 +151,16 @@
           "home_description": {
             "label": "Homepage Description",
             "placeholder": "Brief description on the homepage"
+          },
+          "openai_api_key": {
+            "label": "OpenAI API Key (System-wide)",
+            "placeholder": "sk-...",
+            "help_text": "Shared OpenAI API key across all tools and features (starts with sk-...)."
+          },
+          "openai_base_url": {
+            "label": "OpenAI Base URL (System-wide)",
+            "placeholder": "https://api.openai.com/v1",
+            "help_text": "Shared OpenAI endpoint URL across all tools (defaults to https://api.openai.com/v1)."
           }
         }
       },
@@ -302,6 +312,15 @@
     "btn_rename_now": "Rename Images Now (image-1, image-2...)",
     "renaming_files": "Renaming images to image-1, image-2...",
     "rename_success": "✓ Successfully renamed {count} images to image-1.ext, image-2.ext...",
+    "generate_image_opt": "Generate image from resulting prompt (call OpenAI API, save as image-X-result.xxx)",
+    "generate_image_step_title": "Image Generation Option (OpenAI API)",
+    "generate_image_hint": "Automatically call OpenAI Images API to generate an image from the prompt generated in the previous step and save as image-1-result.xxx, image-2-result.xxx...",
+    "image_model_label": "OpenAI Image Model",
+    "image_quality_label": "Image Quality",
+    "openai_key_label": "OpenAI API Key",
+    "openai_key_placeholder": "sk-... (leave empty if configured in Settings)",
+    "openai_key_hint": "OpenAI API key used to generate images. Saved when clicking 'Save Settings as Default'.",
+    "openai_base_url_label": "OpenAI Base URL (Optional)",
     "opt_overwrite": "Overwrite <code class=\"font-mono text-xs\">.txt</code> files if they already exist",
     "opt_recursive": "Scan subfolders recursively",
     "ollama_notice_batch": "⚠️ Ollama is offline, cannot start processing.",

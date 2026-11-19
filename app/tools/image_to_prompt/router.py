@@ -8,7 +8,9 @@ Routes:
 - POST /tools/image-to-prompt/single    — single test image reverse prompt
 """
 import asyncio
+import base64
 import json
+import os
 from pathlib import Path
 
 from typing import Optional
@@ -25,6 +27,7 @@ router = APIRouter()
 
 def _get_configured_defaults():
     """Retrieve default settings if configured in settings_store, else fall back to service defaults."""
+    sys_block = settings_store.get_block("system")
     block = settings_store.get_block("image_to_prompt")
     model = block.get("default_model") or services.DEFAULT_MODEL
     prompt = block.get("system_prompt")
@@ -35,14 +38,46 @@ def _get_configured_defaults():
     aspect_ratio_mode = block.get("aspect_ratio_mode") or services.DEFAULT_ASPECT_RATIO_MODE
     target_aspect_ratio = block.get("target_aspect_ratio") or services.DEFAULT_TARGET_ASPECT_RATIO
     timeout = float(block.get("timeout_seconds") or services.DEFAULT_TIMEOUT_SECONDS)
-    return model, prompt, language, character_desc, aspect_ratio_mode, target_aspect_ratio, timeout
+    generate_image = bool(block.get("generate_image", False))
+    image_model = block.get("image_model") or services.DEFAULT_IMAGE_MODEL
+    image_quality = block.get("image_quality") or services.DEFAULT_IMAGE_QUALITY
+    # Read from system block (cấu hình chung hệ thống), fallback to env or tool block
+    openai_api_key = sys_block.get("openai_api_key") or block.get("openai_api_key") or os.getenv("OPENAI_API_KEY", "")
+    openai_base_url = sys_block.get("openai_base_url") or block.get("openai_base_url") or os.getenv("OPENAI_BASE_URL", services.DEFAULT_OPENAI_BASE_URL)
+    return (
+        model,
+        prompt,
+        language,
+        character_desc,
+        aspect_ratio_mode,
+        target_aspect_ratio,
+        timeout,
+        generate_image,
+        image_model,
+        image_quality,
+        openai_api_key,
+        openai_base_url,
+    )
 
 
 @router.get("/prompt-pronto", name="prompt-pronto-direct")
 @router.get("/prompt-pronto/image-to-prompt", name="prompt-pronto-sub")
 @router.get("/image-to-prompt", name="image-to-prompt")
 async def image_to_prompt_page(request: Request):
-    default_model, default_prompt, default_language, default_char, default_ar, default_target_ar, _ = _get_configured_defaults()
+    (
+        default_model,
+        default_prompt,
+        default_language,
+        default_char,
+        default_ar,
+        default_target_ar,
+        _,
+        default_gen_img,
+        default_img_model,
+        default_img_quality,
+        default_openai_key,
+        default_openai_url,
+    ) = _get_configured_defaults()
     return templates.TemplateResponse(
         request,
         "tools/image_to_prompt.html",
@@ -55,6 +90,13 @@ async def image_to_prompt_page(request: Request):
             "default_character_desc": default_char,
             "default_aspect_ratio_mode": default_ar,
             "default_target_aspect_ratio": default_target_ar,
+            "default_generate_image": default_gen_img,
+            "default_image_model": default_img_model,
+            "default_image_quality": default_img_quality,
+            "default_openai_api_key": default_openai_key,
+            "default_openai_base_url": default_openai_url,
+            "image_models": services.SUPPORTED_IMAGE_MODELS,
+            "image_qualities": services.SUPPORTED_IMAGE_QUALITIES,
             "languages": services.PROMPT_LANGUAGES,
         },
     )
@@ -63,7 +105,7 @@ async def image_to_prompt_page(request: Request):
 @router.get("/image-to-prompt/models", name="image-to-prompt-models")
 async def image_to_prompt_models() -> JSONResponse:
     """Check Ollama connectivity and return available models."""
-    default_model, _, _, _, _, _, _ = _get_configured_defaults()
+    default_model = _get_configured_defaults()[0]
     try:
         models = await services.list_ollama_models()
         return JSONResponse(
@@ -135,8 +177,13 @@ async def image_to_prompt_single(
     character_desc: str = Form(""),
     aspect_ratio_mode: str = Form(""),
     target_aspect_ratio: str = Form("4:5"),
+    generate_image: bool = Form(False),
+    image_model: str = Form(""),
+    image_quality: str = Form(""),
+    openai_api_key: str = Form(""),
+    openai_base_url: str = Form(""),
 ):
-    """Test generating a reverse prompt on a single uploaded image with optional reference face."""
+    """Test generating a reverse prompt on a single uploaded image with optional reference face and optional image generation."""
     raw = await file.read()
     if not raw:
         raise HTTPException(status_code=400, detail="File tải lên không có dữ liệu.")
@@ -145,7 +192,26 @@ async def image_to_prompt_single(
     if ref_bytes and len(ref_bytes) == 0:
         ref_bytes = None
 
-    def_model, default_prompt, default_language, def_char, def_ar, def_target_ar, default_timeout = _get_configured_defaults()
+    (
+        def_model,
+        default_prompt,
+        default_language,
+        def_char,
+        def_ar,
+        def_target_ar,
+        default_timeout,
+        def_gen_img,
+        def_img_model,
+        def_img_quality,
+        def_openai_key,
+        def_openai_url,
+    ) = _get_configured_defaults()
+
+    effective_api_key = openai_api_key.strip() or def_openai_key
+    effective_base_url = openai_base_url.strip() or def_openai_url
+    effective_img_model = image_model.strip() or def_img_model
+    effective_img_quality = image_quality.strip() or def_img_quality
+
     config = services.PromptConfig(
         model=model.strip() or def_model,
         prompt=prompt.strip() or default_prompt,
@@ -155,19 +221,46 @@ async def image_to_prompt_single(
         target_aspect_ratio=target_aspect_ratio.strip() if target_aspect_ratio.strip() else def_target_ar,
         timeout_seconds=default_timeout,
         reference_face_bytes=ref_bytes,
+        generate_image=generate_image,
+        image_model=effective_img_model,
+        image_quality=effective_img_quality,
+        openai_api_key=effective_api_key,
+        openai_base_url=effective_base_url,
     )
 
     try:
         result = await services.generate_prompt_for_image_bytes(raw, config)
         if isinstance(result, str):
             result = services.parse_title_and_prompt(result)
+
+        prompt_text = result.get("prompt", "")
+        result_image_b64 = None
+        image_gen_error = None
+
+        if generate_image and prompt_text:
+            try:
+                gen_bytes = await services.generate_image_openai(
+                    prompt=prompt_text,
+                    api_key=effective_api_key,
+                    model=effective_img_model,
+                    quality=effective_img_quality,
+                    base_url=effective_base_url,
+                    timeout_seconds=min(config.timeout_seconds, 300.0),
+                )
+                b64_str = base64.b64encode(gen_bytes).decode("utf-8")
+                result_image_b64 = f"data:image/png;base64,{b64_str}"
+            except Exception as img_exc:
+                image_gen_error = str(img_exc)
+
         return JSONResponse({
             "title": result.get("title", ""),
-            "prompt": result.get("prompt", ""),
+            "prompt": prompt_text,
             "aspect_ratio": result.get("aspect_ratio", "4:5"),
             "width": result.get("width", 0),
             "height": result.get("height", 0),
             "filename": file.filename or "image",
+            "result_image_b64": result_image_b64,
+            "image_error": image_gen_error,
         })
     except services.ImageToPromptError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -184,19 +277,36 @@ async def image_to_prompt_save_defaults(
     character_desc: str = Form(""),
     aspect_ratio_mode: str = Form("none"),
     target_aspect_ratio: str = Form("4:5"),
+    generate_image: bool = Form(False),
+    image_model: str = Form(services.DEFAULT_IMAGE_MODEL),
+    image_quality: str = Form(services.DEFAULT_IMAGE_QUALITY),
+    openai_api_key: str = Form(""),
+    openai_base_url: str = Form(""),
 ):
     """Save current descriptions and options as application defaults."""
     try:
-        settings_store.settings_store.save_blocks({
+        sys_block = settings_store.get_block("system")
+        blocks_to_save: dict[str, dict] = {
             "image_to_prompt": {
                 "default_model": model.strip() or services.DEFAULT_MODEL,
                 "default_language": language.strip() or "pt-BR",
                 "system_prompt": prompt.strip() or services.DEFAULT_SYSTEM_PROMPT,
-                "character_description": character_desc.strip() or services.DEFAULT_CHARACTER_DESC,
                 "aspect_ratio_mode": aspect_ratio_mode.strip() or services.DEFAULT_ASPECT_RATIO_MODE,
                 "target_aspect_ratio": target_aspect_ratio.strip() or services.DEFAULT_TARGET_ASPECT_RATIO,
+                "generate_image": generate_image,
+                "image_model": image_model.strip() or services.DEFAULT_IMAGE_MODEL,
+                "image_quality": image_quality.strip() or services.DEFAULT_IMAGE_QUALITY,
             }
-        })
+        }
+        if character_desc.strip():
+            blocks_to_save["image_to_prompt"]["character_description"] = character_desc.strip()
+        if openai_api_key.strip() or openai_base_url.strip():
+            blocks_to_save["system"] = {
+                **sys_block,
+                "openai_api_key": openai_api_key.strip() or sys_block.get("openai_api_key", ""),
+                "openai_base_url": openai_base_url.strip() or sys_block.get("openai_base_url", services.DEFAULT_OPENAI_BASE_URL),
+            }
+        settings_store.settings_store.save_blocks(blocks_to_save)
         return JSONResponse({"status": "ok", "message": "Đã lưu cấu hình làm mặc định thành công!"})
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Không thể lưu cấu hình: {exc}")
@@ -242,6 +352,11 @@ async def image_to_prompt_process(
     aspect_ratio_mode: str = Form(""),
     target_aspect_ratio: str = Form("4:5"),
     auto_rename: bool = Form(True, description="Tự động đổi tên ảnh thành image-1.ext, image-2.ext... trước khi gọi Ollama"),
+    generate_image: bool = Form(False, description="Tạo ảnh với OpenAI API từ prompt sinh ra"),
+    image_model: str = Form(""),
+    image_quality: str = Form(""),
+    openai_api_key: str = Form(""),
+    openai_base_url: str = Form(""),
     overwrite: bool = Form(False),
     recursive: bool = Form(False),
 ):
@@ -264,7 +379,26 @@ async def image_to_prompt_process(
     if ref_bytes and len(ref_bytes) == 0:
         ref_bytes = None
 
-    def_model, default_prompt, default_language, def_char, def_ar, def_target_ar, default_timeout = _get_configured_defaults()
+    (
+        def_model,
+        default_prompt,
+        default_language,
+        def_char,
+        def_ar,
+        def_target_ar,
+        default_timeout,
+        def_gen_img,
+        def_img_model,
+        def_img_quality,
+        def_openai_key,
+        def_openai_url,
+    ) = _get_configured_defaults()
+
+    effective_api_key = openai_api_key.strip() or def_openai_key
+    effective_base_url = openai_base_url.strip() or def_openai_url
+    effective_img_model = image_model.strip() or def_img_model
+    effective_img_quality = image_quality.strip() or def_img_quality
+
     config = services.PromptConfig(
         model=model.strip() or def_model,
         prompt=prompt.strip() or default_prompt,
@@ -275,6 +409,11 @@ async def image_to_prompt_process(
         timeout_seconds=default_timeout,
         overwrite=overwrite,
         reference_face_bytes=ref_bytes,
+        generate_image=generate_image,
+        image_model=effective_img_model,
+        image_quality=effective_img_quality,
+        openai_api_key=effective_api_key,
+        openai_base_url=effective_base_url,
     )
 
     async def event_stream():
@@ -303,16 +442,29 @@ async def image_to_prompt_process(
                 })
 
         total = len(current_files)
-        yield line({"type": "start", "total": total, "folder": str(folder_path)})
+        yield line({
+            "type": "start",
+            "total": total,
+            "folder": str(folder_path),
+            "generate_image": generate_image,
+            "image_model": effective_img_model if generate_image else None,
+        })
 
         ok = skipped = failed = 0
         last_error = None
 
         for index, img_path in enumerate(current_files):
-            # Signal image processing started (Step 2)
-            yield line({"type": "file_start", "index": index + 1, "total": total, "file": str(img_path), "filename": img_path.name})
+            # Signal image processing started (Step 2 & optional Step 3)
+            yield line({
+                "type": "file_start",
+                "index": index + 1,
+                "total": total,
+                "file": str(img_path),
+                "filename": img_path.name,
+                "generate_image": generate_image,
+            })
 
-            # Process image with Ollama and save .txt (Step 3)
+            # Process image with Ollama and save .txt (and optional Step 3: OpenAI image generation)
             result = await services.process_image_file(img_path, config)
             st = result.get("status")
 

@@ -164,29 +164,8 @@
             </div>
         </div>
 
-        <!-- Row 2: Character Description & Aspect Ratio Settings -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
-            <!-- Mô tả nhân vật & tham chiếu khuôn mặt -->
-            <div>
-                <div class="flex items-center justify-between mb-1.5">
-                    <label for="character-desc" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        {{ t('image_to_prompt.character_desc_label') }}
-                    </label>
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <button type="button" class="quick-char-btn text-[11px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
-                                data-val="nhân vật nam dùng ảnh tham chiếu cho khuôn mặt">{{ t('image_to_prompt.quick_male_ref') }}</button>
-                        <button type="button" class="quick-char-btn text-[11px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
-                                data-val="nhân vật nữ dùng ảnh tham chiếu cho khuôn mặt">{{ t('image_to_prompt.quick_female_ref') }}</button>
-                        <button type="button" class="quick-char-btn text-[11px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
-                                data-val="nhân vật dùng ảnh tham chiếu cho khuôn mặt">{{ t('image_to_prompt.quick_general_ref') }}</button>
-                    </div>
-                </div>
-                <input type="text" id="character-desc" value="{{ default_character_desc }}"
-                       placeholder="{{ t('image_to_prompt.character_desc_placeholder') }}"
-                       class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
-                <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.character_desc_hint') }}</p>
-            </div>
-
+        <!-- Row 2: Aspect Ratio Settings -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
             <!-- Tỷ lệ khung hình mong muốn (Target Aspect Ratio) -->
             <div>
                 <label for="target-aspect-ratio" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -218,6 +197,65 @@
                     <option value="natural" {% if default_aspect_ratio_mode == "natural" %}selected{% endif %}>{{ t('image_to_prompt.aspect_ratio_mode_natural') }}</option>
                 </select>
                 <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.aspect_ratio_hint') }}</p>
+            </div>
+
+            <!-- OpenAI Image Generation Option (Tùy chọn Tạo ảnh qua OpenAI) -->
+            <div class="col-span-1 md:col-span-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-4 space-y-3">
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <label class="inline-flex items-center gap-2.5 cursor-pointer select-none">
+                        <input type="checkbox" id="generate-image-toggle" {% if default_generate_image %}checked{% endif %}
+                               class="w-4 h-4 rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500">
+                        <span class="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                            <i data-lucide="wand-2" class="w-4 h-4 text-fuchsia-600 dark:text-fuchsia-400"></i>
+                            <span>{{ t('image_to_prompt.generate_image_opt') }}</span>
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-fuchsia-100 dark:bg-fuchsia-950/60 text-fuchsia-700 dark:text-fuchsia-300 border border-fuchsia-200 dark:border-fuchsia-800">Tùy chọn</span>
+                        </span>
+                    </label>
+                    <span class="text-[11px] text-slate-400">Mặc định không tick. Kết quả lưu thành <code class="font-mono text-fuchsia-600 dark:text-fuchsia-400 font-semibold">image-X-result.xxx</code></span>
+                </div>
+
+                <!-- Expandable Options (shown when checked) -->
+                <div id="generate-image-options" class="{% if not default_generate_image %}hidden{% endif %} pt-3 border-t border-slate-200/80 dark:border-slate-800/80 space-y-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Model OpenAI -->
+                        <div>
+                            <label for="image-model" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                {{ t('image_to_prompt.image_model_label') }}
+                            </label>
+                            <select id="image-model"
+                                    class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition font-medium">
+                                <option value="gpt-image-2.5-flare" {% if default_image_model == "gpt-image-2.5-flare" or not default_image_model %}selected{% endif %}>gpt-image-2.5-flare (Mặc định)</option>
+                                <option value="gpt-image-2.6-flare" {% if default_image_model == "gpt-image-2.6-flare" %}selected{% endif %}>gpt-image-2.6-flare</option>
+                                <option value="gpt-image-2.6-sunburst" {% if default_image_model == "gpt-image-2.6-sunburst" %}selected{% endif %}>gpt-image-2.6-sunburst</option>
+                                <option value="gpt-image-2.5-sunburst" {% if default_image_model == "gpt-image-2.5-sunburst" %}selected{% endif %}>gpt-image-2.5-sunburst</option>
+                            </select>
+                        </div>
+
+                        <!-- Quality -->
+                        <div>
+                            <label for="image-quality" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                {{ t('image_to_prompt.image_quality_label') }}
+                            </label>
+                            <select id="image-quality"
+                                    class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition font-medium">
+                                <option value="medium" {% if default_image_quality == "medium" or not default_image_quality %}selected{% endif %}>medium (Mặc định)</option>
+                                <option value="low" {% if default_image_quality == "low" %}selected{% endif %}>low</option>
+                                <option value="high" {% if default_image_quality == "high" %}selected{% endif %}>high</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/60 rounded-xl px-3 py-2 border border-slate-200/60 dark:border-slate-800/60">
+                        <div class="flex items-center gap-1.5">
+                            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0"></i>
+                            <span>OpenAI API Key & Base URL được tự động lấy từ Cấu hình chung hệ thống.</span>
+                        </div>
+                        <a href="/settings" target="_blank" class="text-fuchsia-600 dark:text-fuchsia-400 hover:text-fuchsia-700 dark:hover:text-fuchsia-300 font-medium flex items-center gap-1 hover:underline ml-2 flex-shrink-0">
+                            <span>Mở Cài đặt hệ thống</span>
+                            <i data-lucide="external-link" class="w-3 h-3"></i>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -510,6 +548,24 @@
                 </div>
                 <pre id="single-result-text" class="p-4 rounded-xl bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-mono whitespace-pre-wrap leading-relaxed select-all"></pre>
             </div>
+
+            <!-- 3. Ảnh tạo bởi OpenAI (nếu có bật tạo ảnh) -->
+            <div id="single-result-image-container" class="hidden space-y-2 pt-3 border-t border-slate-200/80 dark:border-slate-800">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <i data-lucide="image" class="w-3.5 h-3.5 text-emerald-500"></i>
+                        <span>Ảnh tạo bởi OpenAI (<span id="single-result-model-name" class="font-mono text-fuchsia-600 dark:text-fuchsia-400"></span>)</span>
+                    </label>
+                    <a id="download-single-image-btn" href="#" download="image-1-result.png"
+                       class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition shadow-2xs">
+                        <i data-lucide="download" class="w-3 h-3"></i>
+                        <span>Tải ảnh về (image-1-result.png)</span>
+                    </a>
+                </div>
+                <div class="flex items-center justify-center p-3 rounded-xl bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800">
+                    <img id="single-result-image-img" src="" alt="OpenAI Result" class="max-h-96 rounded-lg object-contain shadow-md">
+                </div>
+            </div>
         </div>
     </section>
 
@@ -723,17 +779,18 @@
             presetSelect.value = "detailed";
         });
 
-        // Quick character description buttons
-        document.querySelectorAll(".quick-char-btn").forEach(btn => {
-            btn.addEventListener("click", () => {
-                const val = btn.getAttribute("data-val") || "";
-                const charInput = document.getElementById("character-desc");
-                if (charInput) {
-                    charInput.value = val;
-                    charInput.focus();
+        // Toggle OpenAI Image Generation Options
+        const genImgToggle = document.getElementById("generate-image-toggle");
+        const genImgOptions = document.getElementById("generate-image-options");
+        if (genImgToggle && genImgOptions) {
+            genImgToggle.addEventListener("change", () => {
+                if (genImgToggle.checked) {
+                    genImgOptions.classList.remove("hidden");
+                } else {
+                    genImgOptions.classList.add("hidden");
                 }
             });
-        });
+        }
 
         // Save settings as default button
         const saveDefaultsBtn = document.getElementById("save-defaults-btn");
@@ -748,10 +805,16 @@
                 formData.append("model", document.getElementById("batch-model").value);
                 formData.append("language", document.getElementById("batch-language").value);
                 formData.append("prompt", document.getElementById("batch-prompt").value);
-                formData.append("character_desc", document.getElementById("character-desc").value);
                 formData.append("aspect_ratio_mode", document.getElementById("aspect-ratio-mode").value);
                 const targetAr = document.getElementById("target-aspect-ratio");
                 if (targetAr) formData.append("target_aspect_ratio", targetAr.value);
+
+                const imageModel = document.getElementById("image-model");
+                const imageQuality = document.getElementById("image-quality");
+
+                formData.append("generate_image", genImgToggle && genImgToggle.checked ? "true" : "false");
+                if (imageModel) formData.append("image_model", imageModel.value);
+                if (imageQuality) formData.append("image_quality", imageQuality.value);
 
                 try {
                     const res = await fetch("/tools/image-to-prompt/save-defaults", {
@@ -947,7 +1010,7 @@
             startLabel.textContent = isBusy ? I18N.btn_busy : I18N.btn_start;
         }
 
-        function createOrUpdateRow(file, status, textPath, promptOrError, title, aspect_ratio, width, height) {
+        function createOrUpdateRow(file, status, textPath, promptOrError, title, aspect_ratio, width, height, result_image, image_error) {
             let li = currentItemMap.get(file);
             if (!li) {
                 li = document.createElement("li");
@@ -975,6 +1038,14 @@
                 ratioBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950/60 dark:text-fuchsia-300 border border-fuchsia-200/80 dark:border-fuchsia-800/60"><i data-lucide="ratio" class="w-3 h-3"></i>${aspect_ratio}${dimStr}</span>`;
             }
 
+            let resultImgBadge = '';
+            if (result_image) {
+                resultImgBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60"><i data-lucide="image" class="w-3 h-3"></i>${result_image}</span>`;
+            }
+            if (image_error) {
+                resultImgBadge += `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800" title="${image_error}"><i data-lucide="alert-triangle" class="w-3 h-3"></i>Lỗi tạo ảnh</span>`;
+            }
+
             let contentHtml = `
                 <div class="flex items-center justify-between gap-3 flex-wrap">
                     <div class="flex items-center gap-2 min-w-0">
@@ -983,6 +1054,7 @@
                     </div>
                     <div class="shrink-0 flex items-center gap-2">
                         ${ratioBadge}
+                        ${resultImgBadge}
                         ${statusBadge}
                     </div>
                 </div>
@@ -1083,7 +1155,6 @@
             }
 
             const languageSelect = document.getElementById("batch-language");
-            const charDescInput = document.getElementById("character-desc");
             const arModeSelect = document.getElementById("aspect-ratio-mode");
             const targetArSelect = document.getElementById("target-aspect-ratio");
 
@@ -1092,12 +1163,23 @@
             formData.append("model", modelSelect.value);
             formData.append("prompt", promptInput.value);
             if (languageSelect) formData.append("language", languageSelect.value);
-            if (charDescInput) formData.append("character_desc", charDescInput.value);
             if (arModeSelect) formData.append("aspect_ratio_mode", arModeSelect.value);
             if (targetArSelect) formData.append("target_aspect_ratio", targetArSelect.value);
             if (autoRenameCheck) formData.append("auto_rename", autoRenameCheck.checked ? "true" : "false");
             formData.append("overwrite", overwriteCheck.checked ? "true" : "false");
             formData.append("recursive", recursiveCheck.checked ? "true" : "false");
+
+            const genImgToggle = document.getElementById("generate-image-toggle");
+            const imageModel = document.getElementById("image-model");
+            const imageQuality = document.getElementById("image-quality");
+
+            if (genImgToggle && genImgToggle.checked) {
+                formData.append("generate_image", "true");
+                if (imageModel) formData.append("image_model", imageModel.value);
+                if (imageQuality) formData.append("image_quality", imageQuality.value);
+            } else {
+                formData.append("generate_image", "false");
+            }
 
             // Reset progress UI
             fileList.innerHTML = "";
@@ -1141,11 +1223,11 @@
                     } else if (event.type === "file_start") {
                         createOrUpdateRow(event.file, "processing", "", "");
                     } else if (event.type === "file_done") {
-                        createOrUpdateRow(event.file, "ok", event.txt_file, event.prompt, event.title, event.aspect_ratio, event.width, event.height);
+                        createOrUpdateRow(event.file, "ok", event.txt_file, event.prompt, event.title, event.aspect_ratio, event.width, event.height, event.result_image, event.image_error);
                     } else if (event.type === "file_skipped") {
-                        createOrUpdateRow(event.file, "skipped", event.txt_file, event.prompt, event.title, event.aspect_ratio, event.width, event.height);
+                        createOrUpdateRow(event.file, "skipped", event.txt_file, event.prompt, event.title, event.aspect_ratio, event.width, event.height, event.result_image, event.image_error);
                     } else if (event.type === "file_error") {
-                        createOrUpdateRow(event.file, "error", event.txt_file, event.error, "", event.aspect_ratio, event.width, event.height);
+                        createOrUpdateRow(event.file, "error", event.txt_file, event.error, "", event.aspect_ratio, event.width, event.height, event.result_image, event.image_error);
                         if (batchErrorBanner && batchErrorMessage) {
                             batchErrorBanner.classList.remove("hidden");
                             batchErrorMessage.textContent = event.error || "Ollama error";
@@ -1297,7 +1379,6 @@
             if (singleErrorBox) singleErrorBox.classList.add("hidden");
 
             const languageSelect = document.getElementById("batch-language");
-            const charDescInput = document.getElementById("character-desc");
             const arModeSelect = document.getElementById("aspect-ratio-mode");
             const targetArSelect = document.getElementById("target-aspect-ratio");
 
@@ -1306,9 +1387,20 @@
             formData.append("model", modelSelect.value);
             formData.append("prompt", promptInput.value);
             if (languageSelect) formData.append("language", languageSelect.value);
-            if (charDescInput) formData.append("character_desc", charDescInput.value);
             if (arModeSelect) formData.append("aspect_ratio_mode", arModeSelect.value);
             if (targetArSelect) formData.append("target_aspect_ratio", targetArSelect.value);
+
+            const genImgToggle = document.getElementById("generate-image-toggle");
+            const imageModel = document.getElementById("image-model");
+            const imageQuality = document.getElementById("image-quality");
+
+            if (genImgToggle && genImgToggle.checked) {
+                formData.append("generate_image", "true");
+                if (imageModel) formData.append("image_model", imageModel.value);
+                if (imageQuality) formData.append("image_quality", imageQuality.value);
+            } else {
+                formData.append("generate_image", "false");
+            }
 
             try {
                 const res = await fetch("/tools/image-to-prompt/single", {
@@ -1323,6 +1415,21 @@
 
                 if (resultTitle) resultTitle.textContent = data.title || "";
                 resultText.textContent = data.prompt || "";
+
+                // Display OpenAI Generated Image (if any)
+                const singleImgContainer = document.getElementById("single-result-image-container");
+                const singleImgElem = document.getElementById("single-result-image-img");
+                const singleDownloadBtn = document.getElementById("download-single-image-btn");
+                const singleModelName = document.getElementById("single-result-model-name");
+
+                if (data.result_image_b64 && singleImgContainer && singleImgElem) {
+                    singleImgElem.src = data.result_image_b64;
+                    if (singleDownloadBtn) singleDownloadBtn.href = data.result_image_b64;
+                    if (singleModelName && imageModel) singleModelName.textContent = imageModel.value;
+                    singleImgContainer.classList.remove("hidden");
+                } else if (singleImgContainer) {
+                    singleImgContainer.classList.add("hidden");
+                }
 
                 // Display Aspect Ratio Badge
                 const ratioBadge = document.getElementById("single-result-ratio-badge");

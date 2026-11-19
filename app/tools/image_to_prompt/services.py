@@ -18,9 +18,28 @@ from PIL import Image
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 DEFAULT_MODEL = "qwen 3.8"
 DEFAULT_TIMEOUT_SECONDS = 1200.0  # 20 phút (20 * 60s)
-DEFAULT_CHARACTER_DESC = "nhân vật nữ dùng ảnh tham chiếu cho khuôn mặt"
+DEFAULT_CHARACTER_DESC = ""
 DEFAULT_ASPECT_RATIO_MODE = "none"
 DEFAULT_TARGET_ASPECT_RATIO = "4:5"
+
+# OpenAI Image Generation configuration
+SUPPORTED_IMAGE_MODELS = [
+    ("gpt-image-2.5-flare", "gpt-image-2.5-flare (Mặc định)"),
+    ("gpt-image-2.6-flare", "gpt-image-2.6-flare"),
+    ("gpt-image-2.6-sunburst", "gpt-image-2.6-sunburst"),
+    ("gpt-image-2.5-sunburst", "gpt-image-2.5-sunburst"),
+]
+IMAGE_MODEL_NAMES = [m[0] for m in SUPPORTED_IMAGE_MODELS]
+DEFAULT_IMAGE_MODEL = "gpt-image-2.5-flare"
+
+SUPPORTED_IMAGE_QUALITIES = [
+    ("medium", "medium (Mặc định)"),
+    ("low", "low"),
+    ("high", "high"),
+]
+IMAGE_QUALITY_NAMES = [q[0] for q in SUPPORTED_IMAGE_QUALITIES]
+DEFAULT_IMAGE_QUALITY = "medium"
+DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"
 
 STANDARD_RATIOS = [
     (1, 1, "1:1"),
@@ -179,13 +198,19 @@ class PromptConfig:
     model: str = DEFAULT_MODEL
     prompt: str = DEFAULT_SYSTEM_PROMPT
     language: str = "pt-BR"
-    character_description: str = DEFAULT_CHARACTER_DESC
+    character_description: str = ""
     aspect_ratio_mode: str = DEFAULT_ASPECT_RATIO_MODE
     target_aspect_ratio: str = DEFAULT_TARGET_ASPECT_RATIO
     temperature: float = 0.2
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
     overwrite: bool = False
     reference_face_bytes: Optional[bytes] = None
+    # OpenAI Image Generation options
+    generate_image: bool = False
+    image_model: str = DEFAULT_IMAGE_MODEL
+    image_quality: str = DEFAULT_IMAGE_QUALITY
+    openai_api_key: str = ""
+    openai_base_url: str = DEFAULT_OPENAI_BASE_URL
 
 
 def prepare_prompt(
@@ -209,12 +234,11 @@ def prepare_prompt(
             f"MUST be written entirely in {lang_name}."
         )
 
-    # Character description
+    # Character description (optional backward-compatibility if user custom prompt still has {character_description})
     if "{character_description}" in p:
-        char_desc = character_description or DEFAULT_CHARACTER_DESC
-        p = p.replace("{character_description}", char_desc)
-    elif character_description:
-        p = f"{p}\n\nCharacter Guideline: {character_description}."
+        p = p.replace("{character_description}", character_description)
+    elif character_description.strip():
+        p = f"{p}\n\nCharacter Guideline: {character_description.strip()}."
 
     # Aspect ratio
     if "{aspect_ratio}" in p:
@@ -761,6 +785,115 @@ async def generate_prompt_for_image_bytes(
         raise ImageToPromptError(str(exc)) from exc
 
 
+async def generate_image_openai(
+    prompt: str,
+    api_key: str = "",
+    model: str = DEFAULT_IMAGE_MODEL,
+    quality: str = DEFAULT_IMAGE_QUALITY,
+    base_url: str = DEFAULT_OPENAI_BASE_URL,
+    timeout_seconds: float = 180.0,
+    size: Optional[str] = None,
+) -> bytes:
+    """Call OpenAI Images API (/v1/images/generations) to generate image bytes."""
+    clean_key = (api_key or os.getenv("OPENAI_API_KEY", "")).strip()
+    if not clean_key:
+        raise ImageToPromptError("Chưa cung cấp OpenAI API Key. Vui lòng nhập OpenAI API Key để tạo ảnh.")
+
+    clean_base = (base_url or os.getenv("OPENAI_BASE_URL", DEFAULT_OPENAI_BASE_URL)).strip().rstrip("/")
+    url = f"{clean_base}/images/generations"
+
+    headers = {
+        "Authorization": f"Bearer {clean_key}",
+        "Content-Type": "application/json",
+    }
+
+    payload: dict[str, Any] = {
+        "model": model or DEFAULT_IMAGE_MODEL,
+        "prompt": prompt,
+        "quality": quality or DEFAULT_IMAGE_QUALITY,
+        "n": 1,
+        "response_format": "b64_json",
+    }
+    if size:
+        payload["size"] = size
+
+    timeout = aiohttp.ClientTimeout(total=timeout_seconds)
+
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(url, headers=headers, json=payload) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    items = data.get("data", [])
+                    if not items:
+                        raise ImageToPromptError("OpenAI API không trả về hình ảnh nào.")
+                    first_item = items[0]
+                    if "b64_json" in first_item and first_item["b64_json"]:
+                        return base64.b64decode(first_item["b64_json"])
+                    if "url" in first_item and first_item["url"]:
+                        async with session.get(first_item["url"]) as img_resp:
+                            img_resp.raise_for_status()
+                            return await img_resp.read()
+                    raise ImageToPromptError("Phản hồi từ OpenAI không chứa ảnh b64_json hoặc url.")
+
+                err_text = await resp.text()
+
+                # Some proxies / models reject response_format parameter. Retry without it if rejected.
+                if "response_format" in err_text.lower():
+                    payload_no_fmt = {k: v for k, v in payload.items() if k != "response_format"}
+                    async with session.post(url, headers=headers, json=payload_no_fmt) as retry_resp:
+                        if retry_resp.status == 200:
+                            retry_data = await retry_resp.json()
+                            retry_items = retry_data.get("data", [])
+                            if retry_items and "url" in retry_items[0]:
+                                async with session.get(retry_items[0]["url"]) as img_resp:
+                                    img_resp.raise_for_status()
+                                    return await img_resp.read()
+                            elif retry_items and "b64_json" in retry_items[0]:
+                                return base64.b64decode(retry_items[0]["b64_json"])
+
+                try:
+                    err_json = json.loads(err_text)
+                    err_msg = err_json.get("error", {}).get("message") or str(err_json)
+                except Exception:
+                    err_msg = err_text
+                raise ImageToPromptError(f"OpenAI API Error ({resp.status}): {err_msg}")
+
+    except asyncio.TimeoutError:
+        raise ImageToPromptError(f"Hết thời gian chờ phản hồi tạo ảnh từ OpenAI ({int(timeout_seconds)}s).")
+    except aiohttp.ClientConnectorError as exc:
+        raise ImageToPromptError(f"Không thể kết nối tới OpenAI API tại {clean_base}: {exc}") from exc
+    except ImageToPromptError:
+        raise
+    except Exception as exc:
+        raise ImageToPromptError(f"Lỗi tạo ảnh với OpenAI: {exc}") from exc
+
+
+def save_result_image(
+    image_bytes: bytes,
+    original_path: Path,
+) -> Path:
+    """Save the generated result image as <stem>-result.<ext> alongside original_path."""
+    ext = original_path.suffix.lower() if original_path.suffix else ".png"
+    target_path = original_path.parent / f"{original_path.stem}-result{ext}"
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as im:
+            if ext in (".jpg", ".jpeg"):
+                if im.mode in ("RGBA", "P"):
+                    im = im.convert("RGB")
+                im.save(target_path, format="JPEG", quality=95)
+            elif ext == ".webp":
+                im.save(target_path, format="WEBP", quality=95)
+            elif ext == ".png":
+                im.save(target_path, format="PNG")
+            else:
+                target_path = original_path.parent / f"{original_path.stem}-result.png"
+                target_path.write_bytes(image_bytes)
+    except Exception:
+        target_path.write_bytes(image_bytes)
+    return target_path
+
+
 async def generate_prompt_for_file(
     image_path: Path,
     config: PromptConfig,
@@ -790,23 +923,52 @@ async def process_image_file(
         w, h, ar = 0, 0, "1:1"
 
     # Check if .txt file already exists
+    result_ext = image_path.suffix.lower() if image_path.suffix else ".png"
+    expected_result_img = image_path.parent / f"{image_path.stem}-result{result_ext}"
+
     if txt_path.exists() and not config.overwrite:
         try:
             existing_content = await asyncio.to_thread(txt_path.read_text, encoding="utf-8", errors="replace")
         except Exception:
             existing_content = ""
         parsed = parse_title_and_prompt(existing_content)
+        prompt_text = parsed.get("prompt", existing_content)
+
+        # If generate_image is requested and the result image does not exist yet, generate it
+        result_img_path_str = str(expected_result_img) if expected_result_img.exists() else None
+        img_err = None
+        newly_generated_img = False
+
+        if config.generate_image and not expected_result_img.exists() and prompt_text:
+            try:
+                gen_bytes = await generate_image_openai(
+                    prompt=prompt_text,
+                    api_key=config.openai_api_key,
+                    model=config.image_model,
+                    quality=config.image_quality,
+                    base_url=config.openai_base_url,
+                    timeout_seconds=min(config.timeout_seconds, 300.0),
+                )
+                saved_path = await asyncio.to_thread(save_result_image, gen_bytes, image_path)
+                result_img_path_str = str(saved_path)
+                newly_generated_img = True
+            except Exception as e:
+                img_err = str(e)
+
         return {
-            "status": "skipped",
+            "status": "ok" if newly_generated_img else "skipped",
             "file": str(image_path),
             "filename": image_path.name,
             "txt_file": str(txt_path),
+            "result_image": Path(result_img_path_str).name if result_img_path_str else None,
+            "result_image_path": result_img_path_str,
+            "image_error": img_err,
             "title": parsed.get("title", ""),
-            "prompt": parsed.get("prompt", existing_content),
+            "prompt": prompt_text,
             "aspect_ratio": ar,
             "width": w,
             "height": h,
-            "reason": "File .txt đã tồn tại (đã bỏ qua vì không chọn ghi đè)",
+            "reason": "Đã tạo ảnh kết quả từ prompt có sẵn" if newly_generated_img else "File .txt đã tồn tại (đã bỏ qua vì không chọn ghi đè)",
         }
 
     try:
@@ -824,11 +986,32 @@ async def process_image_file(
         else:
             file_content = f"Title: {title}\n\nPrompt:\n{prompt_text}\n"
         await asyncio.to_thread(txt_path.write_text, file_content, encoding="utf-8")
+
+        result_img_path_str = None
+        img_err = None
+        if config.generate_image and prompt_text:
+            try:
+                gen_bytes = await generate_image_openai(
+                    prompt=prompt_text,
+                    api_key=config.openai_api_key,
+                    model=config.image_model,
+                    quality=config.image_quality,
+                    base_url=config.openai_base_url,
+                    timeout_seconds=min(config.timeout_seconds, 300.0),
+                )
+                saved_path = await asyncio.to_thread(save_result_image, gen_bytes, image_path)
+                result_img_path_str = str(saved_path)
+            except Exception as e:
+                img_err = str(e)
+
         return {
             "status": "ok",
             "file": str(image_path),
             "filename": image_path.name,
             "txt_file": str(txt_path),
+            "result_image": Path(result_img_path_str).name if result_img_path_str else None,
+            "result_image_path": result_img_path_str,
+            "image_error": img_err,
             "title": title,
             "prompt": prompt_text,
             "aspect_ratio": ar_res,

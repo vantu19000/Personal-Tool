@@ -75,12 +75,14 @@ class BlockDef:
 
 
 class SystemSettings(BaseModel):
-    """App-wide settings block (homepage title + description + shared Ollama config)."""
+    """App-wide settings block (homepage title + description + shared Ollama config + shared OpenAI config)."""
 
     home_title: str = Field(..., max_length=300)
     home_description: str = Field(..., max_length=1000)
     ollama_timeout_seconds: int = Field(600, ge=10, le=7200)
     ollama_base_url: str = Field("http://localhost:11434", max_length=200)
+    openai_api_key: str = Field("", max_length=200)
+    openai_base_url: str = Field("https://api.openai.com/v1", max_length=300)
 
 
 class PdfToMdSettings(BaseModel):
@@ -100,12 +102,12 @@ class ImageToPromptSettings(BaseModel):
 
     default_model: str = Field("qwen 3.8", max_length=100)
     default_language: str = Field("pt-BR", max_length=20)
-    character_description: str = Field(
-        "nhân vật nữ dùng ảnh tham chiếu cho khuôn mặt",
-        max_length=500,
-    )
+    character_description: str = Field("", max_length=500)
     aspect_ratio_mode: str = Field("none", max_length=50)
     target_aspect_ratio: str = Field("4:5", max_length=50)
+    generate_image: bool = Field(False)
+    image_model: str = Field("gpt-image-2.5-flare", max_length=100)
+    image_quality: str = Field("medium", max_length=50)
     system_prompt: str = Field(..., min_length=5, max_length=8000)
     timeout_seconds: int = Field(1200, ge=30, le=7200)
 
@@ -191,6 +193,8 @@ BLOCKS: Dict[str, BlockDef] = {
             ),
             "ollama_timeout_seconds": 600,
             "ollama_base_url": "http://localhost:11434",
+            "openai_api_key": "",
+            "openai_base_url": "https://api.openai.com/v1",
         },
         fields=[
             FieldDef(
@@ -219,6 +223,20 @@ BLOCKS: Dict[str, BlockDef] = {
                 placeholder="http://localhost:11434",
                 help_text="Endpoint URL của máy chủ Ollama cục bộ.",
             ),
+            FieldDef(
+                key="openai_api_key",
+                label="OpenAI API Key (Dùng chung hệ thống)",
+                kind="password",
+                placeholder="sk-...",
+                help_text="Khóa API OpenAI dùng chung cho toàn hệ thống (bắt đầu bằng sk-...).",
+            ),
+            FieldDef(
+                key="openai_base_url",
+                label="OpenAI Base URL (Dùng chung hệ thống)",
+                kind="text",
+                placeholder="https://api.openai.com/v1",
+                help_text="Địa chỉ endpoint OpenAI API dùng chung (mặc định https://api.openai.com/v1).",
+            ),
         ],
     ),
     "image_to_prompt": BlockDef(
@@ -229,9 +247,12 @@ BLOCKS: Dict[str, BlockDef] = {
         default={
             "default_model": "qwen 3.8",
             "default_language": "pt-BR",
-            "character_description": "nhân vật nữ dùng ảnh tham chiếu cho khuôn mặt",
+            "character_description": "",
             "aspect_ratio_mode": "none",
             "target_aspect_ratio": "4:5",
+            "generate_image": False,
+            "image_model": "gpt-image-2.5-flare",
+            "image_quality": "medium",
             "system_prompt": DEFAULT_IMAGE_TO_PROMPT,
             "timeout_seconds": 1200,
         },
@@ -249,13 +270,6 @@ BLOCKS: Dict[str, BlockDef] = {
                 kind="text",
                 placeholder="en",
                 help_text="Mã ngôn ngữ prompt sinh ra (vd: en cho tiếng Anh, vi cho tiếng Việt).",
-            ),
-            FieldDef(
-                key="character_description",
-                label="Mô tả nhân vật & tham chiếu khuôn mặt",
-                kind="text",
-                placeholder="nhân vật nam dùng ảnh tham chiếu cho khuôn mặt",
-                help_text="Chỉ thị cho AI về nhân vật (ví dụ: 'nhân vật nam dùng ảnh tham chiếu cho khuôn mặt').",
             ),
             FieldDef(
                 key="aspect_ratio_mode",
@@ -281,7 +295,36 @@ BLOCKS: Dict[str, BlockDef] = {
                 label="Chỉ dẫn trích xuất prompt (System Prompt)",
                 kind="textarea",
                 placeholder="Prompt gửi cho Ollama...",
-                help_text="Câu lệnh gửi cho AI. Hỗ trợ các biến: {output_language}, {character_description}, {aspect_ratio}, {width}, {height}.",
+                help_text="Câu lệnh gửi cho AI. Hỗ trợ các biến: {output_language}, {aspect_ratio}, {width}, {height}.",
+            ),
+            FieldDef(
+                key="generate_image",
+                label="Tạo ảnh với OpenAI API (Mặc định)",
+                kind="checkbox",
+                help_text="Tự động gọi OpenAI API để tạo ảnh từ prompt sinh ra (mặc định tắt).",
+            ),
+            FieldDef(
+                key="image_model",
+                label="Model OpenAI tạo ảnh mặc định",
+                kind="select",
+                options=[
+                    {"value": "gpt-image-2.5-flare", "label": "gpt-image-2.5-flare (Mặc định)"},
+                    {"value": "gpt-image-2.6-flare", "label": "gpt-image-2.6-flare"},
+                    {"value": "gpt-image-2.6-sunburst", "label": "gpt-image-2.6-sunburst"},
+                    {"value": "gpt-image-2.5-sunburst", "label": "gpt-image-2.5-sunburst"},
+                ],
+                help_text="Model OpenAI tạo ảnh khi bật tùy chọn tạo ảnh.",
+            ),
+            FieldDef(
+                key="image_quality",
+                label="Chất lượng ảnh mặc định",
+                kind="select",
+                options=[
+                    {"value": "medium", "label": "medium (Mặc định)"},
+                    {"value": "low", "label": "low"},
+                    {"value": "high", "label": "high"},
+                ],
+                help_text="Chất lượng ảnh tạo ra bởi OpenAI API (low, medium, high).",
             ),
         ],
     ),

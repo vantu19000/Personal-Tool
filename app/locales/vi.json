@@ -151,6 +151,16 @@
           "home_description": {
             "label": "Mô tả trang chủ",
             "placeholder": "Mô tả ngắn gọn của trang chủ"
+          },
+          "openai_api_key": {
+            "label": "OpenAI API Key (Dùng chung hệ thống)",
+            "placeholder": "sk-...",
+            "help_text": "Khóa API OpenAI dùng chung cho toàn hệ thống (bắt đầu bằng sk-...)."
+          },
+          "openai_base_url": {
+            "label": "OpenAI Base URL (Dùng chung hệ thống)",
+            "placeholder": "https://api.openai.com/v1",
+            "help_text": "Địa chỉ endpoint OpenAI API dùng chung (mặc định https://api.openai.com/v1)."
           }
         }
       },
@@ -302,6 +312,15 @@
     "btn_rename_now": "Đổi tên ảnh ngay (image-1, image-2...)",
     "renaming_files": "Đang đổi tên ảnh thành image-1, image-2...",
     "rename_success": "✓ Đã đổi tên thành công {count} ảnh thành image-1.ext, image-2.ext...",
+    "generate_image_opt": "Tạo ảnh từ Prompt sinh ra (gọi OpenAI Images API, lưu thành image-X-result.xxx)",
+    "generate_image_step_title": "Tùy chọn tạo ảnh (OpenAI API)",
+    "generate_image_hint": "Tự động gọi OpenAI Images API để tạo ảnh từ prompt sinh ra ở bước trước và lưu với tên image-1-result.xxx, image-2-result.xxx...",
+    "image_model_label": "Model OpenAI tạo ảnh",
+    "image_quality_label": "Chất lượng (Quality)",
+    "openai_key_label": "OpenAI API Key",
+    "openai_key_placeholder": "sk-... (để trống nếu đã cấu hình trong Cài đặt)",
+    "openai_key_hint": "API Key của OpenAI dùng để gọi tạo ảnh. Sẽ được lưu khi nhấn 'Lưu cấu hình làm mặc định'.",
+    "openai_base_url_label": "OpenAI Base URL (Tùy chọn)",
     "opt_overwrite": "Ghi đè file <code class=\"font-mono text-xs\">.txt</code> nếu đã tồn tại",
     "opt_recursive": "Quét cả thư mục con (Recursive)",
     "ollama_notice_batch": "⚠️ Ollama chưa chạy, không thể bắt đầu dịch ngược.",

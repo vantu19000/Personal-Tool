@@ -307,6 +307,81 @@ try:
     assert "2:3" not in fixed_prompt
     print("   -> OK! Target aspect ratio 4:5 đã thay thế hoàn toàn và ghi đè 2:3 thành công.")
 
+    print("18. Kiểm tra danh sách model và quality tạo ảnh OpenAI (gpt-image)...")
+    from app.tools.image_to_prompt.services import (
+        DEFAULT_IMAGE_MODEL,
+        DEFAULT_IMAGE_QUALITY,
+        IMAGE_MODEL_NAMES,
+        IMAGE_QUALITY_NAMES,
+        save_result_image,
+    )
+    assert DEFAULT_IMAGE_MODEL == "gpt-image-2.5-flare"
+    assert DEFAULT_IMAGE_QUALITY == "medium"
+    assert "gpt-image-2.6-flare" in IMAGE_MODEL_NAMES
+    assert "gpt-image-2.6-sunburst" in IMAGE_MODEL_NAMES
+    assert "gpt-image-2.5-sunburst" in IMAGE_MODEL_NAMES
+    assert "low" in IMAGE_QUALITY_NAMES and "high" in IMAGE_QUALITY_NAMES
+    print("   -> OK! Model mặc định là gpt-image-2.5-flare, quality mặc định là medium.")
+
+    print("19. Kiểm tra hàm lưu ảnh kết quả (save_result_image) dạng image-1-result.xxx...")
+    test_img_path = temp_dir / "image-1.jpg"
+    test_img_path.write_bytes(b"\xFF\xD8\xFF\xE0dummy_jpg_1")
+    buf_res = io.BytesIO()
+    Image.new("RGB", (100, 100), color="purple").save(buf_res, format="JPEG")
+    saved_img = save_result_image(buf_res.getvalue(), test_img_path)
+    assert saved_img.name == "image-1-result.jpg"
+    assert saved_img.exists()
+    print("   -> OK! Đã lưu chính xác file ảnh kết quả thành image-1-result.jpg.")
+
+    print("20. Kiểm tra quy trình tạo ảnh qua OpenAI (Mock API) trong process_image_file...")
+    import asyncio
+    from app.tools.image_to_prompt.services import PromptConfig, process_image_file
+    with patch(
+        "app.tools.image_to_prompt.services.generate_prompt_for_image_bytes",
+        new_callable=AsyncMock,
+    ) as mock_prompt_gen, patch(
+        "app.tools.image_to_prompt.services.generate_image_openai",
+        new_callable=AsyncMock,
+    ) as mock_img_gen:
+        mock_prompt_gen.return_value = {
+            "title": "1. Retrato de uma mulher elegante",
+            "prompt": "Prompt gerado em português do Brasil",
+        }
+        mock_img_gen.return_value = buf_res.getvalue()
+
+        cfg_with_img = PromptConfig(
+            generate_image=True,
+            image_model="gpt-image-2.5-flare",
+            image_quality="medium",
+            openai_api_key="sk-test-key",
+            overwrite=True,
+        )
+        res_img_proc = asyncio.run(process_image_file(test_img_path, cfg_with_img))
+        assert res_img_proc["status"] == "ok"
+        assert res_img_proc["result_image"] == "image-1-result.jpg"
+        assert (test_img_path.parent / "image-1-result.jpg").exists()
+    print("   -> OK! process_image_file với generate_image=True gọi đúng generate_image_openai và lưu image-1-result.")
+
+    print("21. Kiểm tra cấu hình chung hệ thống (/settings) có trường OpenAI API Key và Base URL...")
+    r_settings = client.get("/settings")
+    assert r_settings.status_code == 200
+    assert "system_openai_api_key" in r_settings.text or "openai_api_key" in r_settings.text
+    assert "system_openai_base_url" in r_settings.text or "openai_base_url" in r_settings.text
+
+    from app.core import settings_store as ss
+    sys_b = ss.get_block("system")
+    assert "openai_api_key" in sys_b
+    assert "openai_base_url" in sys_b
+    print("   -> OK! Cấu hình chung hệ thống (/settings) đã tích hợp đầy đủ OpenAI API Key và OpenAI Base URL.")
+
+    print("22. Kiểm tra màn hình image-to-prompt đã bỏ ô nhập OpenAI API Key và URL, tự động lấy từ config...")
+    r_page = client.get("/tools/image-to-prompt")
+    assert r_page.status_code == 200
+    assert 'id="openai-api-key"' not in r_page.text
+    assert 'id="openai-base-url"' not in r_page.text
+    assert "OpenAI API Key & Base URL được tự động lấy từ Cấu hình chung hệ thống" in r_page.text
+    print("   -> OK! Màn hình image-to-prompt đã loại bỏ hoàn toàn ô nhập Key/URL và hiển thị chỉ dẫn lấy từ config hệ thống.")
+
 finally:
     shutil.rmtree(temp_dir, ignore_errors=True)
 
