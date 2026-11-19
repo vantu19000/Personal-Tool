@@ -7,6 +7,7 @@ import io
 import json
 import math
 import os
+import random
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -209,6 +210,7 @@ class PromptConfig:
     generate_image: bool = False
     image_model: str = DEFAULT_IMAGE_MODEL
     image_quality: str = DEFAULT_IMAGE_QUALITY
+    reference_folder: str = ""
     openai_api_key: str = ""
     openai_base_url: str = DEFAULT_OPENAI_BASE_URL
 
@@ -785,6 +787,32 @@ async def generate_prompt_for_image_bytes(
         raise ImageToPromptError(str(exc)) from exc
 
 
+def get_random_reference_image(folder_path: str) -> Optional[tuple[Path, bytes]]:
+    """Scan folder_path and return a randomly chosen image file path and its bytes.
+    Raises ImageToPromptError if folder does not exist or contains no valid images.
+    """
+    clean_p = (folder_path or "").strip()
+    if not clean_p:
+        return None
+    p = Path(clean_p)
+    if not p.exists() or not p.is_dir():
+        raise ImageToPromptError(f"Thư mục ảnh tham chiếu không tồn tại hoặc không phải là thư mục: '{clean_p}'")
+
+    valid_exts = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+    candidates = [
+        f for f in p.iterdir()
+        if f.is_file() and f.suffix.lower() in valid_exts and not f.name.startswith(".")
+    ]
+    if not candidates:
+        raise ImageToPromptError(f"Thư mục ảnh tham chiếu '{clean_p}' không chứa bất kỳ file ảnh hợp lệ nào (.jpg, .jpeg, .png, .webp, .bmp).")
+
+    chosen = random.choice(candidates)
+    try:
+        return chosen, chosen.read_bytes()
+    except Exception as exc:
+        raise ImageToPromptError(f"Không thể đọc file ảnh tham chiếu '{chosen.name}': {exc}") from exc
+
+
 async def generate_image_openai(
     prompt: str,
     api_key: str = "",
@@ -793,15 +821,125 @@ async def generate_image_openai(
     base_url: str = DEFAULT_OPENAI_BASE_URL,
     timeout_seconds: float = 180.0,
     size: Optional[str] = None,
+    reference_image_bytes: Optional[bytes] = None,
+    reference_image_filename: str = "reference.jpg",
 ) -> bytes:
-    """Call OpenAI Images API (/v1/images/generations) to generate image bytes."""
+    """Call OpenAI Images API (/v1/images/edits or /v1/images/generations) to generate image bytes.
+    If reference_image_bytes is provided, calls /v1/images/edits with multipart form-data.
+    """
     clean_key = (api_key or os.getenv("OPENAI_API_KEY", "")).strip()
     if not clean_key:
-        raise ImageToPromptError("Chưa cung cấp OpenAI API Key. Vui lòng nhập OpenAI API Key để tạo ảnh.")
+        raise ImageToPromptError("Chưa cung cấp OpenAI API Key. Vui lòng cấu hình OpenAI API Key trong Cài đặt hệ thống.")
 
     clean_base = (base_url or os.getenv("OPENAI_BASE_URL", DEFAULT_OPENAI_BASE_URL)).strip().rstrip("/")
-    url = f"{clean_base}/images/generations"
+    timeout = aiohttp.ClientTimeout(total=timeout_seconds)
 
+    # If reference image is provided, call /images/edits using multipart/form-data
+    if reference_image_bytes:
+        url = f"{clean_base}/images/edits"
+        headers = {
+            "Authorization": f"Bearer {clean_key}",
+        }
+        ref_name = reference_image_filename or "reference.jpg"
+        ext = Path(ref_name).suffix.lower()
+        mime = "image/png" if ext == ".png" else "image/webp" if ext == ".webp" else "image/jpeg"
+
+        def _build_form(include_response_fmt: bool = True) -> aiohttp.FormData:
+            form = aiohttp.FormData()
+            form.add_field("prompt", prompt)
+            form.add_field("model", model or DEFAULT_IMAGE_MODEL)
+            if quality:
+                form.add_field("quality", quality)
+            form.add_field("n", "1")
+            if include_response_fmt:
+                form.add_field("response_format", "b64_json")
+            if size:
+                form.add_field("size", size)
+            form.add_field(
+                "image",
+                reference_image_bytes,
+                filename=ref_name,
+                content_type=mime,
+            )
+            return form
+
+        try:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                form_data = _build_form(include_response_fmt=True)
+                async with session.post(url, headers=headers, data=form_data) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        items = data.get("data", [])
+                        if not items:
+                            raise ImageToPromptError("OpenAI API không trả về hình ảnh nào.")
+                        first_item = items[0]
+                        if "b64_json" in first_item and first_item["b64_json"]:
+                            return base64.b64decode(first_item["b64_json"])
+                        if "url" in first_item and first_item["url"]:
+                            async with session.get(first_item["url"]) as img_resp:
+                                img_resp.raise_for_status()
+                                return await img_resp.read()
+                        raise ImageToPromptError("Phản hồi từ OpenAI không chứa ảnh b64_json hoặc url.")
+
+                    err_text = await resp.text()
+
+                    # Some proxies / models reject response_format parameter. Retry without it if rejected.
+                    if "response_format" in err_text.lower():
+                        retry_form = _build_form(include_response_fmt=False)
+                        async with session.post(url, headers=headers, data=retry_form) as retry_resp:
+                            if retry_resp.status == 200:
+                                retry_data = await retry_resp.json()
+                                retry_items = retry_data.get("data", [])
+                                if retry_items and "url" in retry_items[0]:
+                                    async with session.get(retry_items[0]["url"]) as img_resp:
+                                        img_resp.raise_for_status()
+                                        return await img_resp.read()
+                                elif retry_items and "b64_json" in retry_items[0]:
+                                    return base64.b64decode(retry_items[0]["b64_json"])
+
+                    # If edits endpoint returns 404 or 405 on some proxies, fallback to /images/generations with base64 image
+                    if resp.status in (404, 405):
+                        gen_url = f"{clean_base}/images/generations"
+                        json_headers = {
+                            "Authorization": f"Bearer {clean_key}",
+                            "Content-Type": "application/json",
+                        }
+                        payload_fb = {
+                            "model": model or DEFAULT_IMAGE_MODEL,
+                            "prompt": prompt,
+                            "quality": quality or DEFAULT_IMAGE_QUALITY,
+                            "n": 1,
+                            "response_format": "b64_json",
+                            "image": f"data:{mime};base64,{base64.b64encode(reference_image_bytes).decode('utf-8')}",
+                        }
+                        async with session.post(gen_url, headers=json_headers, json=payload_fb) as fb_resp:
+                            if fb_resp.status == 200:
+                                fb_data = await fb_resp.json()
+                                fb_items = fb_data.get("data", [])
+                                if fb_items and "b64_json" in fb_items[0]:
+                                    return base64.b64decode(fb_items[0]["b64_json"])
+                                if fb_items and "url" in fb_items[0]:
+                                    async with session.get(fb_items[0]["url"]) as img_resp:
+                                        img_resp.raise_for_status()
+                                        return await img_resp.read()
+
+                    try:
+                        err_json = json.loads(err_text)
+                        err_msg = err_json.get("error", {}).get("message") or str(err_json)
+                    except Exception:
+                        err_msg = err_text
+                    raise ImageToPromptError(f"OpenAI API Error ({resp.status}): {err_msg}")
+        except asyncio.TimeoutError:
+            raise ImageToPromptError(f"Hết thời gian chờ phản hồi tạo ảnh từ OpenAI ({int(timeout_seconds)}s).")
+        except aiohttp.ClientConnectorError as exc:
+            raise ImageToPromptError(f"Không thể kết nối tới OpenAI API tại {clean_base}: {exc}") from exc
+        except ImageToPromptError:
+            raise
+        except Exception as exc:
+            raise ImageToPromptError(f"Lỗi tạo ảnh với OpenAI: {exc}") from exc
+
+    # No reference image -> call standard /images/generations
+    url = f"{clean_base}/images/generations"
     headers = {
         "Authorization": f"Bearer {clean_key}",
         "Content-Type": "application/json",
@@ -816,8 +954,6 @@ async def generate_image_openai(
     }
     if size:
         payload["size"] = size
-
-    timeout = aiohttp.ClientTimeout(total=timeout_seconds)
 
     try:
         async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -938,9 +1074,20 @@ async def process_image_file(
         result_img_path_str = str(expected_result_img) if expected_result_img.exists() else None
         img_err = None
         newly_generated_img = False
+        ref_used_name = None
 
         if config.generate_image and not expected_result_img.exists() and prompt_text:
             try:
+                ref_bytes = None
+                if config.reference_folder and config.reference_folder.strip():
+                    ref_info = get_random_reference_image(config.reference_folder)
+                    if ref_info:
+                        ref_file, ref_bytes = ref_info
+                        ref_used_name = ref_file.name
+                elif config.reference_face_bytes:
+                    ref_bytes = config.reference_face_bytes
+                    ref_used_name = "reference.jpg"
+
                 gen_bytes = await generate_image_openai(
                     prompt=prompt_text,
                     api_key=config.openai_api_key,
@@ -948,6 +1095,8 @@ async def process_image_file(
                     quality=config.image_quality,
                     base_url=config.openai_base_url,
                     timeout_seconds=min(config.timeout_seconds, 300.0),
+                    reference_image_bytes=ref_bytes,
+                    reference_image_filename=ref_used_name or "reference.jpg",
                 )
                 saved_path = await asyncio.to_thread(save_result_image, gen_bytes, image_path)
                 result_img_path_str = str(saved_path)
@@ -962,6 +1111,7 @@ async def process_image_file(
             "txt_file": str(txt_path),
             "result_image": Path(result_img_path_str).name if result_img_path_str else None,
             "result_image_path": result_img_path_str,
+            "ref_image": ref_used_name,
             "image_error": img_err,
             "title": parsed.get("title", ""),
             "prompt": prompt_text,
@@ -989,8 +1139,19 @@ async def process_image_file(
 
         result_img_path_str = None
         img_err = None
+        ref_used_name = None
         if config.generate_image and prompt_text:
             try:
+                ref_bytes = None
+                if config.reference_folder and config.reference_folder.strip():
+                    ref_info = get_random_reference_image(config.reference_folder)
+                    if ref_info:
+                        ref_file, ref_bytes = ref_info
+                        ref_used_name = ref_file.name
+                elif config.reference_face_bytes:
+                    ref_bytes = config.reference_face_bytes
+                    ref_used_name = "reference.jpg"
+
                 gen_bytes = await generate_image_openai(
                     prompt=prompt_text,
                     api_key=config.openai_api_key,
@@ -998,6 +1159,8 @@ async def process_image_file(
                     quality=config.image_quality,
                     base_url=config.openai_base_url,
                     timeout_seconds=min(config.timeout_seconds, 300.0),
+                    reference_image_bytes=ref_bytes,
+                    reference_image_filename=ref_used_name or "reference.jpg",
                 )
                 saved_path = await asyncio.to_thread(save_result_image, gen_bytes, image_path)
                 result_img_path_str = str(saved_path)
@@ -1011,6 +1174,7 @@ async def process_image_file(
             "txt_file": str(txt_path),
             "result_image": Path(result_img_path_str).name if result_img_path_str else None,
             "result_image_path": result_img_path_str,
+            "ref_image": ref_used_name,
             "image_error": img_err,
             "title": title,
             "prompt": prompt_text,

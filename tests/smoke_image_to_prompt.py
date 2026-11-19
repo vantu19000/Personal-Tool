@@ -381,7 +381,55 @@ try:
     assert 'id="openai-base-url"' not in r_page.text
     assert "OpenAI API Key & Base URL được tự động lấy từ Cấu hình chung hệ thống" in r_page.text
     assert "image_to_prompt_folder" in r_page.text
-    print("   -> OK! Màn hình image-to-prompt đã loại bỏ hoàn toàn ô nhập Key/URL và có lưu localStorage thư mục ảnh.")
+    assert 'id="image-ref-folder"' in r_page.text
+    assert "image_to_prompt_ref_folder" in r_page.text
+    print("   -> OK! Màn hình image-to-prompt đã loại bỏ hoàn toàn ô nhập Key/URL, có input thư mục ảnh tham chiếu và lưu localStorage.")
+
+    print("23. Kiểm tra tính năng chọn ngẫu nhiên ảnh tham chiếu từ thư mục khi tạo ảnh OpenAI...")
+    from app.tools.image_to_prompt.services import get_random_reference_image
+    ref_dir = temp_dir / "face_references"
+    ref_dir.mkdir(parents=True, exist_ok=True)
+    (ref_dir / "face1.jpg").write_bytes(buf_res.getvalue())
+    (ref_dir / "face2.png").write_bytes(buf_res.getvalue())
+
+    # Test get_random_reference_image
+    rand_ref_path, rand_ref_bytes = get_random_reference_image(str(ref_dir))
+    assert rand_ref_path.name in ("face1.jpg", "face2.png")
+    assert len(rand_ref_bytes) > 0
+
+    # Test process_image_file with reference_folder
+    with patch(
+        "app.tools.image_to_prompt.services.generate_prompt_for_image_bytes",
+        new_callable=AsyncMock,
+    ) as mock_prompt_gen2, patch(
+        "app.tools.image_to_prompt.services.generate_image_openai",
+        new_callable=AsyncMock,
+    ) as mock_img_gen2:
+        mock_prompt_gen2.return_value = {
+            "title": "1. Retrato de uma mulher elegante",
+            "prompt": "Prompt test random reference",
+        }
+        mock_img_gen2.return_value = buf_res.getvalue()
+
+        test_img_path2 = temp_dir / "image-2.jpg"
+        test_img_path2.write_bytes(buf_res.getvalue())
+
+        cfg_ref = PromptConfig(
+            generate_image=True,
+            image_model="gpt-image-2.5-flare",
+            reference_folder=str(ref_dir),
+            openai_api_key="sk-test-key",
+            overwrite=True,
+        )
+        res_ref_proc = asyncio.run(process_image_file(test_img_path2, cfg_ref))
+        assert res_ref_proc["status"] == "ok"
+        assert res_ref_proc["ref_image"] in ("face1.jpg", "face2.png")
+        assert mock_img_gen2.called
+        # Check that reference_image_bytes was passed to generate_image_openai
+        called_kwargs = mock_img_gen2.call_args.kwargs
+        assert called_kwargs.get("reference_image_bytes") is not None
+        assert called_kwargs.get("reference_image_filename") in ("face1.jpg", "face2.png")
+    print("   -> OK! process_image_file đã tự động lấy ngẫu nhiên 1 ảnh từ thư mục tham chiếu và truyền cho OpenAI API.")
 
 finally:
     shutil.rmtree(temp_dir, ignore_errors=True)

@@ -108,6 +108,7 @@ class ImageToPromptSettings(BaseModel):
     generate_image: bool = Field(False)
     image_model: str = Field("gpt-image-2.5-flare", max_length=100)
     image_quality: str = Field("medium", max_length=50)
+    reference_folder: str = Field("", max_length=500)
     system_prompt: str = Field(..., min_length=5, max_length=8000)
     timeout_seconds: int = Field(1200, ge=30, le=7200)
 
@@ -253,6 +254,7 @@ BLOCKS: Dict[str, BlockDef] = {
             "generate_image": False,
             "image_model": "gpt-image-2.5-flare",
             "image_quality": "medium",
+            "reference_folder": "",
             "system_prompt": DEFAULT_IMAGE_TO_PROMPT,
             "timeout_seconds": 1200,
         },
@@ -325,6 +327,13 @@ BLOCKS: Dict[str, BlockDef] = {
                     {"value": "high", "label": "high"},
                 ],
                 help_text="Chất lượng ảnh tạo ra bởi OpenAI API (low, medium, high).",
+            ),
+            FieldDef(
+                key="reference_folder",
+                label="Thư mục ảnh tham chiếu mặc định",
+                kind="text",
+                placeholder="D:\\Photos\\FaceReferences",
+                help_text="Thư mục chứa ảnh tham chiếu, hệ thống chọn ngẫu nhiên 1 ảnh đính kèm mỗi lần tạo ảnh.",
             ),
         ],
     ),

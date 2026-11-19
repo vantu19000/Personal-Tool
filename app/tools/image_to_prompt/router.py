@@ -41,6 +41,7 @@ def _get_configured_defaults():
     generate_image = bool(block.get("generate_image", False))
     image_model = block.get("image_model") or services.DEFAULT_IMAGE_MODEL
     image_quality = block.get("image_quality") or services.DEFAULT_IMAGE_QUALITY
+    reference_folder = block.get("reference_folder", "")
     # Read from system block (cấu hình chung hệ thống), fallback to env or tool block
     openai_api_key = sys_block.get("openai_api_key") or block.get("openai_api_key") or os.getenv("OPENAI_API_KEY", "")
     openai_base_url = sys_block.get("openai_base_url") or block.get("openai_base_url") or os.getenv("OPENAI_BASE_URL", services.DEFAULT_OPENAI_BASE_URL)
@@ -55,6 +56,7 @@ def _get_configured_defaults():
         generate_image,
         image_model,
         image_quality,
+        reference_folder,
         openai_api_key,
         openai_base_url,
     )
@@ -75,6 +77,7 @@ async def image_to_prompt_page(request: Request):
         default_gen_img,
         default_img_model,
         default_img_quality,
+        default_ref_folder,
         default_openai_key,
         default_openai_url,
     ) = _get_configured_defaults()
@@ -93,6 +96,7 @@ async def image_to_prompt_page(request: Request):
             "default_generate_image": default_gen_img,
             "default_image_model": default_img_model,
             "default_image_quality": default_img_quality,
+            "default_reference_folder": default_ref_folder,
             "default_openai_api_key": default_openai_key,
             "default_openai_base_url": default_openai_url,
             "image_models": services.SUPPORTED_IMAGE_MODELS,
@@ -180,6 +184,7 @@ async def image_to_prompt_single(
     generate_image: bool = Form(False),
     image_model: str = Form(""),
     image_quality: str = Form(""),
+    reference_folder: str = Form(""),
     openai_api_key: str = Form(""),
     openai_base_url: str = Form(""),
 ):
@@ -203,6 +208,7 @@ async def image_to_prompt_single(
         def_gen_img,
         def_img_model,
         def_img_quality,
+        def_ref_folder,
         def_openai_key,
         def_openai_url,
     ) = _get_configured_defaults()
@@ -211,6 +217,7 @@ async def image_to_prompt_single(
     effective_base_url = openai_base_url.strip() or def_openai_url
     effective_img_model = image_model.strip() or def_img_model
     effective_img_quality = image_quality.strip() or def_img_quality
+    effective_ref_folder = reference_folder.strip() or def_ref_folder
 
     config = services.PromptConfig(
         model=model.strip() or def_model,
@@ -224,6 +231,7 @@ async def image_to_prompt_single(
         generate_image=generate_image,
         image_model=effective_img_model,
         image_quality=effective_img_quality,
+        reference_folder=effective_ref_folder,
         openai_api_key=effective_api_key,
         openai_base_url=effective_base_url,
     )
@@ -236,9 +244,20 @@ async def image_to_prompt_single(
         prompt_text = result.get("prompt", "")
         result_image_b64 = None
         image_gen_error = None
+        ref_used_name = None
 
         if generate_image and prompt_text:
             try:
+                single_ref_bytes = None
+                if effective_ref_folder:
+                    ref_info = services.get_random_reference_image(effective_ref_folder)
+                    if ref_info:
+                        ref_file, single_ref_bytes = ref_info
+                        ref_used_name = ref_file.name
+                elif ref_bytes:
+                    single_ref_bytes = ref_bytes
+                    ref_used_name = "reference.jpg"
+
                 gen_bytes = await services.generate_image_openai(
                     prompt=prompt_text,
                     api_key=effective_api_key,
@@ -246,6 +265,8 @@ async def image_to_prompt_single(
                     quality=effective_img_quality,
                     base_url=effective_base_url,
                     timeout_seconds=min(config.timeout_seconds, 300.0),
+                    reference_image_bytes=single_ref_bytes,
+                    reference_image_filename=ref_used_name or "reference.jpg",
                 )
                 b64_str = base64.b64encode(gen_bytes).decode("utf-8")
                 result_image_b64 = f"data:image/png;base64,{b64_str}"
@@ -259,6 +280,7 @@ async def image_to_prompt_single(
             "width": result.get("width", 0),
             "height": result.get("height", 0),
             "filename": file.filename or "image",
+            "ref_image": ref_used_name,
             "result_image_b64": result_image_b64,
             "image_error": image_gen_error,
         })
@@ -280,6 +302,7 @@ async def image_to_prompt_save_defaults(
     generate_image: bool = Form(False),
     image_model: str = Form(services.DEFAULT_IMAGE_MODEL),
     image_quality: str = Form(services.DEFAULT_IMAGE_QUALITY),
+    reference_folder: str = Form(""),
     openai_api_key: str = Form(""),
     openai_base_url: str = Form(""),
 ):
@@ -296,6 +319,7 @@ async def image_to_prompt_save_defaults(
                 "generate_image": generate_image,
                 "image_model": image_model.strip() or services.DEFAULT_IMAGE_MODEL,
                 "image_quality": image_quality.strip() or services.DEFAULT_IMAGE_QUALITY,
+                "reference_folder": reference_folder.strip(),
             }
         }
         if character_desc.strip():
@@ -355,6 +379,7 @@ async def image_to_prompt_process(
     generate_image: bool = Form(False, description="Tạo ảnh với OpenAI API từ prompt sinh ra"),
     image_model: str = Form(""),
     image_quality: str = Form(""),
+    reference_folder: str = Form(""),
     openai_api_key: str = Form(""),
     openai_base_url: str = Form(""),
     overwrite: bool = Form(False),
@@ -390,6 +415,7 @@ async def image_to_prompt_process(
         def_gen_img,
         def_img_model,
         def_img_quality,
+        def_ref_folder,
         def_openai_key,
         def_openai_url,
     ) = _get_configured_defaults()
@@ -398,6 +424,7 @@ async def image_to_prompt_process(
     effective_base_url = openai_base_url.strip() or def_openai_url
     effective_img_model = image_model.strip() or def_img_model
     effective_img_quality = image_quality.strip() or def_img_quality
+    effective_ref_folder = reference_folder.strip() or def_ref_folder
 
     config = services.PromptConfig(
         model=model.strip() or def_model,
@@ -412,6 +439,7 @@ async def image_to_prompt_process(
         generate_image=generate_image,
         image_model=effective_img_model,
         image_quality=effective_img_quality,
+        reference_folder=effective_ref_folder,
         openai_api_key=effective_api_key,
         openai_base_url=effective_base_url,
     )
