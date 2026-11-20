@@ -303,10 +303,8 @@ BLOCKS: Dict[str, BlockDef] = {
                 label="Cách bắt chước tỷ lệ ảnh gốc",
                 kind="select",
                 options=[
-                    {"value": "both", "label": "Cả hai (Aspect ratio: {ratio} & --ar {ratio})"},
-                    {"value": "midjourney", "label": "Chỉ tham số Midjourney (--ar {ratio})"},
-                    {"value": "natural", "label": "Chỉ câu tự nhiên (Aspect ratio: {ratio})"},
                     {"value": "none", "label": "Tắt (không tự động gắn tỷ lệ)"},
+                    {"value": "natural", "label": "Chỉ câu tự nhiên (Aspect ratio: {ratio})"},
                 ],
                 help_text="Tự động đo tỷ lệ khung hình của ảnh gốc và gắn vào prompt đầu ra.",
             ),

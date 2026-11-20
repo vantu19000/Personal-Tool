@@ -12,7 +12,7 @@ class PromptTemplateCreate(BaseModel):
     category: str = Field("Chân dung", max_length=50, description="Danh mục / Thể loại (Chân dung, Thời trang, v.v.)")
     language: str = Field("pt-BR", max_length=10, description="Mã ngôn ngữ prompt sinh ra")
     prompt_content: str = Field(..., min_length=10, description="Nội dung chi tiết của Prompt Template")
-    aspect_ratio_mode: Optional[str] = Field("none", description="Chế độ tỷ lệ ảnh (none, both, midjourney, natural)")
+    aspect_ratio_mode: Optional[str] = Field("none", description="Chế độ tỷ lệ ảnh (none, natural)")
     target_aspect_ratio: Optional[str] = Field("4:5", description="Tỷ lệ khung hình mục tiêu")
     is_default: bool = Field(False, description="Đặt làm mẫu mặc định")
 

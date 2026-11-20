@@ -849,25 +849,18 @@ async def generate_prompt_for_image_bytes(
         },
     }
 
-    def _package_result(raw_text: str) -> dict[str, Any]:
+    def _package_result(raw_text: str, raw_ai_text: str = "") -> dict[str, Any]:
         parsed = parse_title_and_prompt(raw_text)
         prompt_val = parsed.get("prompt", "")
-        # Use prompt directly as returned by AI; only append aspect ratio tag if user explicitly selected mode != "none"
-        if config.aspect_ratio_mode and config.aspect_ratio_mode != "none":
-            final_prompt_text = apply_aspect_ratio_to_prompt(
-                prompt_val,
-                aspect_ratio=aspect_ratio,
-                mode=config.aspect_ratio_mode,
-            )
-        else:
-            final_prompt_text = prompt_val
+        # Lấy trực tiếp prompt từ AI trả về, không custom lại prompt nữa (ví dụ: không gọi apply_aspect_ratio_to_prompt)
+        final_prompt_text = prompt_val
         t_val = parsed.get("title", "")
         s_val = parsed.get("slug", "") or generate_slugs_from_title_text(t_val)
         return {
             "title": t_val,
             "slug": s_val,
             "prompt": final_prompt_text,
-            "raw_output": raw_text.strip(),
+            "raw_output": (raw_ai_text or raw_text).strip(),
             "aspect_ratio": aspect_ratio,
             "width": w,
             "height": h,
@@ -882,7 +875,7 @@ async def generate_prompt_for_image_bytes(
                     content = data.get("message", {}).get("content", "")
                     cleaned = clean_extracted_prompt(content)
                     if cleaned:
-                        return _package_result(cleaned)
+                        return _package_result(cleaned, raw_ai_text=content.strip())
                     raise ImageToPromptError("Ollama trả về nội dung rỗng.")
 
                 err_body = await resp.text()
@@ -903,7 +896,7 @@ async def generate_prompt_for_image_bytes(
                             retry_content = retry_data.get("message", {}).get("content", "")
                             cleaned = clean_extracted_prompt(retry_content)
                             if cleaned:
-                                return _package_result(cleaned)
+                                return _package_result(cleaned, raw_ai_text=retry_content.strip())
 
                 # If Ollama endpoint itself is not found (e.g. legacy Ollama), fallback to /api/generate
                 if resp.status == 404 and "404 page not found" in err_body.lower():
@@ -922,7 +915,7 @@ async def generate_prompt_for_image_bytes(
                             gen_content = gen_data.get("response", "")
                             cleaned = clean_extracted_prompt(gen_content)
                             if cleaned:
-                                return _package_result(cleaned)
+                                return _package_result(cleaned, raw_ai_text=gen_content.strip())
                             raise ImageToPromptError("Ollama trả về nội dung rỗng.")
                         gen_err = await gen_resp.text()
                         raise ImageToPromptError(extract_ollama_error(gen_err))

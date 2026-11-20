@@ -157,7 +157,6 @@
                     <option value="chatgpt_cinematic">{{ t('image_to_prompt.preset_chatgpt_cinematic') }}</option>
                     <option value="gemini_photorealistic">{{ t('image_to_prompt.preset_gemini_photorealistic') }}</option>
                     <option value="cloud_illustration">{{ t('image_to_prompt.preset_cloud_illustration') }}</option>
-                    <option value="midjourney_tags">{{ t('image_to_prompt.preset_midjourney_tags') }}</option>
                     <option value="custom">{{ t('image_to_prompt.preset_custom') }}</option>
                 </select>
                 <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.preset_hint') }}</p>
@@ -192,8 +191,6 @@
                 <select id="aspect-ratio-mode"
                         class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs bg-slate-50/60 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition">
                     <option value="none" {% if default_aspect_ratio_mode == "none" or not default_aspect_ratio_mode %}selected{% endif %}>{{ t('image_to_prompt.aspect_ratio_mode_none') }}</option>
-                    <option value="both" {% if default_aspect_ratio_mode == "both" %}selected{% endif %}>{{ t('image_to_prompt.aspect_ratio_mode_both') }}</option>
-                    <option value="midjourney" {% if default_aspect_ratio_mode == "midjourney" %}selected{% endif %}>{{ t('image_to_prompt.aspect_ratio_mode_midjourney') }}</option>
                     <option value="natural" {% if default_aspect_ratio_mode == "natural" %}selected{% endif %}>{{ t('image_to_prompt.aspect_ratio_mode_natural') }}</option>
                 </select>
                 <p class="mt-1 text-[11px] text-slate-400">{{ t('image_to_prompt.aspect_ratio_hint') }}</p>
@@ -798,8 +795,7 @@
         detailed: {{ default_prompt|tojson }},
         chatgpt_cinematic: "Analyze this image and provide:\n1. A captivating Title (name) for the image in {output_language}.\n2. An evocative, narrative-driven Prompt in {output_language} tailored for ChatGPT and DALL-E 3. If a character is present, explicitly specify that the character's face is based on the reference image uploaded by the user (matching exact likeness, facial structure, eyes, nose, and lips). Describe the scene as a vivid cinematic moment: focal subject, subtle emotion, spatial depth, camera perspective, and ambient lighting mood.\n\nFormat your output strictly as:\nTitle: <image title in {output_language}>\n\nPrompt:\n<cinematic prompt in {output_language}>",
         gemini_photorealistic: "Analyze this image and provide:\n1. A descriptive Title (name) for the image in {output_language}.\n2. A photorealistic image generation Prompt in {output_language} optimized for Google Gemini (Imagen 3). If a character is present, explicitly specify that the character's face is based on the reference image uploaded by the user (matching exact likeness, facial structure, eyes, nose, and lips). Describe subject, composition, camera shot type, natural lighting, textures, depth of field, and color temperature.\n\nFormat your output strictly as:\nTitle: <image title in {output_language}>\n\nPrompt:\n<photorealistic prompt in {output_language}>",
-        cloud_illustration: "Analyze this image and provide:\n1. An artistic Title (name) for the image in {output_language}.\n2. A detailed illustration Prompt in {output_language} for Google Gemini or ChatGPT to recreate it as a high-quality digital artwork or anime illustration. If a character is present, explicitly specify that the character's face is based on the reference image uploaded by the user. Describe art style, linework, color harmonies, character visual details, and lighting.\n\nFormat your output strictly as:\nTitle: <image title in {output_language}>\n\nPrompt:\n<illustration prompt in {output_language}>",
-        midjourney_tags: "Analyze this image and provide:\n1. A short Title (name) for the image in {output_language}.\n2. A Prompt using descriptive keywords and visual tags for Midjourney and Stable Diffusion. If a character is present, explicitly specify that the character's face is based on the uploaded reference image. Include subject, style, lighting, color palette, camera shot, and artistic medium.\n\nFormat your output strictly as:\nTitle: <image title in {output_language}>\n\nPrompt:\n<tags prompt in {output_language}>"
+        cloud_illustration: "Analyze this image and provide:\n1. An artistic Title (name) for the image in {output_language}.\n2. A detailed illustration Prompt in {output_language} for Google Gemini or ChatGPT to recreate it as a high-quality digital artwork or anime illustration. If a character is present, explicitly specify that the character's face is based on the reference image uploaded by the user. Describe art style, linework, color harmonies, character visual details, and lighting.\n\nFormat your output strictly as:\nTitle: <image title in {output_language}>\n\nPrompt:\n<illustration prompt in {output_language}>"
     };
 
     async function checkOllamaConnection() {
