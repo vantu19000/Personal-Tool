@@ -45,6 +45,7 @@ def _get_configured_defaults():
     # Read from system block (cấu hình chung hệ thống), fallback to env or tool block
     openai_api_key = sys_block.get("openai_api_key") or block.get("openai_api_key") or os.getenv("OPENAI_API_KEY", "")
     openai_base_url = sys_block.get("openai_base_url") or block.get("openai_base_url") or os.getenv("OPENAI_BASE_URL", services.DEFAULT_OPENAI_BASE_URL)
+    seo_keywords = block.get("seo_keywords", "")
     return (
         model,
         prompt,
@@ -59,6 +60,7 @@ def _get_configured_defaults():
         reference_folder,
         openai_api_key,
         openai_base_url,
+        seo_keywords,
     )
 
 
@@ -80,6 +82,7 @@ async def image_to_prompt_page(request: Request):
         default_ref_folder,
         default_openai_key,
         default_openai_url,
+        default_seo_keywords,
     ) = _get_configured_defaults()
 
     try:
@@ -106,6 +109,7 @@ async def image_to_prompt_page(request: Request):
             "default_reference_folder": default_ref_folder,
             "default_openai_api_key": default_openai_key,
             "default_openai_base_url": default_openai_url,
+            "default_seo_keywords": default_seo_keywords,
             "image_models": services.SUPPORTED_IMAGE_MODELS,
             "image_qualities": services.SUPPORTED_IMAGE_QUALITIES,
             "languages": services.PROMPT_LANGUAGES,
@@ -189,6 +193,7 @@ async def image_to_prompt_single(
     character_desc: str = Form(""),
     aspect_ratio_mode: str = Form(""),
     target_aspect_ratio: str = Form("4:5"),
+    seo_keywords: str = Form(""),
     generate_image: bool = Form(False),
     image_model: str = Form(""),
     image_quality: str = Form(""),
@@ -219,6 +224,7 @@ async def image_to_prompt_single(
         def_ref_folder,
         def_openai_key,
         def_openai_url,
+        def_seo_keywords,
     ) = _get_configured_defaults()
 
     effective_api_key = openai_api_key.strip() or def_openai_key
@@ -226,6 +232,7 @@ async def image_to_prompt_single(
     effective_img_model = image_model.strip() or def_img_model
     effective_img_quality = image_quality.strip() or def_img_quality
     effective_ref_folder = reference_folder.strip() or def_ref_folder
+    effective_seo_keywords = seo_keywords.strip() or def_seo_keywords
 
     config = services.PromptConfig(
         model=model.strip() or def_model,
@@ -242,6 +249,7 @@ async def image_to_prompt_single(
         reference_folder=effective_ref_folder,
         openai_api_key=effective_api_key,
         openai_base_url=effective_base_url,
+        seo_keywords=effective_seo_keywords,
     )
 
     try:
@@ -311,6 +319,7 @@ async def image_to_prompt_save_defaults(
     character_desc: str = Form(""),
     aspect_ratio_mode: str = Form("none"),
     target_aspect_ratio: str = Form("4:5"),
+    seo_keywords: str = Form(""),
     generate_image: bool = Form(False),
     image_model: str = Form(services.DEFAULT_IMAGE_MODEL),
     image_quality: str = Form(services.DEFAULT_IMAGE_QUALITY),
@@ -328,6 +337,7 @@ async def image_to_prompt_save_defaults(
                 "system_prompt": prompt.strip() or services.DEFAULT_SYSTEM_PROMPT,
                 "aspect_ratio_mode": aspect_ratio_mode.strip() or services.DEFAULT_ASPECT_RATIO_MODE,
                 "target_aspect_ratio": target_aspect_ratio.strip() or services.DEFAULT_TARGET_ASPECT_RATIO,
+                "seo_keywords": seo_keywords.strip(),
                 "generate_image": generate_image,
                 "image_model": image_model.strip() or services.DEFAULT_IMAGE_MODEL,
                 "image_quality": image_quality.strip() or services.DEFAULT_IMAGE_QUALITY,
@@ -387,6 +397,7 @@ async def image_to_prompt_process(
     character_desc: str = Form(""),
     aspect_ratio_mode: str = Form(""),
     target_aspect_ratio: str = Form("4:5"),
+    seo_keywords: str = Form(""),
     auto_rename: bool = Form(True, description="Tự động đổi tên ảnh thành image-1.ext, image-2.ext... trước khi gọi Ollama"),
     generate_image: bool = Form(False, description="Tạo ảnh với OpenAI API từ prompt sinh ra"),
     image_model: str = Form(""),
@@ -430,6 +441,7 @@ async def image_to_prompt_process(
         def_ref_folder,
         def_openai_key,
         def_openai_url,
+        def_seo_keywords,
     ) = _get_configured_defaults()
 
     effective_api_key = openai_api_key.strip() or def_openai_key
@@ -437,6 +449,7 @@ async def image_to_prompt_process(
     effective_img_model = image_model.strip() or def_img_model
     effective_img_quality = image_quality.strip() or def_img_quality
     effective_ref_folder = reference_folder.strip() or def_ref_folder
+    effective_seo_keywords = seo_keywords.strip() or def_seo_keywords
 
     config = services.PromptConfig(
         model=model.strip() or def_model,
@@ -454,6 +467,7 @@ async def image_to_prompt_process(
         reference_folder=effective_ref_folder,
         openai_api_key=effective_api_key,
         openai_base_url=effective_base_url,
+        seo_keywords=effective_seo_keywords,
     )
 
     async def event_stream():

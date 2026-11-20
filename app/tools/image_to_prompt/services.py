@@ -238,6 +238,7 @@ class PromptConfig:
     reference_folder: str = ""
     openai_api_key: str = ""
     openai_base_url: str = DEFAULT_OPENAI_BASE_URL
+    seo_keywords: str = ""
 
 
 def prepare_prompt(
@@ -248,34 +249,65 @@ def prepare_prompt(
     width: int = 0,
     height: int = 0,
     aspect_ratio_mode: str = "none",
+    seo_keywords: str = "",
 ) -> str:
-    """Inject output language, character description, and aspect ratio into the prompt template."""
+    """Inject output language, character description, aspect ratio, image dimensions, and SEO keywords into the prompt template."""
     lang_name = PROMPT_LANGUAGES.get(language, language)
     p = prompt or DEFAULT_SYSTEM_PROMPT
 
+    # 1. Output Language ({output_language} and alias {language})
+    has_lang_var = ("{output_language}" in p) or ("{language}" in p)
     if "{output_language}" in p:
         p = p.replace("{output_language}", lang_name)
-    elif language.lower() not in ("en", "english"):
+    if "{language}" in p:
+        p = p.replace("{language}", lang_name)
+    if not has_lang_var and language.lower() not in ("en", "english"):
         p = (
             f"{p}\n\nImportant Requirement: Both the Titles (SEO names) and the generated image Prompt "
             f"MUST be written entirely in {lang_name}."
         )
 
-    # Character description (optional backward-compatibility if user custom prompt still has {character_description})
+    # 2. Aspect Ratio ({aspect_ratio} and alias {ratio})
+    ar_val = aspect_ratio or "4:5"
+    if "{aspect_ratio}" in p:
+        p = p.replace("{aspect_ratio}", ar_val)
+    if "{ratio}" in p:
+        p = p.replace("{ratio}", ar_val)
+    elif aspect_ratio and aspect_ratio_mode != "none" and "{aspect_ratio}" not in (prompt or "") and "{ratio}" not in (prompt or ""):
+        dim_info = f" ({width}x{height})" if width and height else ""
+        p = f"{p}\n\nAspect Ratio Guideline: Original image aspect ratio is {aspect_ratio}{dim_info}. Replicate this ratio."
+
+    # 3. Dimensions / Resolution ({dimensions}, {resolution}, {width}, {height})
+    dim_str = f"{width}x{height}" if (width and height) else ""
+    if "{dimensions}" in p:
+        p = p.replace("{dimensions}", dim_str or "auto")
+    if "{resolution}" in p:
+        p = p.replace("{resolution}", dim_str or "auto")
+    if "{width}" in p:
+        p = p.replace("{width}", str(width) if width else "")
+    if "{height}" in p:
+        p = p.replace("{height}", str(height) if height else "")
+
+    # 4. Character description (optional)
     if "{character_description}" in p:
         p = p.replace("{character_description}", character_description)
     elif character_description.strip():
         p = f"{p}\n\nCharacter Guideline: {character_description.strip()}."
 
-    # Aspect ratio
-    if "{aspect_ratio}" in p:
-        p = p.replace("{aspect_ratio}", aspect_ratio or "4:5")
-    elif aspect_ratio and aspect_ratio_mode != "none":
-        dim_info = f" ({width}x{height})" if width and height else ""
-        p = f"{p}\n\nAspect Ratio Guideline: Original image aspect ratio is {aspect_ratio}{dim_info}. Replicate this ratio."
-
-    if width and height:
-        p = p.replace("{width}", str(width)).replace("{height}", str(height))
+    # 5. SEO Keywords ({seo_keywords}, {seo_keyword}, {keywords})
+    has_seo_var = ("{seo_keywords}" in (prompt or "")) or ("{seo_keyword}" in (prompt or "")) or ("{keywords}" in (prompt or ""))
+    seo_clean = seo_keywords.strip()
+    if "{seo_keywords}" in p:
+        p = p.replace("{seo_keywords}", seo_clean)
+    if "{seo_keyword}" in p:
+        p = p.replace("{seo_keyword}", seo_clean)
+    if "{keywords}" in p:
+        p = p.replace("{keywords}", seo_clean)
+    if seo_clean and not has_seo_var:
+        p = (
+            f"{p}\n\nYêu cầu Từ khóa SEO (SEO Keywords): Trong 5 tiêu đề (Titles) và Slugs được tạo ra, "
+            f"BẮT BUỘC phải lồng ghép khéo léo và tối ưu các từ khóa SEO sau: {seo_clean}."
+        )
 
     return p
 
@@ -785,6 +817,7 @@ async def generate_prompt_for_image_bytes(
         width=w,
         height=h,
         aspect_ratio_mode=config.aspect_ratio_mode,
+        seo_keywords=config.seo_keywords,
     )
 
     b64_img = base64.b64encode(image_bytes).decode("utf-8")

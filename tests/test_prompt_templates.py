@@ -150,3 +150,97 @@ def test_image_to_prompt_template_selector_integration(client):
     assert 'id="btn-refresh-templates"' in r_page.text
     assert '/tools/prompt-templates' in r_page.text
     assert 'templatesCache' in r_page.text
+    assert 'insertVariableIntoBatchPrompt' in r_page.text
+    assert '{output_language}' in r_page.text
+    assert '{aspect_ratio}' in r_page.text
+
+
+def test_prepare_prompt_all_template_variables():
+    """Verify all template variables ({output_language}, {language}, {aspect_ratio}, {ratio}, {dimensions}, {width}, {height}, {character_description}) are correctly replaced."""
+    from app.tools.image_to_prompt.services import prepare_prompt
+
+    raw_template = (
+        "Output: {output_language} | Short: {language}\n"
+        "Ratio: {aspect_ratio} | Short Ratio: {ratio}\n"
+        "Size: {width}x{height} | Dim: {dimensions} | Res: {resolution}\n"
+        "Char: {character_description}"
+    )
+
+    result = prepare_prompt(
+        prompt=raw_template,
+        language="pt-BR",
+        character_description="A stylish businesswoman",
+        aspect_ratio="4:5",
+        width=1080,
+        height=1350,
+    )
+
+    assert "Output: Português - Brasil (Tiếng Bồ Đào Nha - Brazil) | Short: Português - Brasil (Tiếng Bồ Đào Nha - Brazil)" in result
+    assert "Ratio: 4:5 | Short Ratio: 4:5" in result
+    assert "Size: 1080x1350 | Dim: 1080x1350 | Res: 1080x1350" in result
+    assert "Char: A stylish businesswoman" in result
+
+
+def test_prompt_templates_variables_cheatsheet_rendered(client):
+    """Verify Prompt Templates management page renders the Variables Reference Guide and buttons."""
+    r = client.get("/tools/prompt-templates")
+    assert r.status_code == 200
+    assert "Danh sách các Biến hệ thống hỗ trợ trong Template" in r.text
+    assert "{output_language}" in r.text
+    assert "{aspect_ratio}" in r.text
+    assert "{dimensions}" in r.text
+    assert "{width}" in r.text
+    assert "{height}" in r.text
+    assert "{character_description}" in r.text
+    assert "{seo_keywords}" in r.text
+    assert "insertVariableIntoPrompt" in r.text
+
+
+def test_prepare_prompt_seo_keywords_variable_and_injection():
+    """Verify {seo_keywords} substitution and automatic injection if omitted from template."""
+    from app.tools.image_to_prompt.services import prepare_prompt
+
+    # Case A: Template contains {seo_keywords}
+    template_with_seo = "Title: Foto | Keywords: {seo_keywords} | Alias: {keywords}\nPrompt: Studio portrait."
+    res_a = prepare_prompt(
+        prompt=template_with_seo,
+        seo_keywords="ensaio feminino, moda executiva",
+    )
+    assert "Keywords: ensaio feminino, moda executiva | Alias: ensaio feminino, moda executiva" in res_a
+
+    # Case B: Template does NOT contain {seo_keywords}, but seo_keywords is provided
+    template_without_seo = "Title: Foto\nPrompt: Studio portrait."
+    res_b = prepare_prompt(
+        prompt=template_without_seo,
+        seo_keywords="ensaio feminino, moda executiva",
+    )
+    assert "Yêu cầu Từ khóa SEO (SEO Keywords)" in res_b
+    assert "ensaio feminino, moda executiva" in res_b
+
+    # Case C: No seo_keywords provided
+    res_c = prepare_prompt(
+        prompt=template_without_seo,
+        seo_keywords="",
+    )
+    assert "Yêu cầu Từ khóa SEO (SEO Keywords)" not in res_c
+
+
+def test_image_to_prompt_seo_keywords_integration(client):
+    """Verify Image to Prompt screen includes SEO keywords input and handles save-defaults."""
+    r = client.get("/tools/image-to-prompt")
+    assert r.status_code == 200
+    assert 'id="batch-seo-keywords"' in r.text
+    assert 'insertVariableIntoBatchPrompt(\'{seo_keywords}\')' in r.text
+
+    # Test save-defaults saves seo_keywords
+    res_save = client.post(
+        "/tools/image-to-prompt/save-defaults",
+        data={
+            "model": "qwen 3.8",
+            "language": "pt-BR",
+            "seo_keywords": "ensaio feminino, foto profissional",
+        },
+    )
+    assert res_save.status_code == 200
+    assert res_save.json()["status"] == "ok"
+
