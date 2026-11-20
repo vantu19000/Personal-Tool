@@ -1773,16 +1773,20 @@
             });
         }
 
+        let currentSingleRawOutput = "";
+
         if (copyAllBtn) {
             copyAllBtn.addEventListener("click", () => {
                 const titleStr = resultTitle ? resultTitle.textContent.trim() : "";
                 const slugStr = resultSlug ? resultSlug.textContent.trim() : "";
                 const promptStr = resultText ? resultText.textContent.trim() : "";
-                let combined = "";
-                if (slugStr) {
-                    combined = `Title:\n${titleStr}\n\nSlug:\n${slugStr}\n\nPrompt:\n${promptStr}`;
-                } else {
-                    combined = `Title: ${titleStr}\n\nPrompt:\n${promptStr}`;
+                let combined = currentSingleRawOutput;
+                if (!combined) {
+                    if (slugStr) {
+                        combined = `Title:\n${titleStr}\n\nSlug:\n${slugStr}\n\nPrompt:\n${promptStr}`;
+                    } else {
+                        combined = `Title: ${titleStr}\n\nPrompt:\n${promptStr}`;
+                    }
                 }
                 navigator.clipboard.writeText(combined).then(() => {
                     const original = copyAllBtn.innerHTML;
@@ -1850,6 +1854,7 @@
                     throw new Error(errMsg);
                 }
 
+                currentSingleRawOutput = data.raw_output || "";
                 if (resultTitle) resultTitle.textContent = data.title || "";
                 if (resultSlug) {
                     const slugContainer = document.getElementById("single-result-slug-container");

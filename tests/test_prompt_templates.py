@@ -236,11 +236,36 @@ def test_image_to_prompt_seo_keywords_integration(client):
     res_save = client.post(
         "/tools/image-to-prompt/save-defaults",
         data={
-            "model": "qwen 3.8",
+            "model": "qwen3.8:latest",
             "language": "pt-BR",
             "seo_keywords": "ensaio feminino, foto profissional",
         },
     )
     assert res_save.status_code == 200
     assert res_save.json()["status"] == "ok"
+
+
+def test_extract_prompt_when_prompt_section_is_first():
+    """Verify parse_title_and_prompt extracts the exact prompt when format is Prompt -> Title -> Slug."""
+    from app.tools.image_to_prompt.services import parse_title_and_prompt
+
+    ai_output = (
+        "Prompt:\n"
+        "A stylish businesswoman in navy blue blazer, standing in an executive glass office.\n\n"
+        "Title:\n"
+        "1, Mulher de Sucesso no Escritorio\n"
+        "2, Retrato Executivo Feminino\n\n"
+        "Slug:\n"
+        "1, mulher-de-sucesso-no-escritorio\n"
+        "2, retrato-executivo-feminino"
+    )
+
+    parsed = parse_title_and_prompt(ai_output)
+    # The prompt sent to chatgpt must be only the prompt content, excluding titles and slugs
+    assert parsed["prompt"] == "A stylish businesswoman in navy blue blazer, standing in an executive glass office."
+    assert "Title:" not in parsed["prompt"]
+    assert "Slug:" not in parsed["prompt"]
+    assert "Mulher de Sucesso" in parsed["title"]
+    assert "1. mulher-de-sucesso-no-escritorio" in parsed["slug"]
+
 

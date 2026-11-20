@@ -56,10 +56,14 @@ async def settings_save(request: Request):
     try:
         saved = settings_store.save_blocks(blocks)
     except settings_store.SettingsValidationError as exc:
+        current_data = settings_store.get_all()
+        for b_id, b_vals in blocks.items():
+            if b_id in current_data and isinstance(b_vals, dict):
+                current_data[b_id].update(b_vals)
         return templates.TemplateResponse(
             request,
             "settings.html",
-            _page_context(request, settings_store.get_all(), error=str(exc)),
+            _page_context(request, current_data, error=str(exc)),
             status_code=400,
         )
 

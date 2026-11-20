@@ -79,7 +79,7 @@ class SystemSettings(BaseModel):
 
     home_title: str = Field(..., max_length=300)
     home_description: str = Field(..., max_length=1000)
-    ollama_timeout_seconds: int = Field(600, ge=10, le=7200)
+    ollama_timeout_seconds: int = Field(600, ge=10, le=86400)
     ollama_base_url: str = Field("http://localhost:11434", max_length=200)
     openai_api_key: str = Field("", max_length=200)
     openai_base_url: str = Field("https://api.openai.com/v1", max_length=300)
@@ -100,7 +100,7 @@ class PdfToMdSettings(BaseModel):
 class ImageToPromptSettings(BaseModel):
     """Image to Prompt settings block."""
 
-    default_model: str = Field("qwen 3.8", max_length=100)
+    default_model: str = Field("qwen3.8:latest", max_length=100)
     default_language: str = Field("pt-BR", max_length=20)
     character_description: str = Field("", max_length=500)
     aspect_ratio_mode: str = Field("none", max_length=50)
@@ -110,7 +110,7 @@ class ImageToPromptSettings(BaseModel):
     image_quality: str = Field("medium", max_length=50)
     reference_folder: str = Field("", max_length=500)
     system_prompt: str = Field(..., min_length=5, max_length=8000)
-    timeout_seconds: int = Field(1200, ge=30, le=7200)
+    timeout_seconds: int = Field(1200, ge=30, le=86400)
 
 
 DEFAULT_IMAGE_TO_PROMPT = (
@@ -271,7 +271,7 @@ BLOCKS: Dict[str, BlockDef] = {
         description="Cấu hình cho tool dịch ngược ảnh sang prompt AI qua Ollama Vision.",
         model=ImageToPromptSettings,
         default={
-            "default_model": "qwen 3.8",
+            "default_model": "qwen3.8:latest",
             "default_language": "pt-BR",
             "character_description": "",
             "aspect_ratio_mode": "none",
@@ -483,6 +483,32 @@ class SettingsValidationError(ValueError):
     """Raised when submitted settings fail Pydantic validation."""
 
 
+def _format_validation_error(block_title: str, exc: ValidationError) -> str:
+    """Format Pydantic ValidationError into a user-friendly message."""
+    messages = []
+    for err in exc.errors():
+        field_name = " -> ".join(str(loc) for loc in err.get("loc", []))
+        msg = err.get("msg", "Giá trị không hợp lệ")
+        if "Input should be less than or equal to" in msg:
+            limit = msg.split("equal to")[-1].strip()
+            clean_msg = f"giá trị phải nhỏ hơn hoặc bằng {limit}"
+        elif "Input should be greater than or equal to" in msg:
+            limit = msg.split("equal to")[-1].strip()
+            clean_msg = f"giá trị phải lớn hơn hoặc bằng {limit}"
+        elif "String should have at least" in msg:
+            clean_msg = f"độ dài chuỗi quá ngắn ({msg})"
+        elif "String should have at most" in msg:
+            clean_msg = f"độ dài chuỗi vượt quá giới hạn ({msg})"
+        else:
+            clean_msg = msg
+
+        if field_name:
+            messages.append(f"[{block_title}] {field_name}: {clean_msg}")
+        else:
+            messages.append(f"[{block_title}]: {clean_msg}")
+    return "; ".join(messages) if messages else str(exc)
+
+
 def _default_data() -> Dict[str, Dict[str, Any]]:
     """Fresh defaults for every registered block."""
     return {block_id: copy.deepcopy(block.default) for block_id, block in BLOCKS.items()}
@@ -559,6 +585,7 @@ class SettingsStore:
         Raises :class:`SettingsValidationError` on invalid input.
         """
         with self._lock:
+            staged: Dict[str, Dict[str, Any]] = {}
             for block_id, values in (blocks or {}).items():
                 block = BLOCKS.get(block_id)
                 if block is None or not isinstance(values, dict):
@@ -573,8 +600,9 @@ class SettingsStore:
                 try:
                     validated = block.model.model_validate(candidate)
                 except ValidationError as exc:
-                    raise SettingsValidationError(str(exc)) from exc
-                self._data[block_id] = validated.model_dump()
+                    raise SettingsValidationError(_format_validation_error(block.title, exc)) from exc
+                staged[block_id] = validated.model_dump()
+            self._data.update(staged)
             self._persist()
             return copy.deepcopy(self._data)
 

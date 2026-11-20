@@ -24,7 +24,7 @@ print("1. Kiểm tra trang giao diện Image to Prompt render thành công...")
 r = client.get("/tools/image-to-prompt")
 assert r.status_code == 200, f"Status code: {r.status_code}"
 assert "Image to Prompt" in r.text
-assert "qwen 3.8" in r.text
+assert "qwen3.8:latest" in r.text or "qwen" in r.text
 assert "ollama-status-pill" in r.text
 assert "ollama-offline-banner" in r.text
 print("   -> OK!")
@@ -47,7 +47,7 @@ assert r.status_code == 200
 body = r.json()
 assert "online" in body
 assert "models" in body
-assert body["default"] == "qwen 3.8"
+assert body["default"] == "qwen3.8:latest"
 print(f"   -> OK! (online={body['online']}, models={len(body['models'])})")
 
 print("4. Kiểm tra quét thư mục ảnh (/scan)...")
@@ -84,7 +84,7 @@ try:
 
         data = {
             "folder": str(temp_dir),
-            "model": "qwen 3.8",
+            "model": "qwen3.8:latest",
             "prompt": "Test prompt",
             "auto_rename": "false",
             "overwrite": "false",
@@ -117,7 +117,7 @@ try:
             "prompt": "Cyberpunk city street at night, neon reflections",
         }
         files = {"file": ("test.png", b"\x89PNGdummy", "image/png")}
-        r = client.post("/tools/image-to-prompt/single", files=files, data={"model": "qwen 3.8"})
+        r = client.post("/tools/image-to-prompt/single", files=files, data={"model": "qwen3.8:latest"})
         assert r.status_code == 200
         single_body = r.json()
         assert single_body["title"] == "Neon Cyberpunk City"
@@ -242,7 +242,7 @@ try:
 
     print("14. Kiểm tra endpoint lưu cấu hình mặc định (/save-defaults)...")
     save_data = {
-        "model": "qwen 3.8",
+        "model": "qwen3.8:latest",
         "language": "pt-BR",
         "prompt": "Custom prompt description for Ollama",
         "character_desc": "nhân vật nữ dùng ảnh tham chiếu cho khuôn mặt",

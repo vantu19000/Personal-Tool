@@ -296,6 +296,7 @@ async def image_to_prompt_single(
             "title": prompt_title,
             "slug": slug_text,
             "prompt": prompt_text,
+            "raw_output": result.get("raw_output", ""),
             "aspect_ratio": result.get("aspect_ratio", "4:5"),
             "width": result.get("width", 0),
             "height": result.get("height", 0),
@@ -313,7 +314,7 @@ async def image_to_prompt_single(
 @router.post("/tools/image-to-prompt/save-defaults", name="image-to-prompt-save-defaults")
 @router.post("/image-to-prompt/save-defaults", name="image-to-prompt-save-defaults-direct")
 async def image_to_prompt_save_defaults(
-    model: str = Form("qwen 3.8"),
+    model: str = Form("qwen3.8:latest"),
     language: str = Form("pt-BR"),
     prompt: str = Form(""),
     character_desc: str = Form(""),
