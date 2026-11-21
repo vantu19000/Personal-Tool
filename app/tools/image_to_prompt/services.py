@@ -80,63 +80,7 @@ PROMPT_LANG_NAMES = {
     "es": "Spanish",
 }
 
-DEFAULT_SYSTEM_PROMPT = (
-    "Dịch ngược bức ảnh thành prompt tạo ảnh AI chi tiết, dùng để chia sẻ cho người khác.\n\n"
-    "YÊU CẦU QUAN TRỌNG VỀ KHUÔN MẶT THAM CHIẾU:\n"
-    "Prompt này sẽ được chia sẻ cho người khác. Khi họ dùng prompt, họ sẽ tải lên kèm khuôn mặt của họ để làm ảnh tham chiếu (reference image / face reference). "
-    "Do đó, trong nội dung prompt BẮT BUỘC phải nhắc đến việc: khuôn mặt và đặc điểm nhận diện của nhân vật (nhân vật nam hoặc nữ / male or female character / model tùy theo người trong ảnh gốc) sẽ dựa trên ảnh tham chiếu "
-    "do người dùng tải lên (ví dụ bằng {output_language}: 'o rosto e os traços faciais devem ser exatamente baseados na imagem de referência anexada'). "
-    "Tuyệt đối không mô tả chi tiết khuôn mặt gốc trong ảnh để người dùng dễ thay thế khuôn mặt của họ.\n\n"
-    "BẮT CHƯỚC TOÀN BỘ CÁC YẾU TỐ CÒN LẠI TỪ BỨC ẢNH GỐC:\n"
-    "- Không gian & Môi trường: Ánh sáng, bóng đổ, không khí xung quanh, nhiệt độ màu.\n"
-    "- Phong cách: Phong cách nhiếp ảnh chân thực, độ nét cao, chất lượng hình ảnh cao cấp.\n"
-    "- Khoảng cách camera: Cận cảnh (close-up), trung cảnh (medium shot) hoặc toàn thân (full-body).\n"
-    "- Vị trí & góc máy camera: Góc ngang tầm mắt (eye-level), góc thấp (low-angle), góc cao, v.v.\n"
-    "- Dáng người, hành động, hành vi & cảm xúc: Tư thế, cử chỉ tay, dáng người, cảm xúc tinh tế và chi tiết tới mức nhân vật (nam hoặc nữ) đang nhìn vào đâu (ví dụ: nhìn thẳng vào ống kính, nhìn nghiêng 45 độ, ánh mắt suy tư...).\n"
-    "- Tông màu: Bảng màu chủ đạo, độ tương phản và ánh sáng.\n"
-    "- Background: Hậu cảnh, bối cảnh xung quanh, chi tiết nội thất/ngoại cảnh và độ sâu trường ảnh (bokeh).\n"
-    "- Tỷ lệ ảnh: {aspect_ratio}.\n\n"
-    "GỢI Ý 5 TIÊU ĐỀ CHO PROMPT & SLUG (TỐI ƯU SEO):\n"
-    "Gợi ý cho tôi 5 cái tên (tiêu đề) cho prompt và slug tương ứng, tối ưu SEO tốt bằng {output_language}.\n"
-    "Yêu cầu độ dài: Mỗi tiêu đề BẮT BUỘC phải ngắn gọn, súc tích và GIỚI HẠN DƯỚI 80 KÝ TỰ (tối đa 80 ký tự) để tối ưu hiển thị SEO.\n"
-    "Định dạng bắt buộc cho từng tiêu đề (nhận diện đúng chủ thể nam hoặc nữ từ ảnh gốc):\n"
-    "[Loại ảnh: Retrato / Foto Editorial / Foto Executiva] + [Chủ thể: de uma mulher elegante / Feminina (nếu là nữ) hoặc de um homem elegante / Masculino (nếu là nam)] + [Tư thế/Bối cảnh/Điểm nhấn]\n\n"
-    "CẤU TRÚC PHẦN PROMPT (BẮT BUỘC CHIA THEO TỪNG PHẦN, MỖI PHẦN XUỐNG DÒNG):\n"
-    "Trong mục 'Prompt:', KHÔNG ĐƯỢC viết thành một đoạn văn duy nhất. BẮT BUỘC phải chia theo từng phần rõ ràng, mỗi phần nằm trên một dòng riêng biệt:\n"
-    "- Subject: Mô tả chủ thể (nam hoặc nữ), độ tuổi ước tính và chỉ định khuôn mặt dựa trên ảnh tham chiếu đính kèm bằng {output_language}.\n"
-    "- Pose: Tư thế, dáng đứng/ngồi, cử chỉ tay chân, hướng cơ thể bằng {output_language}.\n"
-    "- Expression: Biểu cảm khuôn mặt, ánh mắt nhìn thẳng vào ống kính máy ảnh hoặc nhìn nghiêng bằng {output_language}.\n"
-    "- Clothing: Trang phục, phụ kiện, màu sắc, chất liệu vải bằng {output_language}.\n"
-    "- Background: Hậu cảnh, bối cảnh không gian, chi tiết nội thất/ngoại cảnh, độ mờ trường ảnh (bokeh) bằng {output_language}.\n"
-    "- Lighting: Ánh sáng, bóng đổ, nguồn sáng, nhiệt độ màu, ánh sáng tự nhiên/studio bằng {output_language}.\n"
-    "- Camera: Khoảng cách camera (close-up/medium shot/full-body), góc máy, tiêu cự ống kính bằng {output_language}.\n"
-    "- Style: Phong cách nhiếp ảnh chân thực (photorealistic), độ sắc nét cao cấp bằng {output_language}.\n\n"
-    "NGÔN NGỮ ĐẦU RA:\n"
-    "- Cả 5 Tiêu đề và Nội dung các phần trong Prompt BẮT BUỘC phải viết bằng: {output_language}.\n"
-    "- Slug: là slug URL chuẩn SEO viết thường, không dấu, ngăn cách bằng dấu gạch ngang (-) cho từng tiêu đề tương ứng.\n\n"
-    "ĐỊNH DẠNG TRẢ VỀ (Bắt buộc giữ đúng các nhãn 'Title:', 'Slug:' và 'Prompt:'):\n"
-    "Title:\n"
-    "1. <Tiêu đề 1 dưới 80 ký tự>\n"
-    "2. <Tiêu đề 2 dưới 80 ký tự>\n"
-    "3. <Tiêu đề 3 dưới 80 ký tự>\n"
-    "4. <Tiêu đề 4 dưới 80 ký tự>\n"
-    "5. <Tiêu đề 5 dưới 80 ký tự>\n\n"
-    "Slug:\n"
-    "1. <slug-tieu-de-1>\n"
-    "2. <slug-tieu-de-2>\n"
-    "3. <slug-tieu-de-3>\n"
-    "4. <slug-tieu-de-4>\n"
-    "5. <slug-tieu-de-5>\n\n"
-    "Prompt:\n"
-    "Subject: <mô tả chủ thể & khuôn mặt tham chiếu bằng {output_language}>\n"
-    "Pose: <mô tả tư thế, cử chỉ bằng {output_language}>\n"
-    "Expression: <mô tả biểu cảm, ánh mắt bằng {output_language}>\n"
-    "Clothing: <mô tả trang phục bằng {output_language}>\n"
-    "Background: <mô tả bối cảnh, hậu cảnh bằng {output_language}>\n"
-    "Lighting: <mô tả ánh sáng, không khí bằng {output_language}>\n"
-    "Camera: <mô tả góc máy, khoảng cách bằng {output_language}>\n"
-    "Style: <mô tả phong cách ảnh bằng {output_language}>"
-)
+DEFAULT_SYSTEM_PROMPT = ""
 
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tiff"}
 
@@ -254,6 +198,8 @@ def prepare_prompt(
     """Inject output language, character description, aspect ratio, image dimensions, and SEO keywords into the prompt template."""
     lang_name = PROMPT_LANGUAGES.get(language, language)
     p = prompt or DEFAULT_SYSTEM_PROMPT
+    if not p:
+        return ""
 
     # 1. Output Language ({output_language} and alias {language})
     has_lang_var = ("{output_language}" in p) or ("{language}" in p)
