@@ -150,7 +150,7 @@ try:
     assert prepare_prompt(tpl, "en") == "Describe in English."
     assert "Vietnamese (Tiếng Việt)" in prepare_prompt(tpl, "vi")
     custom_p = "A custom prompt without placeholders."
-    assert "Vietnamese" in prepare_prompt(custom_p, "vi")
+    assert prepare_prompt(custom_p, "vi") == custom_p
     assert prepare_prompt(custom_p, "en") == custom_p
     print("   -> OK! Ngôn ngữ và prompt tùy chỉnh hoạt động chính xác.")
 

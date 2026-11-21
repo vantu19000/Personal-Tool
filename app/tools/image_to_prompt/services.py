@@ -195,65 +195,32 @@ def prepare_prompt(
     aspect_ratio_mode: str = "none",
     seo_keywords: str = "",
 ) -> str:
-    """Inject output language, character description, aspect ratio, image dimensions, and SEO keywords into the prompt template."""
-    lang_name = PROMPT_LANGUAGES.get(language, language)
+    """Only find and replace template variables in the prompt, with no additional text or guidelines appended."""
     p = prompt or DEFAULT_SYSTEM_PROMPT
     if not p:
         return ""
 
+    lang_name = PROMPT_LANGUAGES.get(language, language)
+    ar_val = aspect_ratio or "4:5"
+    dim_str = f"{width}x{height}" if (width and height) else ""
+    seo_clean = seo_keywords.strip()
+
     # 1. Output Language ({output_language} and alias {language})
-    has_lang_var = ("{output_language}" in p) or ("{language}" in p)
-    if "{output_language}" in p:
-        p = p.replace("{output_language}", lang_name)
-    if "{language}" in p:
-        p = p.replace("{language}", lang_name)
-    if not has_lang_var and language.lower() not in ("en", "english"):
-        p = (
-            f"{p}\n\nImportant Requirement: Both the Titles (SEO names) and the generated image Prompt "
-            f"MUST be written entirely in {lang_name}."
-        )
+    p = re.sub(r"\{\s*(?:output_language|language)\s*\}", lang_name, p, flags=re.IGNORECASE)
 
     # 2. Aspect Ratio ({aspect_ratio} and alias {ratio})
-    ar_val = aspect_ratio or "4:5"
-    if "{aspect_ratio}" in p:
-        p = p.replace("{aspect_ratio}", ar_val)
-    if "{ratio}" in p:
-        p = p.replace("{ratio}", ar_val)
-    elif aspect_ratio and aspect_ratio_mode != "none" and "{aspect_ratio}" not in (prompt or "") and "{ratio}" not in (prompt or ""):
-        dim_info = f" ({width}x{height})" if width and height else ""
-        p = f"{p}\n\nAspect Ratio Guideline: Original image aspect ratio is {aspect_ratio}{dim_info}. Replicate this ratio."
+    p = re.sub(r"\{\s*(?:aspect_ratio|ratio)\s*\}", ar_val, p, flags=re.IGNORECASE)
 
     # 3. Dimensions / Resolution ({dimensions}, {resolution}, {width}, {height})
-    dim_str = f"{width}x{height}" if (width and height) else ""
-    if "{dimensions}" in p:
-        p = p.replace("{dimensions}", dim_str or "auto")
-    if "{resolution}" in p:
-        p = p.replace("{resolution}", dim_str or "auto")
-    if "{width}" in p:
-        p = p.replace("{width}", str(width) if width else "")
-    if "{height}" in p:
-        p = p.replace("{height}", str(height) if height else "")
+    p = re.sub(r"\{\s*(?:dimensions|resolution)\s*\}", dim_str or "auto", p, flags=re.IGNORECASE)
+    p = re.sub(r"\{\s*width\s*\}", str(width) if width else "", p, flags=re.IGNORECASE)
+    p = re.sub(r"\{\s*height\s*\}", str(height) if height else "", p, flags=re.IGNORECASE)
 
-    # 4. Character description (optional)
-    if "{character_description}" in p:
-        p = p.replace("{character_description}", character_description)
-    elif character_description.strip():
-        p = f"{p}\n\nCharacter Guideline: {character_description.strip()}."
+    # 4. Character description ({character_description})
+    p = re.sub(r"\{\s*character_description\s*\}", character_description, p, flags=re.IGNORECASE)
 
     # 5. SEO Keywords ({seo_keywords}, {seo_keyword}, {keywords})
-    has_seo_var = ("{seo_keywords}" in (prompt or "")) or ("{seo_keyword}" in (prompt or "")) or ("{keywords}" in (prompt or ""))
-    seo_clean = seo_keywords.strip()
-    if "{seo_keywords}" in p:
-        p = p.replace("{seo_keywords}", seo_clean)
-    if "{seo_keyword}" in p:
-        p = p.replace("{seo_keyword}", seo_clean)
-    if "{keywords}" in p:
-        p = p.replace("{keywords}", seo_clean)
-    if seo_clean and not has_seo_var:
-        p = (
-            f"{p}\n\nYêu cầu Từ khóa SEO (SEO Keywords): Trong 5 tiêu đề (Titles) và Slugs được tạo ra, "
-            f"BẮT BUỘC phải lồng ghép khéo léo và tối ưu các từ khóa SEO sau: {seo_clean}."
-        )
+    p = re.sub(r"\{\s*(?:seo_keywords|seo_keyword|keywords)\s*\}", seo_clean, p, flags=re.IGNORECASE)
 
     return p
 
@@ -764,18 +731,18 @@ async def generate_prompt_for_image_bytes(
     images_payload = [b64_img]
 
     final_prompt = base_prompt
-    if config.reference_face_bytes:
-        b64_ref = base64.b64encode(config.reference_face_bytes).decode("utf-8")
-        images_payload.append(b64_ref)
-        final_prompt = (
-            f"IMPORTANT: You are analyzing TWO images.\n"
-            f"- Image 1: Main scene & composition image (defines subject pose, clothing, actions, environment, lighting, and style).\n"
-            f"- Image 2: Reference face image (defines the character's face, facial likeness, eyes, nose, lips, facial structure, skin tone, and identity).\n\n"
-            f"CRITICAL INSTRUCTION: The character's face in the generated prompt MUST be strictly the person in Image 2 (the uploaded reference face image). "
-            f"Do NOT describe the face from Image 1. Instead, describe the face using the exact facial characteristics of Image 2, and explicitly state in the prompt: "
-            f"'The character's face is identical to the uploaded reference face image, perfectly matching the facial features, structure, eyes, nose, lips, skin tone, and likeness of the reference photo.'\n\n"
-            f"{base_prompt}"
-        )
+    # if config.reference_face_bytes:
+    #     b64_ref = base64.b64encode(config.reference_face_bytes).decode("utf-8")
+    #     images_payload.append(b64_ref)
+    #     final_prompt = (
+    #         f"IMPORTANT: You are analyzing TWO images.\n"
+    #         f"- Image 1: Main scene & composition image (defines subject pose, clothing, actions, environment, lighting, and style).\n"
+    #         f"- Image 2: Reference face image (defines the character's face, facial likeness, eyes, nose, lips, facial structure, skin tone, and identity).\n\n"
+    #         f"CRITICAL INSTRUCTION: The character's face in the generated prompt MUST be strictly the person in Image 2 (the uploaded reference face image). "
+    #         f"Do NOT describe the face from Image 1. Instead, describe the face using the exact facial characteristics of Image 2, and explicitly state in the prompt: "
+    #         f"'The character's face is identical to the uploaded reference face image, perfectly matching the facial features, structure, eyes, nose, lips, skin tone, and likeness of the reference photo.'\n\n"
+    #         f"{base_prompt}"
+    #     )
 
     base = config.base_url.rstrip("/")
     timeout = aiohttp.ClientTimeout(total=config.timeout_seconds, connect=30.0)
